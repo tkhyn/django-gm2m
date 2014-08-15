@@ -5,7 +5,7 @@ django-gm2m
 
 Django generic many-to-many field implementation.
 
-This django application exposes a ``GenericManyToManyField`` that combines
+This django application exposes a ``GM2MField`` that combines
 the features of the standard Django ``ManyToManyField`` and
 ``GenericForeighKey``.
 
