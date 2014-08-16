@@ -2,11 +2,12 @@ from collections import defaultdict
 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
-from django.db.models import signals
 from django.db.backends import util
 from django.db import connection, router
-from django.conf import settings
-
+from django.db.models import Manager
+from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
+from django.db.models.query import QuerySet
+from django.utils.functional import cached_property
 
 CT_ATTNAME = 'content_type'
 PK_ATTNAME = 'object_id'
@@ -14,8 +15,8 @@ FK_ATTNAME = 'gfk'
 FK_QS_NAME = FK_ATTNAME + '_set'
 
 
-from django.db.models import Manager
-from django.db.models.query import QuerySet, EmptyQuerySet
+def get_content_type(obj):
+    return ContentType.objects.db_manager(obj._state.db).get_for_model(obj)
 
 
 class GM2MQuerySet(QuerySet):
@@ -32,17 +33,6 @@ class GM2MQuerySet(QuerySet):
         for i in super(GM2MQuerySet, self).iterator():
             yield getattr(i, FK_ATTNAME)
 
-    def none(self):
-        clone = self._clone(klass=EmptyGM2MQuerySet)
-        if hasattr(clone.query, 'set_empty'):
-            clone.query.set_empty()
-        return clone
-
-
-class EmptyGM2MQuerySet(GM2MQuerySet, EmptyQuerySet):
-    def fetch_generic_relations(self, *args):
-        return self
-
 
 def create_gm2m_intermediate_model(field, klass):
     """
@@ -53,10 +43,13 @@ def create_gm2m_intermediate_model(field, klass):
 
     managed = klass._meta.managed
     name = '%s_%s' % (klass._meta.object_name, field.name)
-    from_ = klass._meta.model_name.lower()
+    from_ = klass._meta.model_name
+
+    db_table = util.truncate_name('%s_%s' % (klass._meta.db_table, field.name),
+                                  connection.ops.max_name_length())
 
     meta = type('Meta', (object,), {
-        'db_table': field._get_m2m_db_table(klass._meta),
+        'db_table': db_table,
         'managed': managed,
         'auto_created': klass,
         'app_label': klass._meta.app_label,
@@ -69,11 +62,9 @@ def create_gm2m_intermediate_model(field, klass):
     return type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
-        from_: models.ForeignKey(klass, related_name='%s+' % name,
-                                 db_tablespace=field.db_tablespace,
-                                 db_constraint=field.db_constraint),
+        from_: models.ForeignKey(klass),
         CT_ATTNAME: models.ForeignKey(ContentType),
-        PK_ATTNAME: models.CharField(max_length=255),
+        PK_ATTNAME: models.CharField(max_length=16),
         FK_ATTNAME: generic.GenericForeignKey()
     })
 
@@ -99,7 +90,7 @@ def create_gm2m_related_manager():
                 return GM2MQuerySet(self.through)._next_is_sticky().filter(**self.core_filters)
 
         def add(self, *objs):
-            source_field_name = self.instance.__class__._meta.model_name.lower()
+            source_field_name = self.instance.__class__._meta.model_name
             # source_field_name: the PK fieldname in join table for the source object
             # *objs - object instances to add
 
@@ -110,8 +101,7 @@ def create_gm2m_related_manager():
             ct_pks = defaultdict(lambda: set())
             for obj in objs:
                 # Convert the obj to (content_type, primary_key)
-                obj_ct = ContentType.objects.db_manager(obj._state.db) \
-                                            .get_for_model(obj)
+                obj_ct = get_content_type(obj)
                 obj_pk = obj.pk
                 ct_pks[obj_ct].add(obj_pk)
 
@@ -134,11 +124,32 @@ def create_gm2m_related_manager():
                 for pk in pks
                 for ct, pks in ct_pks.iteritems()
             ])
-
-        def none(self):
-            return GM2MQuerySet(self.through).none()
+        add.alters_data = True
 
     return GM2MManager
+
+
+class GM2MDescriptor(ReverseManyRelatedObjectsDescriptor):
+    """
+    Provides a generic many-to-many descriptor to make the related manager
+    available from the source model class
+    """
+
+    @property
+    def through(self):
+        return self.field.through
+
+    @cached_property
+    def related_manager_cls(self):
+        return create_gm2m_related_manager()
+
+    def __get__(self, instance, instance_type=None):
+        if instance is None:
+            return self
+        return self.related_manager_cls(instance, self.field.through)
+
+    def __set__(self, instance, value):
+        self.__get__(instance).add(*value)
 
 
 class GM2MField(object):
@@ -147,112 +158,13 @@ class GM2MField(object):
     generic model storing content-type/object-id information
     """
 
-    def __init__(self, **kwargs):
-        self.db_table = kwargs.pop('db_table', None)
-        self.db_tablespace = settings.DEFAULT_INDEX_TABLESPACE
-        self.db_constraint = True
-
-    def __get__(self, instance, instance_type=None):
-        if instance is None:
-            return self
-
-        return create_gm2m_related_manager()(instance, self.to)
-
-    def __set__(self, instance, values):
-        mngr = self.to.objects
-        for value in values:
-            if value is not None:
-                new_item, __ = self.rel.through.objects.get_or_create(
-                    content_type=self.get_content_type(obj=value),
-                    object_id=value._get_pk_val()
-                )
-                mngr.add(new_item)
-                instance.save()
-
     def contribute_to_class(self, cls, name):
         self.name = name
         self.model = cls
         self.cache_attr = "_%s_cache" % name
 
-        self.to = create_gm2m_intermediate_model(self, cls)
+        self.through = create_gm2m_intermediate_model(self, cls)
         cls._meta.add_virtual_field(self)
 
-        signals.pre_init.connect(self.instance_pre_init, sender=cls,
-                                 weak=False)
-
-        # Connect myself as the descriptor for this field
-        setattr(cls, name, self)
-
-    def instance_pre_init(self, signal, sender, args, kwargs, **_kwargs):
-        """
-        Handles initializing objects with the generic FKs instead of
-        content-type/object-id fields.
-        """
-        if self.name in kwargs:
-            values = kwargs.pop(self.name)
-            ct_values = []
-            for v in values:
-                ct_values.append({CT_ATTNAME: self.get_content_type(obj=v),
-                                  PK_ATTNAME: v._get_pk_val()})
-            kwargs[self.name] = ct_values
-
-    def _get_m2m_db_table(self, opts):
-        """
-        M2M table name for this relation
-        """
-        return self.db_table \
-            or util.truncate_name('%s_%s' % (opts.db_table, self.name),
-                                  connection.ops.max_name_length())
-
-    def get_prefetch_queryset(self, instances):
-        # For efficiency, group the instances by content type and then do one
-        # query per model
-        fk_dict = defaultdict(set)
-        # We need one intermediate instance for each group in order to get the
-        # right db:
-        inter_instance_dict = {}
-
-        m2m_attname = self.model._meta.get_field(self.name).get_attname()
-        q = None
-        for instance in instances:
-            q_ = getattr(instance, m2m_attname)
-            if q:
-                q = q | q_
-            else:
-                q = q_
-
-        # one query here to get content types and object ids for all the
-        # related objects
-        for inter_instance in q:
-            ct_id = getattr(inter_instance, CT_ATTNAME)
-            if ct_id is not None:
-                fk_val = getattr(inter_instance, self.fk_field)
-                if fk_val is not None:
-                    fk_dict[ct_id].add(fk_val)
-                    inter_instance_dict[ct_id] = inter_instance
-
-        ret_val = []
-        for ct_id, fkeys in fk_dict.items():
-            inter_instance = inter_instance_dict[ct_id]
-            ct = self.get_content_type(id=ct_id,
-                                       using=inter_instance._state.db)
-            ret_val.extend(ct.get_all_objects_for_this_type(pk__in=fkeys))
-
-        # For doing the join in Python, we have to match both the FK val and
-        # the content type, so we use a callable that returns a (fk, class)
-        # pair.
-        def gfk_key(obj):
-            ct_id = getattr(obj, CT_ATTNAME)
-            if ct_id is None:
-                return None
-            else:
-                model = self.get_content_type(id=ct_id, using=obj._state.db) \
-                            .model_class()
-                fk_f = getattr(obj, self.fk_field)
-                return (model._meta.pk.get_prep_value(fk_f), model)
-
-        return (ret_val,
-                lambda obj: (obj._get_pk_val(), obj.__class__),
-                gfk_key,
-                True,
-                self.cache_attr)
+        # Connect the descriptor for this field
+        setattr(cls, name, GM2MDescriptor(self))
