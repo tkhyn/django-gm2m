@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from django.db import router
 from django.db.models import Manager, Q
+from django.utils import six
 
 from .query import GM2MQuerySet
 from .models import CT_ATTNAME, PK_ATTNAME
@@ -52,20 +53,17 @@ def create_gm2m_related_manager():
             vals = self.through._default_manager.using(db) \
                                  .values_list(CT_ATTNAME, PK_ATTNAME) \
                                  .filter(**{self.src_field_name: self._fk_val})
-            for ct, pks in ct_pks.iteritems():
+            to_add = []
+            for ct, pks in six.iteritems(ct_pks):
                 ctvals = vals.filter(**{'%s__exact' % CT_ATTNAME: ct.pk,
                                         '%s__in' % PK_ATTNAME: pks})
-                pks.difference_update(ctvals)
-
-            # Add the new entries in the db table
-            to_add = []
-            for ct, pks in ct_pks.iteritems():
-                for pk in pks:
+                for pk in pks.difference(ctvals):
                     to_add.append(self.through(**{
                         '%s_id' % self.src_field_name: self._fk_val,
                         CT_ATTNAME: ct,
                         PK_ATTNAME: pk
                     }))
+            # Add the new entries in the db table
             self.through._default_manager.using(db).bulk_create(to_add)
         add.alters_data = True
 

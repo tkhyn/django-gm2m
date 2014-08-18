@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from django.db.models.query import QuerySet
 from django.contrib.contenttypes.models import ContentType
+from django.utils import six
 
 from .models import CT_ATTNAME, PK_ATTNAME
 
@@ -22,8 +23,8 @@ class GM2MQuerySet(QuerySet):
         in super(GM2MQuerySet, self).values_list(CT_ATTNAME, PK_ATTNAME):
             ct_pks[ct].append(pk)
 
-        for ct, pks in ct_pks.iteritems():
-            for __, obj in ContentType.objects.get_for_id(ct).model_class() \
-                                              ._default_manager.in_bulk(pks) \
-                                              .iteritems():
+        for ct, pks in six.iteritems(ct_pks):
+            for __, obj in six.iteritems(
+                ContentType.objects.get_for_id(ct).model_class()
+                                   ._default_manager.in_bulk(pks)):
                 yield obj
