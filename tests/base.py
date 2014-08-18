@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.utils import unittest
+from django import test
 
 from .models import Links
 
@@ -10,7 +10,7 @@ __test__ = False
 __unittest = True
 
 
-class TestCase(unittest.TestCase):
+class TestCase(test.TestCase):
 
     to_link = ()
 

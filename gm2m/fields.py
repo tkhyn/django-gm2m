@@ -79,19 +79,23 @@ def create_gm2m_related_manager():
 
             self.instance = instance
             self._fk_val = instance.pk
+            self.src_field_name = self.instance.__class__._meta.model_name
 
             self.through = through
-            self.core_filters = {'id__exact': instance.pk}
+            self.core_filters = {'%s_id' % self.src_field_name: instance.pk}
 
         def get_queryset(self):
             try:
-                return self.instance._prefetched_objects_cache[self.prefetch_cache_name]
+                return self.instance \
+                           ._prefetched_objects_cache[self.prefetch_cache_name]
             except (AttributeError, KeyError):
-                return GM2MQuerySet(self.through)._next_is_sticky().filter(**self.core_filters)
+                return GM2MQuerySet(self.through)._next_is_sticky() \
+                                                 .filter(**self.core_filters)
 
         def add(self, *objs):
-            source_field_name = self.instance.__class__._meta.model_name
-            # source_field_name: the PK fieldname in join table for the source object
+            """
+            Adds objects to the GM2M field
+            """
             # *objs - object instances to add
 
             if not objs:
@@ -108,23 +112,30 @@ def create_gm2m_related_manager():
             db = router.db_for_write(self.through, instance=self.instance)
             vals = self.through._default_manager.using(db) \
                                  .values_list(CT_ATTNAME, PK_ATTNAME) \
-                                 .filter(**{source_field_name: self._fk_val})
+                                 .filter(**{self.src_field_name: self._fk_val})
             for ct, pks in ct_pks.iteritems():
                 ctvals = vals.filter(**{'%s__exact' % CT_ATTNAME: ct.pk,
                                         '%s__in' % PK_ATTNAME: pks})
                 pks.difference_update(ctvals)
 
             # Add the new entries in the db table
-            self.through._default_manager.using(db).bulk_create([
-                self.through(**{
-                    '%s_id' % source_field_name: self._fk_val,
-                    CT_ATTNAME: ct,
-                    PK_ATTNAME: pk
-                })
-                for pk in pks
-                for ct, pks in ct_pks.iteritems()
-            ])
+            to_add = []
+            for ct, pks in ct_pks.iteritems():
+                for pk in pks:
+                    to_add.append(self.through(**{
+                        '%s_id' % self.src_field_name: self._fk_val,
+                        CT_ATTNAME: ct,
+                        PK_ATTNAME: pk
+                    }))
+            self.through._default_manager.using(db).bulk_create(to_add)
         add.alters_data = True
+
+        def clear(self):
+            db = router.db_for_write(self.through, instance=self.instance)
+            self.through._default_manager.using(db).filter(**{
+                '%s_id' % self.src_field_name: self._fk_val
+            }).delete()
+        clear.alters_data = True
 
     return GM2MManager
 
@@ -149,7 +160,9 @@ class GM2MDescriptor(ReverseManyRelatedObjectsDescriptor):
         return self.related_manager_cls(instance, self.field.through)
 
     def __set__(self, instance, value):
-        self.__get__(instance).add(*value)
+        manager = self.__get__(instance)
+        manager.clear()
+        manager.add(*value)
 
 
 class GM2MField(object):
