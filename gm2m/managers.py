@@ -1,12 +1,13 @@
 from collections import defaultdict
 
+import django
 from django.db import router
 from django.db.models import Manager, Q
 from django.utils import six
 
 from .query import GM2MQuerySet
 from .models import CT_ATTNAME, PK_ATTNAME
-from .helpers import get_content_type
+from .helpers import get_content_type, get_model_name
 
 
 def create_gm2m_related_manager():
@@ -19,7 +20,8 @@ def create_gm2m_related_manager():
 
             self.instance = instance
             self._fk_val = instance.pk
-            self.src_field_name = self.instance.__class__._meta.model_name
+
+            self.src_field_name = get_model_name(self.instance.__class__)
 
             self.through = through
             self.core_filters = {'%s_id' % self.src_field_name: instance.pk}
@@ -31,6 +33,8 @@ def create_gm2m_related_manager():
             except (AttributeError, KeyError):
                 return GM2MQuerySet(self.through)._next_is_sticky() \
                                                  .filter(**self.core_filters)
+        if django.VERSION < (1, 6):
+            get_query_set = get_queryset
 
         def add(self, *objs):
             """

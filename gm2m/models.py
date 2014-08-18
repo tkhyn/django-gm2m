@@ -3,6 +3,8 @@ from django.db import connection
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
+from .helpers import get_model_name
+
 
 CT_ATTNAME = 'content_type'
 PK_ATTNAME = 'object_id'
@@ -18,7 +20,8 @@ def create_gm2m_intermediate_model(field, klass):
 
     managed = klass._meta.managed
     name = '%s_%s' % (klass._meta.object_name, field.name)
-    from_ = klass._meta.model_name
+
+    from_ = get_model_name(klass)
 
     db_table = util.truncate_name('%s_%s' % (klass._meta.db_table, field.name),
                                   connection.ops.max_name_length())
