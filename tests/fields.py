@@ -16,3 +16,9 @@ class LinksTests(TestCase):
         self.links.related_objects = [self.project1]
         self.assertEqual(self.links.related_objects.count(), 1)
         self.assertEqual(self.links.related_objects.all()[0], self.project1)
+
+    def test_remove(self):
+        self.links.related_objects = [self.project1, self.task1]
+        self.links.related_objects.remove(self.project1)
+        self.assertEqual(self.links.related_objects.count(), 1)
+        self.assertEqual(self.links.related_objects.all()[0], self.task1)

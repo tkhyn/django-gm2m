@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.db.backends import util
 from django.db import connection, router
-from django.db.models import Manager
+from django.db.models import Manager, Q
 from django.db.models.fields.related import ReverseManyRelatedObjectsDescriptor
 from django.db.models.query import QuerySet
 from django.utils.functional import cached_property
@@ -129,6 +129,30 @@ def create_gm2m_related_manager():
                     }))
             self.through._default_manager.using(db).bulk_create(to_add)
         add.alters_data = True
+
+        def remove(self, *objs):
+            """
+            Removes objects from the GM2M field
+            """
+            # *objs - objects to remove
+
+            if not objs:
+                return
+
+            # sorting by content type to rationalise the number of queries
+            q = Q()
+            for obj in objs:
+                # Convert the obj to (content_type, primary_key)
+                q = q | Q(**{
+                    CT_ATTNAME: get_content_type(obj),
+                    PK_ATTNAME: obj.pk
+                })
+
+            db = router.db_for_write(self.through, instance=self.instance)
+            self.through._default_manager.using(db).filter(**{
+                '%s_id' % self.src_field_name: self._fk_val
+            }).filter(q).delete()
+        remove.alters_data = True
 
         def clear(self):
             db = router.db_for_write(self.through, instance=self.instance)
