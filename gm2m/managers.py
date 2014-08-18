@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.db import router
 from django.db.models import Manager, Q
 
-from .querysets import GM2MQuerySet
+from .query import GM2MQuerySet
 from .models import CT_ATTNAME, PK_ATTNAME
 from .helpers import get_content_type
 
