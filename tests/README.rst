@@ -1,5 +1,5 @@
 django-gm2m tests
-=====================
+=================
 
 If you are reading this, you're interested in contributing to django-gm2m.
 Great news!
@@ -11,13 +11,15 @@ especially if you're not familiar with zc.buildout and/or tox.
 The tests
 ---------
 
-django-gm2m uses nose_ and django_nose_ for testing. All the tests are in the
-``tests`` directory, and the nose test runner uses the ``all-modules`` option
-which is defined in ``tests/setup.cfg``. This means that any object which is
-not intended to contain tests (e.g. a base classes module) shall contain the
-statement ``__test__ = False``.
+django-gm2m uses nose_ and django_nose_ for testing. All the test modules are
+contained in individual dummy Django apps in the ``tests`` directory. The test
+modules are named ``tests*.py`` so that nose can discover them, and the test
+classes are subclasses of ``tests.base.TestCase`` so that when running
+tests in an app, the app is automatically enabled and the associated models
+defined in ``models.py`` are created. After the tests have finished, the app
+is disabled and the models are destroyed for the next test run.
 
-The ``setup.cfg`` file also contains coverage pre-configuration information,
+The ``setup.cfg`` file contains coverage pre-configuration information,
 but coverage is disabled by default.
 
 Using buildout

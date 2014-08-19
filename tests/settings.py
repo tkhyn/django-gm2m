@@ -12,7 +12,6 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'gm2m',
     'django_nose',
-    'tests',
 )
 
 MIDDLEWARE_CLASSES = ()  # so that Django 1.7 does not complain
