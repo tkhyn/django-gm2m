@@ -13,4 +13,5 @@ class LinksTests(TestCase):
     def test_related_accessor(self):
         self.links.related_objects.add(self.project)
         self.links.save()
+        self.assertEqual(self.project.links_set.count(), 1)
         self.assertIn(self.links, self.project.links_set.all())
