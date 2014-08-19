@@ -1,4 +1,5 @@
-from .models import Project, Task, Links
+from ..models import Project, Task
+from .models import Links
 
 from ..base import TestCase
 

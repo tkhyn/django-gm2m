@@ -5,13 +5,13 @@ from django.contrib.contenttypes import generic
 
 from .helpers import get_model_name
 
+SRC_ATTNAME = '_src'
+TGT_ATTNAME = '_tgt'
+CT_ATTNAME = '_content_type'
+PK_ATTNAME = '_object_id'
 
-CT_ATTNAME = 'content_type'
-PK_ATTNAME = 'object_id'
-FK_ATTNAME = 'gfk'
 
-
-def create_gm2m_intermediate_model(field, klass):
+def create_gm2m_intermediary_model(field, klass):
     """
     Creates a generic M2M model for the GM2M field 'field' on model 'klass'
     """
@@ -21,7 +21,7 @@ def create_gm2m_intermediate_model(field, klass):
     managed = klass._meta.managed
     name = '%s_%s' % (klass._meta.object_name, field.name)
 
-    from_ = get_model_name(klass)
+    model_name = get_model_name(klass)
 
     db_table = util.truncate_name('%s_%s' % (klass._meta.db_table, field.name),
                                   connection.ops.max_name_length())
@@ -32,16 +32,16 @@ def create_gm2m_intermediate_model(field, klass):
         'auto_created': klass,
         'app_label': klass._meta.app_label,
         'db_tablespace': klass._meta.db_tablespace,
-        'unique_together': (from_, CT_ATTNAME, PK_ATTNAME),
-        'verbose_name': '%s-generic relationship' % from_,
-        'verbose_name_plural': '%s-generic relationships' % from_,
+        'unique_together': (SRC_ATTNAME, CT_ATTNAME, PK_ATTNAME),
+        'verbose_name': '%s-generic relationship' % model_name,
+        'verbose_name_plural': '%s-generic relationships' % model_name,
     })
 
     return type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
-        from_: models.ForeignKey(klass),
+        SRC_ATTNAME: models.ForeignKey(klass),
         CT_ATTNAME: models.ForeignKey(ContentType),
         PK_ATTNAME: models.CharField(max_length=16),
-        FK_ATTNAME: generic.GenericForeignKey()
+        TGT_ATTNAME: generic.GenericForeignKey()
     })

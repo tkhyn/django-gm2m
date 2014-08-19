@@ -5,34 +5,53 @@ from django.db import router
 from django.db.models import Manager, Q
 from django.utils import six
 
-from .query import GM2MQuerySet
+from .query import create_gm2m_queryset
 from .models import CT_ATTNAME, PK_ATTNAME
-from .helpers import get_content_type, get_model_name
+from .helpers import get_content_type
 
 
-def create_gm2m_related_manager():
+def create_gm2m_related_manager(rel=None):
     """
-    Dynamically create a manager class that only concerns an instance
+    Dynamically create a manager class that only concerns an instance (source
+    or target)
     """
     class GM2MManager(Manager):
-        def __init__(self, instance, through):
+        def __init__(self, model, instance, through, query_field_name,
+                     source_field_name):
             super(GM2MManager, self).__init__()
 
             self.instance = instance
-            self._fk_val = instance.pk
+            self.query_field_name = query_field_name
 
-            self.src_field_name = get_model_name(self.instance.__class__)
+            self.core_filters = {}
+            if rel:
+                self.model = rel.field.model
+                source_related_fields = []
+                self.core_filters[CT_ATTNAME] = get_content_type(instance)
+                self.core_filters[PK_ATTNAME] = instance.pk
+            else:
+                self.model = None
+                source_field = through._meta.get_field(source_field_name)
+                source_related_fields = source_field.related_fields
+                for __, rh_field in source_related_fields:
+                    key = '%s__%s' % (query_field_name, rh_field.name)
+                    self.core_filters[key] = getattr(instance,
+                                                     rh_field.attname)
 
             self.through = through
-            self.core_filters = {'%s_id' % self.src_field_name: instance.pk}
+            self.source_field_name = source_field_name
+
+            self._fk_val = instance.pk
 
         def get_queryset(self):
             try:
                 return self.instance \
                            ._prefetched_objects_cache[self.prefetch_cache_name]
             except (AttributeError, KeyError):
-                return GM2MQuerySet(self.through)._next_is_sticky() \
-                                                 .filter(**self.core_filters)
+                db = self._db or router.db_for_read(self.instance.__class__,
+                                                    instance=self.instance)
+                return create_gm2m_queryset(self.through, self.model).using(db) \
+                           ._next_is_sticky().filter(**self.core_filters)
         if django.VERSION < (1, 6):
             get_query_set = get_queryset
 
@@ -56,14 +75,14 @@ def create_gm2m_related_manager():
             db = router.db_for_write(self.through, instance=self.instance)
             vals = self.through._default_manager.using(db) \
                                  .values_list(CT_ATTNAME, PK_ATTNAME) \
-                                 .filter(**{self.src_field_name: self._fk_val})
+                                 .filter(**{self.source_field_name: self._fk_val})
             to_add = []
             for ct, pks in six.iteritems(ct_pks):
                 ctvals = vals.filter(**{'%s__exact' % CT_ATTNAME: ct.pk,
                                         '%s__in' % PK_ATTNAME: pks})
                 for pk in pks.difference(ctvals):
                     to_add.append(self.through(**{
-                        '%s_id' % self.src_field_name: self._fk_val,
+                        '%s_id' % self.source_field_name: self._fk_val,
                         CT_ATTNAME: ct,
                         PK_ATTNAME: pk
                     }))
@@ -91,14 +110,14 @@ def create_gm2m_related_manager():
 
             db = router.db_for_write(self.through, instance=self.instance)
             self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.src_field_name: self._fk_val
+                '%s_id' % self.source_field_name: self._fk_val
             }).filter(q).delete()
         remove.alters_data = True
 
         def clear(self):
             db = router.db_for_write(self.through, instance=self.instance)
             self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.src_field_name: self._fk_val
+                '%s_id' % self.source_field_name: self._fk_val
             }).delete()
         clear.alters_data = True
 
