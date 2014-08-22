@@ -18,7 +18,8 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
 
     @cached_property
     def related_manager_cls(self):
-        return create_gm2m_related_manager(self.rel)
+        return create_gm2m_related_manager(
+            self.rel.to._default_manager.__class__, self.rel)
 
     def __get__(self, instance, instance_type=None):
         if instance is None:

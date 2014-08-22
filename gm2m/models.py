@@ -5,10 +5,10 @@ from django.contrib.contenttypes import generic
 
 from .helpers import get_model_name
 
-SRC_ATTNAME = '_src'
-TGT_ATTNAME = '_tgt'
-CT_ATTNAME = '_content_type'
-PK_ATTNAME = '_object_id'
+SRC_ATTNAME = 'gm2m_src'
+TGT_ATTNAME = 'gm2m_tgt'
+CT_ATTNAME = 'gm2m_content_type'
+PK_ATTNAME = 'gm2m_object_id'
 
 
 def create_gm2m_intermediary_model(field, klass):

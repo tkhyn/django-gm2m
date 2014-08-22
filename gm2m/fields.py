@@ -1,5 +1,6 @@
-from django.db.models.fields.related import \
-    RelatedObject, add_lazy_relation, RECURSIVE_RELATIONSHIP_CONSTANT
+from django.db.models.fields.related import RelatedField, RelatedObject, \
+    add_lazy_relation, RECURSIVE_RELATIONSHIP_CONSTANT
+from django.db.models.related import PathInfo
 from django.utils import six
 
 from .models import create_gm2m_intermediary_model, SRC_ATTNAME, TGT_ATTNAME
@@ -25,7 +26,7 @@ class GM2MRelatedObject(RelatedObject):
             return self.rel.related_name or (self.opts.model_name)
 
 
-class GM2MField(object):
+class GM2MField(RelatedField):
     """
     Provides a generic relation to several generic objects through a
     generic model storing content-type/object-id information
@@ -51,29 +52,9 @@ class GM2MField(object):
 
             self.rels.append(GM2MRel(self, to))
 
-    def _get_path_info(self, direct=False):
-        """
-        Called by both direct an indirect m2m traversal.
-        """
-        pathinfos = []
-        int_model = self.through
-        linkfield1 = int_model._meta.get_field_by_name(SRC_ATTNAME)[0]
-        linkfield2 = int_model._meta.get_field_by_name(TGT_ATTNAME)[0]
-        if direct:
-            join1infos = linkfield1.get_reverse_path_info()
-            join2infos = linkfield2.get_path_info()
-        else:
-            join1infos = linkfield2.get_reverse_path_info()
-            join2infos = linkfield1.get_path_info()
-        pathinfos.extend(join1infos)
-        pathinfos.extend(join2infos)
-        return pathinfos
-
-    def get_path_info(self):
-        return self._get_path_info(direct=True)
-
     def get_reverse_path_info(self):
-        return self._get_path_info(direct=False)
+        linkfield = self.through._meta.get_field_by_name(SRC_ATTNAME)[0]
+        return linkfield.get_reverse_path_info()
 
     def db_type(self, connection):
         """

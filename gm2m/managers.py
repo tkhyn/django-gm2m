@@ -5,17 +5,25 @@ from django.db import router
 from django.db.models import Manager, Q
 from django.utils import six
 
-from .query import create_gm2m_queryset
+from .query import GM2MTgtQuerySet
 from .models import CT_ATTNAME, PK_ATTNAME
 from .helpers import get_content_type
 
 
-def create_gm2m_related_manager(rel=None):
+class GM2MTgtManager(Manager):
+
+    def get_queryset(self):
+        return GM2MTgtQuerySet(self.model, using=self._db)
+    if django.VERSION < (1, 6):
+        get_query_set = get_queryset
+
+
+def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
     """
     Dynamically create a manager class that only concerns an instance (source
     or target)
     """
-    class GM2MManager(Manager):
+    class GM2MManager(superclass):
         def __init__(self, model, instance, through, query_field_name,
                      source_field_name):
             super(GM2MManager, self).__init__()
@@ -25,12 +33,16 @@ def create_gm2m_related_manager(rel=None):
 
             self.core_filters = {}
             if rel:
+                # we have a relation, so the manager's model is the source
+                # model
                 self.model = rel.field.model
                 source_related_fields = []
-                self.core_filters[CT_ATTNAME] = get_content_type(instance)
-                self.core_filters[PK_ATTNAME] = instance.pk
+                self.core_filters['related_objects__%s' % CT_ATTNAME] = get_content_type(instance)
+                self.core_filters['related_objects__%s' % PK_ATTNAME] = instance.pk
             else:
-                self.model = None
+                # we have no relation provided, the manager's model is the
+                # through model
+                self.model = through
                 source_field = through._meta.get_field(source_field_name)
                 source_related_fields = source_field.related_fields
                 for __, rh_field in source_related_fields:
@@ -50,7 +62,7 @@ def create_gm2m_related_manager(rel=None):
             except (AttributeError, KeyError):
                 db = self._db or router.db_for_read(self.instance.__class__,
                                                     instance=self.instance)
-                return create_gm2m_queryset(self.through, self.model).using(db) \
+                return super(GM2MManager, self).get_queryset().using(db) \
                            ._next_is_sticky().filter(**self.core_filters)
         if django.VERSION < (1, 6):
             get_query_set = get_queryset
@@ -75,7 +87,8 @@ def create_gm2m_related_manager(rel=None):
             db = router.db_for_write(self.through, instance=self.instance)
             vals = self.through._default_manager.using(db) \
                                  .values_list(CT_ATTNAME, PK_ATTNAME) \
-                                 .filter(**{self.source_field_name: self._fk_val})
+                                 .filter(**{self.source_field_name:
+                                                self._fk_val})
             to_add = []
             for ct, pks in six.iteritems(ct_pks):
                 ctvals = vals.filter(**{'%s__exact' % CT_ATTNAME: ct.pk,
