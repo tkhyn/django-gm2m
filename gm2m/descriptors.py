@@ -28,7 +28,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
             model=self.related.model,
             instance=instance,
             through=self.rel.through,
-            query_field_name=self.related.field.name,
+            query_field_name=self.related.field.related_query_name(),
             source_field_name=TGT_ATTNAME,
         )
 
@@ -44,6 +44,9 @@ class ReverseGM2MRelatedDescriptor(ReverseManyRelatedObjectsDescriptor):
     available from a target model class
     """
 
+    def add_relation(self, *args, **kwargs):
+        return self.field.add_relation(*args, **kwargs)
+
     @cached_property
     def related_manager_cls(self):
         return create_gm2m_related_manager()
@@ -56,7 +59,7 @@ class ReverseGM2MRelatedDescriptor(ReverseManyRelatedObjectsDescriptor):
             instance=instance,
             through=self.field.through,
             query_field_name=SRC_ATTNAME,
-            source_field_name=SRC_ATTNAME
+            source_field_name=SRC_ATTNAME,
         )
 
     def __set__(self, instance, value):

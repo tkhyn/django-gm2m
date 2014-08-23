@@ -3,10 +3,11 @@ from django.contrib.contenttypes.generic import GenericRel
 
 class GM2MRel(GenericRel):
 
-    def __init__(self, field, to, related_name=None, limit_choices_to=None,
-                 through=None):
-        super(GM2MRel, self).__init__(field, to, related_name,
-                                      limit_choices_to)
+    def __init__(self, field, to, through=None):
+
+        super(GM2MRel, self).__init__(field, to)
+
+        self.multiple = True
         self.through = through
 
     def get_related_field(self):
