@@ -2,6 +2,7 @@ from django.db.models.fields.related import ManyRelatedObjectsDescriptor, \
                                             ReverseManyRelatedObjectsDescriptor
 from django.utils.functional import cached_property
 
+
 from .managers import create_gm2m_related_manager
 from .models import SRC_ATTNAME, TGT_ATTNAME
 

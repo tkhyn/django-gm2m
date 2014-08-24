@@ -25,3 +25,25 @@ class LinksTests(TestCase):
         Links.related_objects.add_relation(Task)
         self.assertEqual(task.links_set.count(), 1)
         self.assertIn(self.links, task.links_set.all())
+
+
+class DeletionTests(TestCase):
+
+    def setUp(self):
+        self.project1 = Project.objects.create()
+        self.project2 = Project.objects.create()
+        self.links = Links.objects.create()
+
+    def test_delete_src(self):
+        self.links.related_objects = [self.project1, self.project2]
+        self.links.save()
+        self.links.delete()
+        self.assertEqual(self.project1.links_set.count(), 0)
+        self.assertEqual(self.project2.links_set.count(), 0)
+
+    def test_delete_tgt(self):
+        self.links.related_objects = [self.project1, self.project2]
+        self.links.save()
+        self.project2.delete()
+        self.assertEqual(self.links.related_objects.count(), 1)
+        self.assertNotIn(self.project2, self.links.related_objects.all())

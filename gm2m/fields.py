@@ -1,10 +1,35 @@
 from django.db.models.fields.related import RelatedField, RelatedObject, \
     add_lazy_relation, RECURSIVE_RELATIONSHIP_CONSTANT
+from django.db.models import Q
+from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils import six
-
-from .models import create_gm2m_intermediary_model, SRC_ATTNAME
+from .models import create_gm2m_intermediary_model, \
+                    CT_ATTNAME, PK_ATTNAME, SRC_ATTNAME
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .relations import GM2MRel
+from .helpers import get_content_type
+
+
+class GM2MRelatedObject(RelatedObject):
+
+    def __init__(self, parent_model, model, field, rel):
+        super(GM2MRelatedObject, self).__init__(parent_model, model, field)
+        self.rel = rel
+
+    def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
+        """
+        Return all objects related to objs
+        """
+
+        q = Q()
+        for obj in objs:
+            # Convert each obj to (content_type, primary_key)
+            q = q | Q(**{
+                CT_ATTNAME: get_content_type(obj),
+                PK_ATTNAME: obj.pk
+            })
+
+        return self.field.through._base_manager.db_manager(using).filter(q)
 
 
 class GM2MField(RelatedField):
@@ -108,7 +133,7 @@ class GM2MField(RelatedField):
             self.do_related_class(other, rel)
 
     def do_related_class(self, other, rel):
-        self.related = RelatedObject(other, self.model, self)
+        self.related = GM2MRelatedObject(other, self.model, self, rel)
         if not self.model._meta.abstract:
             self.contribute_to_related_class(other, self.related, rel)
 
@@ -126,6 +151,7 @@ class GM2MField(RelatedField):
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
         if not rel.is_hidden() and not related.model._meta.swapped:
+            cls._meta.add_virtual_field(related)
             setattr(cls, self._related_name or (self.opts.model_name + '_set'),
                     GM2MRelatedDescriptor(related, rel))
 
