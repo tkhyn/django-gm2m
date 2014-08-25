@@ -8,7 +8,7 @@ from .helpers import get_model_name
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'
 CT_ATTNAME = 'gm2m_content_type'
-PK_ATTNAME = 'gm2m_object_id'
+FK_ATTNAME = 'gm2m_object_id'
 
 
 def create_gm2m_intermediary_model(field, klass):
@@ -32,7 +32,7 @@ def create_gm2m_intermediary_model(field, klass):
         'auto_created': klass,
         'app_label': klass._meta.app_label,
         'db_tablespace': klass._meta.db_tablespace,
-        'unique_together': (SRC_ATTNAME, CT_ATTNAME, PK_ATTNAME),
+        'unique_together': (SRC_ATTNAME, CT_ATTNAME, FK_ATTNAME),
         'verbose_name': '%s-generic relationship' % model_name,
         'verbose_name_plural': '%s-generic relationships' % model_name,
     })
@@ -42,6 +42,7 @@ def create_gm2m_intermediary_model(field, klass):
         '__module__': klass.__module__,
         SRC_ATTNAME: models.ForeignKey(klass),
         CT_ATTNAME: models.ForeignKey(ContentType),
-        PK_ATTNAME: models.CharField(max_length=16),
-        TGT_ATTNAME: generic.GenericForeignKey()
+        FK_ATTNAME: models.CharField(max_length=16),
+        TGT_ATTNAME: generic.GenericForeignKey(ct_field=CT_ATTNAME,
+                                               fk_field=FK_ATTNAME)
     })

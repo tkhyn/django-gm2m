@@ -4,8 +4,6 @@ from django.db.models.query import QuerySet
 from django.contrib.contenttypes.models import ContentType
 from django.utils import six
 
-from .models import CT_ATTNAME, PK_ATTNAME
-
 
 class GM2MTgtQuerySet(QuerySet):
     """
@@ -19,8 +17,10 @@ class GM2MTgtQuerySet(QuerySet):
         Fetch the actual objects by content types to optimize database access
         """
         ct_pks = defaultdict(lambda: [])
+        field_names = self.model._meta._field_names
         for ct, pk \
-        in super(GM2MTgtQuerySet, self).values_list(CT_ATTNAME, PK_ATTNAME):
+        in super(GM2MTgtQuerySet, self).values_list(field_names['tgt_ct'],
+                                                    field_names['tgt_fk']):
             ct_pks[ct].append(pk)
 
         for ct, pks in six.iteritems(ct_pks):

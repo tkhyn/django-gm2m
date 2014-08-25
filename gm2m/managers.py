@@ -6,7 +6,6 @@ from django.db.models import Manager, Q
 from django.utils import six
 
 from .query import GM2MTgtQuerySet
-from .models import CT_ATTNAME, PK_ATTNAME
 from .helpers import get_content_type
 
 
@@ -25,11 +24,14 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
     """
     class GM2MManager(superclass):
         def __init__(self, model, instance, through, query_field_name,
-                     source_field_name):
+                     field_names):
             super(GM2MManager, self).__init__()
 
             self.instance = instance
             self.query_field_name = query_field_name
+
+            self.through = through
+            self.field_names = field_names
 
             self.core_filters = {}
             if rel:
@@ -37,21 +39,20 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
                 # model
                 self.model = rel.field.model
                 source_related_fields = []
-                self.core_filters['related_objects__%s' % CT_ATTNAME] = get_content_type(instance)
-                self.core_filters['related_objects__%s' % PK_ATTNAME] = instance.pk
+                self.core_filters['related_objects__%s'
+                    % self.field_names['tgt_ct']] = get_content_type(instance)
+                self.core_filters['related_objects__%s'
+                    % self.field_names['tgt_fk']] = instance.pk
             else:
                 # we have no relation provided, the manager's model is the
                 # through model
                 self.model = through
-                source_field = through._meta.get_field(source_field_name)
+                source_field = through._meta.get_field(self.field_names['src'])
                 source_related_fields = source_field.related_fields
                 for __, rh_field in source_related_fields:
                     key = '%s__%s' % (query_field_name, rh_field.name)
                     self.core_filters[key] = getattr(instance,
                                                      rh_field.attname)
-
-            self.through = through
-            self.source_field_name = source_field_name
 
             self._fk_val = instance.pk
 
@@ -67,11 +68,23 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
         if django.VERSION < (1, 6):
             get_query_set = get_queryset
 
+        def check_through_model(self, method_name):
+            # If the GM2M relation has an intermediary model,
+            # the add and remove methods are not available.
+            if not self.through._meta.auto_created:
+                opts = self.through._meta
+                raise AttributeError(
+                    'Cannot use %s() on a ManyToManyField which specifies an '
+                    'intermediary model. Use %s.%s\'s Manager instead.'
+                    % (method_name, opts.app_label, opts.object_name))
+
         def add(self, *objs):
             """
             Adds objects to the GM2M field
             """
             # *objs - object instances to add
+
+            self.check_through_model('add')
 
             if not objs:
                 return
@@ -86,18 +99,21 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
 
             db = router.db_for_write(self.through, instance=self.instance)
             vals = self.through._default_manager.using(db) \
-                                 .values_list(CT_ATTNAME, PK_ATTNAME) \
-                                 .filter(**{self.source_field_name:
+                                 .values_list(self.field_names['tgt_ct'],
+                                              self.field_names['tgt_fk']) \
+                                 .filter(**{self.field_names['src']:
                                                 self._fk_val})
             to_add = []
             for ct, pks in six.iteritems(ct_pks):
-                ctvals = vals.filter(**{'%s__exact' % CT_ATTNAME: ct.pk,
-                                        '%s__in' % PK_ATTNAME: pks})
+                ctvals = vals.filter(**{'%s__exact' %
+                                        self.field_names['tgt_ct']: ct.pk,
+                                        '%s__in' %
+                                        self.field_names['tgt_fk']: pks})
                 for pk in pks.difference(ctvals):
                     to_add.append(self.through(**{
-                        '%s_id' % self.source_field_name: self._fk_val,
-                        CT_ATTNAME: ct,
-                        PK_ATTNAME: pk
+                        '%s_id' % self.field_names['src']: self._fk_val,
+                        self.field_names['tgt_ct']: ct,
+                        self.field_names['tgt_fk']: pk
                     }))
             # Add the new entries in the db table
             self.through._default_manager.using(db).bulk_create(to_add)
@@ -109,6 +125,8 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
             """
             # *objs - objects to remove
 
+            self.check_through_model('remove')
+
             if not objs:
                 return
 
@@ -117,20 +135,20 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
             for obj in objs:
                 # Convert the obj to (content_type, primary_key)
                 q = q | Q(**{
-                    CT_ATTNAME: get_content_type(obj),
-                    PK_ATTNAME: obj.pk
+                    self.field_names['tgt_ct']: get_content_type(obj),
+                    self.field_names['tgt_fk']: obj.pk
                 })
 
             db = router.db_for_write(self.through, instance=self.instance)
             self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.source_field_name: self._fk_val
+                '%s_id' % self.field_names['src']: self._fk_val
             }).filter(q).delete()
         remove.alters_data = True
 
         def clear(self):
             db = router.db_for_write(self.through, instance=self.instance)
             self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.source_field_name: self._fk_val
+                '%s_id' % self.field_names['src']: self._fk_val
             }).delete()
         clear.alters_data = True
 

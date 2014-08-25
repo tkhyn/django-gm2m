@@ -4,7 +4,6 @@ from django.utils.functional import cached_property
 
 
 from .managers import create_gm2m_related_manager
-from .models import SRC_ATTNAME, TGT_ATTNAME
 
 
 class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
@@ -30,7 +29,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
             instance=instance,
             through=self.rel.through,
             query_field_name=self.related.field.related_query_name(),
-            source_field_name=TGT_ATTNAME,
+            field_names=self.related.field.through._meta._field_names,
         )
 
     def __set__(self, instance, value):
@@ -55,12 +54,13 @@ class ReverseGM2MRelatedDescriptor(ReverseManyRelatedObjectsDescriptor):
     def __get__(self, instance, instance_type=None):
         if instance is None:
             return self
+        field_names = self.field.through._meta._field_names
         return self.related_manager_cls(
             model=self.field.model,
             instance=instance,
             through=self.field.through,
-            query_field_name=SRC_ATTNAME,
-            source_field_name=SRC_ATTNAME,
+            query_field_name=field_names['src'],
+            field_names=field_names,
         )
 
     def __set__(self, instance, value):

@@ -3,8 +3,9 @@ from django.db.models.fields.related import RelatedField, RelatedObject, \
 from django.db.models import Q
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils import six
-from .models import create_gm2m_intermediary_model, \
-                    CT_ATTNAME, PK_ATTNAME, SRC_ATTNAME
+from django.contrib.contenttypes.generic import GenericForeignKey
+
+from .models import create_gm2m_intermediary_model
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .relations import GM2MRel
 from .helpers import get_content_type
@@ -21,12 +22,13 @@ class GM2MRelatedObject(RelatedObject):
         Return all objects related to objs
         """
 
+        field_names = self.field.through._meta._field_names
         q = Q()
         for obj in objs:
             # Convert each obj to (content_type, primary_key)
             q = q | Q(**{
-                CT_ATTNAME: get_content_type(obj),
-                PK_ATTNAME: obj.pk
+                field_names['tgt_ct']: get_content_type(obj),
+                field_names['tgt_fk']: obj.pk
             })
 
         return self.field.through._base_manager.db_manager(using).filter(q)
@@ -80,7 +82,9 @@ class GM2MField(RelatedField):
         self._contribute_to_class(rel)
 
     def get_reverse_path_info(self):
-        linkfield = self.through._meta.get_field_by_name(SRC_ATTNAME)[0]
+        linkfield = \
+            self.through._meta.get_field_by_name(
+                self.through._meta._field_names['src'])[0]
         return linkfield.get_reverse_path_info()
 
     def db_type(self, connection):
@@ -102,7 +106,8 @@ class GM2MField(RelatedField):
         self.model = cls
         self.opts = cls._meta
 
-        self.through = create_gm2m_intermediary_model(self, cls)
+        if not self.through:
+            self.through = create_gm2m_intermediary_model(self, cls)
         cls._meta.add_virtual_field(self)
 
         # Connect the descriptor for this field
@@ -115,6 +120,38 @@ class GM2MField(RelatedField):
                 'app_label': self.model._meta.app_label.lower()
             }
             self._related_name = related_name
+
+        def calc_field_names(field):
+            # Extract field names from through model
+            field_names = {}
+            for f in field.through._meta.fields:
+                if hasattr(f, 'rel') and f.rel \
+                and (f.rel.to == self.model
+                     or f.rel.to == '%s.%s' % (field.model.__module__,
+                                               field.model.__name__)):
+                    field_names['src'] = f.name
+                    break
+            for f in field.through._meta.virtual_fields:
+                if isinstance(f, GenericForeignKey):
+                    field_names['tgt'] = f.name
+                    field_names['tgt_ct'] = f.ct_field
+                    field_names['tgt_fk'] = f.fk_field
+                    break
+
+            if not set(field_names.keys()).issuperset(('src', 'tgt')):
+                raise ValueError('Bad through model for GM2M '
+                                 'relationship.')
+
+            field.through._meta._field_names = field_names
+
+        # resolve through model if it's provided as a string
+        if isinstance(self.through, six.string_types):
+            def resolve_through_model(field, model, cls):
+                field.through = model
+                calc_field_names(field)
+            add_lazy_relation(cls, self, self.through, resolve_through_model)
+        else:
+            calc_field_names(self)
 
         # Set up related classes if relations are defined
         for rel in self.rels:
