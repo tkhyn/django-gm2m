@@ -6,6 +6,7 @@ It takes care of resetting the models and databases for each Testcase
 """
 
 import sys
+from imp import reload
 from importlib import import_module
 
 from django import test
