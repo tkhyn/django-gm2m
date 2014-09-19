@@ -38,11 +38,12 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
                 # we have a relation, so the manager's model is the source
                 # model
                 self.model = rel.field.model
-                source_related_fields = []
-                self.core_filters['related_objects__%s'
-                    % self.field_names['tgt_ct']] = get_content_type(instance)
-                self.core_filters['related_objects__%s'
-                    % self.field_names['tgt_fk']] = instance.pk
+                self.core_filters['%s__%s' % (query_field_name,
+                                              self.field_names['tgt_ct'])] = \
+                    get_content_type(instance)
+                self.core_filters['%s__%s' % (query_field_name,
+                                              self.field_names['tgt_fk'])] = \
+                    instance.pk
             else:
                 # we have no relation provided, the manager's model is the
                 # through model

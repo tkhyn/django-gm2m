@@ -28,7 +28,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
             model=self.related.model,
             instance=instance,
             through=self.rel.through,
-            query_field_name=self.related.field.related_query_name(),
+            query_field_name=self.related.field.through._meta.model_name,
             field_names=self.related.field.through._meta._field_names,
         )
 
