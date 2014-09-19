@@ -1,12 +1,12 @@
 from ..base import TestCase
 
+from ..models import Project
+from .models import Links, RelLinks
+
 
 class ThroughTests(TestCase):
 
     def setUp(self):
-        from ..models import Project
-        from .models import Links, RelLinks
-
         self.project1 = Project.objects.create()
         self.project2 = Project.objects.create()
         self.links = Links.objects.create()
@@ -20,7 +20,6 @@ class ThroughTests(TestCase):
         self.assertIn(self.project1, self.links.related_objects.all())
 
     def test_add_relation(self):
-        from .models import RelLinks
         RelLinks.objects.create(links=self.links, target=self.project2)
 
         self.assertEqual(self.project2.links_set.count(), 1)
