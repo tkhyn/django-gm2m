@@ -6,7 +6,8 @@ from django.contrib.contenttypes.generic import GenericForeignKey
 from .models import create_gm2m_intermediary_model
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .relations import GM2MRel
-from .compat import GM2MRelatedObject, get_model_name, add_related_field
+from .compat import GM2MRelatedObject, get_model_name, add_related_field, \
+                    is_swapped
 
 
 class GM2MField(RelatedField):
@@ -162,7 +163,7 @@ class GM2MField(RelatedField):
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
-        if not rel.is_hidden() and not related.model._meta.swapped:
+        if not rel.is_hidden() and not is_swapped(related.model):
             add_related_field(cls._meta, related)
             setattr(cls, self._related_name
                          or (get_model_name(self.opts) + '_set'),

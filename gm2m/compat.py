@@ -73,6 +73,10 @@ def add_related_field(opts, field):
         opts.add_virtual_field(field)
 
 
+def is_swapped(model):
+    return getattr(model._meta, 'swapped', False)
+
+
 def get_queryset(x):
     try:
         return x.get_queryset()
