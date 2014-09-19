@@ -1,37 +1,12 @@
-from django.db.models.fields.related import RelatedField, RelatedObject, \
+from django.db.models.fields.related import RelatedField, \
     add_lazy_relation, RECURSIVE_RELATIONSHIP_CONSTANT
-from django.db.models import Q
-from django.db.utils import DEFAULT_DB_ALIAS
 from django.utils import six
 from django.contrib.contenttypes.generic import GenericForeignKey
 
 from .models import create_gm2m_intermediary_model
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .relations import GM2MRel
-from .helpers import get_content_type
-
-
-class GM2MRelatedObject(RelatedObject):
-
-    def __init__(self, parent_model, model, field, rel):
-        super(GM2MRelatedObject, self).__init__(parent_model, model, field)
-        self.rel = rel
-
-    def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
-        """
-        Return all objects related to objs
-        """
-
-        field_names = self.field.through._meta._field_names
-        q = Q()
-        for obj in objs:
-            # Convert each obj to (content_type, primary_key)
-            q = q | Q(**{
-                field_names['tgt_ct']: get_content_type(obj),
-                field_names['tgt_fk']: obj.pk
-            })
-
-        return self.field.through._base_manager.db_manager(using).filter(q)
+from .compat import GM2MRelatedObject, get_model_name, add_related_field
 
 
 class GM2MField(RelatedField):
@@ -188,8 +163,9 @@ class GM2MField(RelatedField):
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
         if not rel.is_hidden() and not related.model._meta.swapped:
-            cls._meta.add_virtual_field(related)
-            setattr(cls, self._related_name or (self.opts.model_name + '_set'),
+            add_related_field(cls._meta, related)
+            setattr(cls, self._related_name
+                         or (get_model_name(self.opts) + '_set'),
                     GM2MRelatedDescriptor(related, rel))
 
     def is_hidden(self):
@@ -198,4 +174,4 @@ class GM2MField(RelatedField):
 
     def related_query_name(self):
         return self._related_query_name or self._related_name \
-            or self.opts.model_name
+            or get_model_name(self.through)

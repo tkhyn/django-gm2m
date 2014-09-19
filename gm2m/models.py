@@ -3,7 +3,7 @@ from django.db import connection
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
-from .helpers import get_model_name
+from .compat import get_model_name
 
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'

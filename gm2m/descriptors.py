@@ -4,6 +4,7 @@ from django.utils.functional import cached_property
 
 
 from .managers import create_gm2m_related_manager
+from .compat import get_model_name
 
 
 class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
@@ -28,7 +29,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
             model=self.related.model,
             instance=instance,
             through=self.rel.through,
-            query_field_name=self.related.field.through._meta.model_name,
+            query_field_name=get_model_name(self.related.field.through),
             field_names=self.related.field.through._meta._field_names,
         )
 

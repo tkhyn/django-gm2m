@@ -9,6 +9,7 @@ import sys
 from imp import reload
 from importlib import import_module
 
+import django
 from django import test
 from django.conf import settings
 from django.db.models.loading import cache
@@ -59,7 +60,7 @@ class TestSettingsManager(object):
         cache.loaded = False
         cache.app_labels = {}
         cache.app_store = SortedDict()
-        cache.handled = set()
+        cache.handled = {} if django.VERSION < (1, 6) else set()
         cache.postponed = []
         cache.nesting_level = 0
         cache._get_models_cache = {}

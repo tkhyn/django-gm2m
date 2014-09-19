@@ -7,6 +7,7 @@ from django.utils import six
 
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
+from .compat import get_queryset
 
 
 class GM2MTgtManager(Manager):
@@ -48,12 +49,18 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
                 # we have no relation provided, the manager's model is the
                 # through model
                 self.model = through
-                source_field = through._meta.get_field(self.field_names['src'])
-                source_related_fields = source_field.related_fields
-                for __, rh_field in source_related_fields:
-                    key = '%s__%s' % (query_field_name, rh_field.name)
-                    self.core_filters[key] = getattr(instance,
-                                                     rh_field.attname)
+
+                if django.VERSION < (1, 6):
+                    self.core_filters = {'%s__pk' % query_field_name:
+                                         instance._get_pk_val()}
+                else:
+                    source_field = through._meta.get_field(
+                                       self.field_names['src'])
+                    source_related_fields = source_field.related_fields
+                    for __, rh_field in source_related_fields:
+                        key = '%s__%s' % (query_field_name, rh_field.name)
+                        self.core_filters[key] = getattr(instance,
+                                                         rh_field.attname)
 
             self._fk_val = instance.pk
 
@@ -64,7 +71,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
             except (AttributeError, KeyError):
                 db = self._db or router.db_for_read(self.instance.__class__,
                                                     instance=self.instance)
-                return super(GM2MManager, self).get_queryset().using(db) \
+                return get_queryset(super(GM2MManager, self)).using(db) \
                            ._next_is_sticky().filter(**self.core_filters)
         if django.VERSION < (1, 6):
             get_query_set = get_queryset
