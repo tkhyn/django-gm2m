@@ -1,6 +1,6 @@
 from ..base import TestCase
 
-from ..models import Project
+from ..app.models import Project
 from .models import Links, RelLinks
 
 

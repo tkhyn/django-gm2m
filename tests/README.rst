@@ -14,7 +14,7 @@ The tests
 django-gm2m uses nose_ and django_nose_ for testing. All the test modules are
 contained in individual dummy Django apps in the ``tests`` directory. The test
 modules are named ``tests*.py`` so that nose can discover them, and the test
-classes are subclasses of ``tests.base.TestCase`` so that when running
+classes are subclasses of ``tests.TestCase`` so that when running
 tests in an app, the app is automatically enabled and the associated models
 defined in ``models.py`` are created. After the tests have finished, the app
 is disabled and the models are destroyed for the next test run.

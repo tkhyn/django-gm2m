@@ -1,3 +1,8 @@
+"""
+Base models for all tests, this app is automatically included in every test's
+INSTALLED_APPS setting
+"""
+
 from django.db import models
 
 

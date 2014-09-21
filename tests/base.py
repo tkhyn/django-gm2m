@@ -19,7 +19,13 @@ from django.utils import six
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
 
-from .helpers import del_app_models
+try:
+    # Django 1.7 apps registry
+    from django.apps.registry import apps
+except ImportError:
+    apps = None
+
+from .helpers import app_mod_path, del_app_models
 
 
 # no nose tests here !
@@ -42,18 +48,17 @@ class TestSettingsManager(object):
         self._original_settings = {}
 
     def set(self, **kwargs):
+        if apps and not apps.app_configs:  # Django 1.7
+            apps.populate(settings.INSTALLED_APPS)
+
         for k, v in six.iteritems(kwargs):
             self._original_settings.setdefault(k, getattr(settings,
                                                           k, NO_SETTING))
             setattr(settings, k, v)
-        if 'INSTALLED_APPS' in kwargs:
-            try:
-                # django 1.7 apps registry
-                from django.apps.registry import apps
-                apps.set_installed_apps(kwargs['INSTALLED_APPS'])
-            except ImportError:
-                pass
 
+        if 'INSTALLED_APPS' in kwargs:
+            if apps:  # Django 1.7
+                apps.set_installed_apps(kwargs['INSTALLED_APPS'])
             self.syncdb()
 
     def syncdb(self):
@@ -66,7 +71,7 @@ class TestSettingsManager(object):
         cache._get_models_cache = {}
         cache.available_apps = None
 
-        call_command('syncdb', verbosity=0)
+        call_command('syncdb', verbosity=0, interactive=False)
 
     def revert(self):
         for k, v in six.iteritems(self._original_settings):
@@ -76,12 +81,8 @@ class TestSettingsManager(object):
                 setattr(settings, k, v)
 
         if 'INSTALLED_APPS' in self._original_settings:
-            try:
-                # django 1.7 apps registry
-                from django.apps.registry import apps
+            if apps:  # Django 1.7
                 apps.unset_installed_apps()
-            except ImportError:
-                pass
 
             self.syncdb()
 
@@ -104,7 +105,7 @@ class TestCase(test.TestCase):
 
         # unloads the test.models module and test app to 'forget' the links
         # created by the previous test case
-        del_app_models('tests')
+        del_app_models('app')
 
         # resets ContentType's related object cache to 'forget' the links
         # created by the previous test case, they'll be regenerated
@@ -115,18 +116,19 @@ class TestCase(test.TestCase):
 
         # finally, we need to reload the current test module as it relies upon
         # the app's models
-        app_name = '.'.join(cls.__module__.split('.')[:2])
+        app_name = cls.__module__.split('.')[1]
+        app_path = app_mod_path(app_name)
         del_app_models(app_name)  # to make sure the app models are flushed
-        import_module(app_name)  # needed to be able to reload app.tests
+        import_module(app_path)  # needed to import app.test
         reload(sys.modules[cls.__module__])
 
         cls.settings_manager.set(
-            INSTALLED_APPS=settings.INSTALLED_APPS + (app_name,))
+            INSTALLED_APPS=settings.INSTALLED_APPS + (app_path,))
 
     @classmethod
     def tearDownClass(cls):
         cls.settings_manager.revert()
         related.pending_lookups = {}
 
-        del_app_models('.'.join(cls.__module__.split('.')[:2]),
+        del_app_models('.'.join(cls.__module__.split('.')[1]),
                        app_module=True)

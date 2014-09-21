@@ -1,4 +1,4 @@
-from ..models import Project
+from ..app.models import Project
 from .models import Links
 
 from ..base import TestCase

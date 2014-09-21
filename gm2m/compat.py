@@ -13,10 +13,12 @@ from .helpers import get_content_type
 
 class GM2MRelatedObject(RelatedObject):
 
+    unique = False
+    generate_reverse_relation = False  # used only in Django 1.7
+
     def __init__(self, parent_model, model, field, rel):
         super(GM2MRelatedObject, self).__init__(parent_model, model, field)
         self.rel = rel
-        self.unique = False
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """

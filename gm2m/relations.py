@@ -1,8 +1,13 @@
 import django
-from django.contrib.contenttypes.generic import GenericRel
+
+try:
+    from django.contrib.contenttypes.fields import ForeignObjectRel as Rel
+except ImportError:
+    # Django < 1.7
+    from django.contrib.contenttypes.generic import GenericRel as Rel
 
 
-class GM2MRel(GenericRel):
+class GM2MRel(Rel):
 
     def __init__(self, field, to, through=None):
         if django.VERSION < (1, 6):

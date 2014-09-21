@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 
 import gm2m
 
-from ..models import Project
+from ..app.models import Project
 
 
 class Links(models.Model):

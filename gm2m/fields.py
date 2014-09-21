@@ -78,7 +78,9 @@ class GM2MField(RelatedField):
         :param name: the name of the accessor
         """
 
-        self.name = name
+        # attname is required for Django >= 1.7
+        self.attname = self.name = name
+
         self.model = cls
         self.opts = cls._meta
 
