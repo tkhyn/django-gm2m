@@ -26,10 +26,6 @@ def create_gm2m_intermediary_model(field, klass):
     db_table = util.truncate_name('%s_%s' % (klass._meta.db_table, field.name),
                                   connection.ops.max_name_length())
 
-    print(str(klass))
-    print(klass._meta.app_label)
-    print()
-
     meta = type('Meta', (object,), {
         'db_table': db_table,
         'managed': managed,
