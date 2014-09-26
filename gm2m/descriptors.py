@@ -31,6 +31,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
             through=self.rel.through,
             query_field_name=get_model_name(self.related.field.through),
             field_names=self.related.field.through._meta._field_names,
+            prefetch_cache_name=self.related.field.related_query_name()
         )
 
     def __set__(self, instance, value):
@@ -62,6 +63,7 @@ class ReverseGM2MRelatedDescriptor(ReverseManyRelatedObjectsDescriptor):
             through=self.field.through,
             query_field_name=field_names['src'],
             field_names=field_names,
+            prefetch_cache_name=self.field.name
         )
 
     def __set__(self, instance, value):

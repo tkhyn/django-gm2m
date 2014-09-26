@@ -47,3 +47,42 @@ class DeletionTests(TestCase):
         self.project2.delete()
         self.assertEqual(self.links.related_objects.count(), 1)
         self.assertNotIn(self.project2, self.links.related_objects.all())
+
+
+class PrefetchTests(TestCase):
+
+    def setUp(self):
+        self.project = Project.objects.create()
+        self.task = Task.objects.create()
+        self.links1 = Links.objects.create()
+        self.links2 = Links.objects.create()
+
+        self.links1.related_objects = [self.project, self.task]
+        self.links1.save()
+
+        self.links2.related_objects = [self.project]
+        self.links2.save()
+
+    def test_prefetch_forward(self):
+        with self.assertNumQueries(4):
+            # 4 queries = 2 queries to retrieve the through models +
+            # one query for each related model type (Project, Task)
+            # without prefetching it takes 6 queries
+            prefetched = [list(l.related_objects.all()) for l
+                          in Links.objects.prefetch_related('related_objects')]
+
+        # without prefetching, we indeed have 6 queries instead of 4
+        normal = [list(l.related_objects.all())
+                        for l in Links.objects.all()]
+
+        self.assertListEqual(prefetched, normal)
+
+    def test_prefetch_reverse(self):
+        with self.assertNumQueries(2):
+            # much more efficient this way as there are no supplementary
+            # queries due to the generic foreign key
+            prefetched = [list(p.links_set.all()) for p
+                          in Project.objects.prefetch_related('links_set')]
+
+        normal = [list(p.links_set.all()) for p in Project.objects.all()]
+        self.assertEqual(prefetched, normal)
