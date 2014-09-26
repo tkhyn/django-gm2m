@@ -2,21 +2,20 @@ from collections import defaultdict
 
 import django
 from django.db import router
-from django.db.models import Manager, Q
+from django.db.models import Q, Manager
 from django.db import connections
 from django.utils import six
 
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
-from .compat import get_queryset
+
+from . import compat
 
 
 class GM2MTgtManager(Manager):
 
     def get_queryset(self):
         return GM2MTgtQuerySet(self.model, using=self._db)
-    if django.VERSION < (1, 6):
-        get_query_set = get_queryset
 
 
 def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
@@ -24,7 +23,8 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
     Dynamically create a manager class that only concerns an instance (source
     or target)
     """
-    class GM2MManager(superclass):
+
+    class GM2MManager(compat.Manager, superclass):
         def __init__(self, model, instance, through, query_field_name,
                      field_names, prefetch_cache_name):
             super(GM2MManager, self).__init__()
@@ -52,18 +52,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
                 # we have no relation provided, the manager's model is the
                 # through model
                 self.model = through
-
-                if django.VERSION < (1, 6):
-                    self.core_filters = {'%s__pk' % query_field_name:
-                                         instance._get_pk_val()}
-                else:
-                    source_field = through._meta.get_field(
-                                       self.field_names['src'])
-                    self.source_related_fields = source_field.related_fields
-                    for __, rh_field in self.source_related_fields:
-                        key = '%s__%s' % (query_field_name, rh_field.name)
-                        self.core_filters[key] = getattr(instance,
-                                                         rh_field.attname)
+                self._mk_core_filters_norel(instance)
 
             self._fk_val = instance.pk
 
@@ -74,12 +63,12 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
             except (AttributeError, KeyError):
                 db = self._db or router.db_for_read(self.instance.__class__,
                                                     instance=self.instance)
-                return get_queryset(super(GM2MManager, self)).using(db) \
+                return super(GM2MManager, self).get_queryset().using(db) \
                            ._next_is_sticky().filter(**self.core_filters)
 
         def get_prefetch_queryset(self, instances, queryset=None):
             if queryset is None:
-                queryset = get_queryset(super(GM2MManager, self))
+                queryset = super(GM2MManager, self).get_queryset()
 
             db = self._db or router.db_for_read(self.model,
                                                 instance=instances[0])
@@ -129,25 +118,13 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
 
             else:
                 # without a specified relation, we're looking for through model
-                # instances
-                query = {}
-                if django.VERSION < (1, 6):
-                    query = {'%s_id__in' % self.field_names['src']:
-                        set(obj._get_pk_val() for obj in instances)}
-                else:
-                    for lh_field, rh_field in self.source_related_fields:
-                        query['%s__in' % lh_field.name] = \
-                            set(getattr(obj, rh_field.attname)
-                                for obj in instances)
-                q = Q(**query)
+                # instances (cf. implementation in compat)
+                q = self._prefetch_qset_query_norel(instances)
 
                 # Annotating the query in order to retrieve the primary model
                 # id in the same query
                 fk = self.through._meta.get_field(self.field_names['src'])
-                try:
-                    extra_fields = fk.local_related_fields
-                except AttributeError:  # django < 1.6, no local_related_fields
-                    extra_fields = (fk,)
+                extra_fields = compat.get_local_related_fields(fk)
 
                 extra = dict(select=dict(
                     ('_prefetch_related_val_%s' % f.attname,
@@ -168,10 +145,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
                     return tuple(t)
 
                 # model attribute retrieval function
-                try:
-                    select_fields = fk.foreign_related_fields
-                except AttributeError:  # django 1.6
-                    select_fields = (fk.rel.get_related_field(),)
+                select_fields = compat.get_foreign_related_fields(fk)
                 instance_attr = lambda inst: tuple([getattr(inst, f.attname)
                                     for f in select_fields])
 
@@ -187,10 +161,6 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
                     instance_attr,
                     False,
                     self.prefetch_cache_name)
-
-        if django.VERSION < (1, 6):
-            get_query_set = get_queryset
-            get_prefetch_query_set = get_prefetch_queryset
 
         def check_through_model(self, method_name):
             # If the GM2M relation has an intermediary model,

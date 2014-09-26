@@ -2,12 +2,41 @@ from django.db.models.fields.related import RelatedField, \
     add_lazy_relation, RECURSIVE_RELATIONSHIP_CONSTANT
 from django.utils import six
 from django.contrib.contenttypes.generic import GenericForeignKey
+from django.db.utils import DEFAULT_DB_ALIAS
+from django.db.models import Q
 
 from .models import create_gm2m_intermediary_model
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .relations import GM2MRel
-from .compat import GM2MRelatedObject, get_model_name, add_related_field, \
+from .helpers import get_content_type
+from .compat import RelatedObject, get_model_name, add_related_field, \
                     is_swapped
+
+
+class GM2MRelatedObject(RelatedObject):
+
+    unique = False
+    generate_reverse_relation = False  # not used on Django < 1.7
+
+    def __init__(self, parent_model, model, field, rel):
+        super(GM2MRelatedObject, self).__init__(parent_model, model, field)
+        self.rel = rel
+
+    def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
+        """
+        Return all objects related to objs
+        """
+
+        field_names = self.field.through._meta._field_names
+        q = Q()
+        for obj in objs:
+            # Convert each obj to (content_type, primary_key)
+            q = q | Q(**{
+                field_names['tgt_ct']: get_content_type(obj),
+                field_names['tgt_fk']: obj.pk
+            })
+
+        return self.field.through._base_manager.db_manager(using).filter(q)
 
 
 class GM2MField(RelatedField):
