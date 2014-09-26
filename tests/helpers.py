@@ -1,6 +1,6 @@
 import sys
 
-from django.db.models.loading import cache
+from .compat import cache_models
 
 __test__ = False
 
@@ -15,10 +15,7 @@ def del_app_models(app, app_module=False):
     (optionally)
     """
     try:
-        try:  # Django >= 1.7
-            del cache.all_models[app]
-        except AttributeError:
-            del(cache.app_models[app])
+        del cache_models[app]
     except KeyError:
         pass
 

@@ -19,12 +19,7 @@ from django.utils import six
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
 
-try:
-    # Django 1.7 apps registry
-    from django.apps.registry import apps
-except ImportError:
-    apps = None
-
+from .compat import apps, cache_handled_init
 from .helpers import app_mod_path, del_app_models
 
 
@@ -48,7 +43,7 @@ class TestSettingsManager(object):
         self._original_settings = {}
 
     def set(self, **kwargs):
-        if apps and not apps.app_configs:  # Django 1.7
+        if not apps.app_configs:
             apps.populate(settings.INSTALLED_APPS)
 
         for k, v in six.iteritems(kwargs):
@@ -57,15 +52,14 @@ class TestSettingsManager(object):
             setattr(settings, k, v)
 
         if 'INSTALLED_APPS' in kwargs:
-            if apps:  # Django 1.7
-                apps.set_installed_apps(kwargs['INSTALLED_APPS'])
+            apps.set_installed_apps(kwargs['INSTALLED_APPS'])
             self.syncdb()
 
     def syncdb(self):
         cache.loaded = False
         cache.app_labels = {}
         cache.app_store = SortedDict()
-        cache.handled = {} if django.VERSION < (1, 6) else set()
+        cache.handled = cache_handled_init()
         cache.postponed = []
         cache.nesting_level = 0
         cache._get_models_cache = {}
@@ -81,9 +75,7 @@ class TestSettingsManager(object):
                 setattr(settings, k, v)
 
         if 'INSTALLED_APPS' in self._original_settings:
-            if apps:  # Django 1.7
-                apps.unset_installed_apps()
-
+            apps.unset_installed_apps()
             self.syncdb()
 
         self._original_settings = {}
