@@ -18,14 +18,14 @@ class GM2MTgtManager(Manager):
         return GM2MTgtQuerySet(self.model, using=self._db)
 
 
-def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
+def create_gm2m_related_manager(superclass=GM2MTgtManager):
     """
     Dynamically create a manager class that only concerns an instance (source
     or target)
     """
 
     class GM2MManager(compat.Manager, superclass):
-        def __init__(self, model, instance, through, query_field_name,
+        def __init__(self, model, instance, through, rel, query_field_name,
                      field_names, prefetch_cache_name):
             super(GM2MManager, self).__init__()
 
@@ -34,6 +34,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
             self.prefetch_cache_name = prefetch_cache_name
 
             self.through = through
+            self.rel = rel
             self.field_names = field_names
 
             self.core_filters = {}
@@ -77,7 +78,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
             connection = connections[db]
             qn = connection.ops.quote_name
 
-            if rel:
+            if self.rel:
                 # without a specified relation, we're looking for generic
                 # target instances, which should be converted to
                 # (content_type, primary_key)
@@ -151,7 +152,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager, rel=None):
 
             qs = queryset.using(db)._next_is_sticky().filter(q).extra(**extra)
 
-            if not rel:
+            if not self.rel:
                 # marking the queryset so that the original queryset should
                 # be returned when evaluated the first time
                 qs._related_prefetching = True

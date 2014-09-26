@@ -20,7 +20,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
     @cached_property
     def related_manager_cls(self):
         return create_gm2m_related_manager(
-            self.rel.to._default_manager.__class__, self.rel)
+            self.rel.to._default_manager.__class__)
 
     def __get__(self, instance, instance_type=None):
         if instance is None:
@@ -29,6 +29,7 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
             model=self.related.model,
             instance=instance,
             through=self.rel.through,
+            rel=self.rel,
             query_field_name=get_model_name(self.related.field.through),
             field_names=self.related.field.through._meta._field_names,
             prefetch_cache_name=self.related.field.related_query_name()
@@ -61,6 +62,7 @@ class ReverseGM2MRelatedDescriptor(ReverseManyRelatedObjectsDescriptor):
             model=self.field.model,
             instance=instance,
             through=self.field.through,
+            rel=None,
             query_field_name=field_names['src'],
             field_names=field_names,
             prefetch_cache_name=self.field.name
