@@ -16,8 +16,11 @@ contained in individual dummy Django apps in the ``tests`` directory. The test
 modules are named ``tests*.py`` so that nose can discover them, and the test
 classes are subclasses of ``tests.TestCase`` so that when running
 tests in an app, the app is automatically enabled and the associated models
-defined in ``models.py`` are created. After the tests have finished, the app
-is disabled and the models are destroyed for the next test run.
+defined in ``models.py`` are created. After the tests for that app have
+finished, the app is disabled and the models are destroyed for the next app.
+
+The ``tests.app`` app is always enabled and contains some base models. No test
+should be written in this app.
 
 The ``setup.cfg`` file contains coverage pre-configuration information,
 but coverage is disabled by default.
