@@ -142,9 +142,10 @@ def get_model_name(x):
 def add_related_field(opts, field):
     if django.VERSION < (1, 6):
         # hack to enable deletion cascading
-        from .relations import GM2MRel
+        from .relations import GM2MRelBase
         f = copy(field)
-        f.rel = GM2MRel(field, field.rel.to, on_delete=field.rel.on_delete)
+        f.rel = GM2MRelBase(field, field.rel.to)
+        f.rel.on_delete = field.rel.on_delete
         opts.local_many_to_many.insert(bisect(opts.local_many_to_many, f), f)
         for attr in ('_m2m_cache', '_name_map'):
             try:
@@ -172,13 +173,13 @@ def get_foreign_related_fields(fk):
 def get_fk_kwargs(field):
     if django.VERSION < (1, 6):
         return {}
-    return {'db_constraint': field.db_constraint}
+    return {'db_constraint': field.rels.db_constraint}
 
 
 def get_gfk_kwargs(field):
     if django.VERSION < (1, 6):
         return {}
-    return {'for_concrete_model': field.for_concrete_model}
+    return {'for_concrete_model': field.rels.for_concrete_model}
 
 
 def is_swapped(model):

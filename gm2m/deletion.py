@@ -13,16 +13,18 @@ class GM2MRelatedObject(RelatedObject):
 
     def __init__(self, parent_model, model, field, rel):
         super(GM2MRelatedObject, self).__init__(parent_model, model, field)
-        self.rel = rel
+        self.rel = self.rels = rel
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
         Return all objects related to objs
         """
-        base_mngr = self.field.through._base_manager.db_manager(using)
+
+        through = self.field.rels.through
+        base_mngr = through._base_manager.db_manager(using)
 
         if self.rel.on_delete == CASCADE:
-            field_names = self.field.through._meta._field_names
+            field_names = through._meta._field_names
             q = Q()
             for obj in objs:
                 # Convert each obj to (content_type, primary_key)

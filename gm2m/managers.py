@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-import django
 from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
