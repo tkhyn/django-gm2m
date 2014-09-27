@@ -2,6 +2,7 @@ import subprocess
 
 __version_info__ = (0, 1, 0, 'alpha', 0)
 
+
 def get_version(version=__version_info__):
 
     dev_st = {'alpha': 'a', 'beta': 'b', 'rc': 'c', 'final': ''}
