@@ -176,7 +176,8 @@ Other parameters
 
 In addition to the specific ``on_delete*`` and ``through`` parameters, you can
 use the following optional keyword arguments when defining a ``GM2MField``.
-Most of them have the same signification than in Django.
+Most of them have the same signification than for Django's ``ManyToManyField``
+or ``GenericForeignKey``.
 
 verbose_name
    A human-readable name for the field. Defaults to a munged version of the
@@ -185,6 +186,15 @@ verbose_name
 db_table
    The name of the database table to use for the model. Defaults to
    ``'<app_label>_<model_name>'``.
+
+db_constraint
+   Controls whether or not a constraint should be created in the database for
+   the internal foreign keys when the through model is automatically created.
+   Defaults to ``True``.
+
+for_concrete_model
+   If set to ``False``, the field will be able to reference proxy models.
+   Default to ``True``.
 
 related_name
    The name that will be used for the relation from a related object back to

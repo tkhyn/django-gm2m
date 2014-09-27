@@ -36,6 +36,12 @@ class GM2MField(RelatedField):
         self.verbose_name = params.pop('verbose_name', None)
         self.through = params.pop('through', None)
         self.db_table = params.pop('db_table', None)
+        self.db_constraint = params.pop('db_constraint', True)
+        self.for_concrete_model = params.pop('for_concrete_model', True)
+
+        if self.through and not self.db_constraint:
+            raise ValueError('django-gm2m: Can\'t supply a through model '
+                             'with db_constraint=False')
 
         self._related_name = params.pop('related_name', None)
         self._related_query_name = params.pop('related_query_name', None)

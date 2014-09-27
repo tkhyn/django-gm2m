@@ -3,7 +3,7 @@ from django.db import connection
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
-from .compat import get_model_name
+from .compat import get_model_name, get_fk_kwargs, get_gfk_kwargs
 
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'
@@ -37,12 +37,18 @@ def create_gm2m_intermediary_model(field, klass):
         'verbose_name_plural': '%s-generic relationships' % model_name,
     })
 
+    fk_kwargs = get_fk_kwargs(field)
+
     return type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
-        SRC_ATTNAME: models.ForeignKey(klass, on_delete=field.on_delete_src),
-        CT_ATTNAME: models.ForeignKey(ContentType),
+        SRC_ATTNAME: models.ForeignKey(klass, on_delete=field.on_delete_src,
+                                       **fk_kwargs),
+        CT_ATTNAME: models.ForeignKey(ContentType, **fk_kwargs),
         FK_ATTNAME: models.CharField(max_length=16),
-        TGT_ATTNAME: generic.GenericForeignKey(ct_field=CT_ATTNAME,
-                                               fk_field=FK_ATTNAME)
+        TGT_ATTNAME: generic.GenericForeignKey(
+                         ct_field=CT_ATTNAME,
+                         fk_field=FK_ATTNAME,
+                         **get_gfk_kwargs(field)
+                     )
     })

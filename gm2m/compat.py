@@ -11,11 +11,19 @@ from django.utils import six
 
 def assert_compat_params(params):
 
-    assert django.VERSION >= (1, 6) or \
-        set(['on_delete', 'on_delete_src', 'on_delete_tgt']) \
-        .isdisjoint(params.keys()), \
-        'Deletion customization is not possible for Django versions prior ' \
-        'to 1.6. Please remove the on_delete* arguments or upgrade Django.'
+    if django.VERSION < (1, 6):
+        params_keys = params.keys()
+        assert set(['on_delete', 'on_delete_src', 'on_delete_tgt']) \
+            .isdisjoint(params_keys), \
+            'Deletion customization is not possible for Django versions ' \
+            'prior to 1.6. Please remove the on_delete* arguments or ' \
+            'upgrade Django.'
+
+        assert 'db_constraint' not in params_keys, \
+            'db_constraint is not supported in Django < 1.6'
+
+        assert 'for_concrete_model' not in params_keys, \
+            'for_concrete_model is not supported in Django < 1.6'
 
 try:
     from django.contrib.contenttypes.fields import ForeignObjectRel
@@ -159,6 +167,18 @@ def get_foreign_related_fields(fk):
         return fk.foreign_related_fields
     except AttributeError:  # Django < 1.6
         return (fk.rel.get_related_field(),)
+
+
+def get_fk_kwargs(field):
+    if django.VERSION < (1, 6):
+        return {}
+    return {'db_constraint': field.db_constraint}
+
+
+def get_gfk_kwargs(field):
+    if django.VERSION < (1, 6):
+        return {}
+    return {'for_concrete_model': field.for_concrete_model}
 
 
 def is_swapped(model):
