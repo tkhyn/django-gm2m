@@ -30,8 +30,8 @@ setup(
     long_description=open(os.path.join('README.rst')).read(),
     author='Thomas Khyn',
     author_email='thomas@ksytek.com',
-    url='',
-    keywords=[],
+    url='https://bitbucket.org/tkhyn/django-gm2m',
+    keywords=['django', 'generic', 'many-to-many'],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.6',
