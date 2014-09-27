@@ -8,6 +8,15 @@ from django.db.models.options import Options
 from django.db.models.fields import related
 from django.utils import six
 
+
+def assert_compat_params(params):
+
+    assert django.VERSION >= (1, 6) or \
+        set(['on_delete', 'on_delete_src', 'on_delete_tgt']) \
+        .isdisjoint(params.keys()), \
+        'Deletion customization is not possible for Django versions prior ' \
+        'to 1.6. Please remove the on_delete* arguments or upgrade Django.'
+
 try:
     from django.contrib.contenttypes.fields import ForeignObjectRel
 except ImportError:
@@ -127,7 +136,7 @@ def add_related_field(opts, field):
         # hack to enable deletion cascading
         from .relations import GM2MRel
         f = copy(field)
-        f.rel = GM2MRel(field, field.rel.to)
+        f.rel = GM2MRel(field, field.rel.to, on_delete=field.rel.on_delete)
         opts.local_many_to_many.insert(bisect(opts.local_many_to_many, f), f)
         for attr in ('_m2m_cache', '_name_map'):
             try:

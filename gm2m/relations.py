@@ -3,10 +3,11 @@ from .compat import ForeignObjectRel
 
 class GM2MRel(ForeignObjectRel):
 
-    def __init__(self, field, to, through=None):
+    def __init__(self, field, to, through=None, on_delete=None):
         super(GM2MRel, self).__init__(field, to)
         self.multiple = True
         self.through = through
+        self.on_delete = on_delete
 
     def get_related_field(self):
         """

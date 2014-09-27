@@ -46,7 +46,6 @@ class DeletionTests(TestCase):
         self.links.save()
         self.project2.delete()
         self.assertEqual(self.links.related_objects.count(), 1)
-        self.assertNotIn(self.project2, self.links.related_objects.all())
 
 
 class PrefetchTests(TestCase):

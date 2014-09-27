@@ -2,41 +2,14 @@ from django.db.models.fields.related import RelatedField, \
     add_lazy_relation, RECURSIVE_RELATIONSHIP_CONSTANT
 from django.utils import six
 from django.contrib.contenttypes.generic import GenericForeignKey
-from django.db.utils import DEFAULT_DB_ALIAS
-from django.db.models import Q
 
 from .models import create_gm2m_intermediary_model
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .relations import GM2MRel
-from .helpers import get_content_type
-from .compat import RelatedObject, get_model_name, add_related_field, \
-                    is_swapped
+from .deletion import GM2MRelatedObject, CASCADE
 
-
-class GM2MRelatedObject(RelatedObject):
-
-    unique = False
-    generate_reverse_relation = False  # not used on Django < 1.7
-
-    def __init__(self, parent_model, model, field, rel):
-        super(GM2MRelatedObject, self).__init__(parent_model, model, field)
-        self.rel = rel
-
-    def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
-        """
-        Return all objects related to objs
-        """
-
-        field_names = self.field.through._meta._field_names
-        q = Q()
-        for obj in objs:
-            # Convert each obj to (content_type, primary_key)
-            q = q | Q(**{
-                field_names['tgt_ct']: get_content_type(obj),
-                field_names['tgt_fk']: obj.pk
-            })
-
-        return self.field.through._base_manager.db_manager(using).filter(q)
+from .compat import add_related_field, get_model_name, \
+                    is_swapped, assert_compat_params
 
 
 class GM2MField(RelatedField):
@@ -48,6 +21,14 @@ class GM2MField(RelatedField):
     """
 
     def __init__(self, *related_models, **params):
+
+        assert_compat_params(params)
+
+        # on_delete_tgt attribute is needed for _add_relation
+        on_delete = params.pop('on_delete', CASCADE)
+        self.on_delete_src = params.pop('on_delete_src', on_delete)
+        self.on_delete_tgt = params.pop('on_delete_tgt', on_delete)
+
         self.rels = []
         for m in related_models:
             self._add_relation(m)
@@ -77,7 +58,7 @@ class GM2MField(RelatedField):
             % (self.__class__.__name__, to,
                RECURSIVE_RELATIONSHIP_CONSTANT)
 
-        rel = GM2MRel(self, to)
+        rel = GM2MRel(self, to, on_delete=self.on_delete_tgt)
         self.rels.append(rel)
 
         return rel

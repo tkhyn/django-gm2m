@@ -40,7 +40,7 @@ def create_gm2m_intermediary_model(field, klass):
     return type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
-        SRC_ATTNAME: models.ForeignKey(klass),
+        SRC_ATTNAME: models.ForeignKey(klass, on_delete=field.on_delete_src),
         CT_ATTNAME: models.ForeignKey(ContentType),
         FK_ATTNAME: models.CharField(max_length=16),
         TGT_ATTNAME: generic.GenericForeignKey(ct_field=CT_ATTNAME,
