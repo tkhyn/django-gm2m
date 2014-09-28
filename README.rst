@@ -25,7 +25,7 @@ Features
   table linking anything to anything (django-generic-m2m_'s default approach)
 - No need to modify nor monkey-patch the existing model classes that need to be
   linked
-- Reverse relations_ ``<model_name>_set``
+- Automatic reverse relations_ ``<model_name>_set`` when an instance is added
 - Related objects `prefetching`_
 - `Through models`_
 - `Deletion`_ behaviour customization (Django 1.6+)
@@ -92,38 +92,74 @@ Relations
 
 From a ``User`` instance, you can now fetch all the user's preferred videos::
 
-   >>> list(user.preferred_videos)
-   [<Movie object>, <Documentary object>]
+   list(user.preferred_videos)
+   >>> [<Movie object>, <Documentary object>]
 
-However, when using a default ``GM2MField()`` (without arguments), it does not
-create any reverse relations. This means that, from a ``Movie`` instance, you
-cannot retrieve the users who have this instance in their ``preferred_videos``
-using::
+Note: yes, the ``>>>`` are misplaced. This is voluntary. ``>>>`` indicates an
+output value rather than a console input, for the sake of readability.
 
-   >>> list(movie.user_set)
-   AttributeError: 'Movie' object has no attribute 'user_set'
+The magic here is that, even without having to explicitly create reverse
+relation (e.g by providing models to the ``GM2MField`` constructor), they are
+automatically created when an instance of a yet unknown model is added. This
+means that you can do::
 
-To enable this behaviour, you need to let the ``GM2MField`` constructor know
-that you want it to create a reverse relation with given models. To do so, you
-simply need to provide the models as arguments. You may use model names if
-necessary to avoid circular imports::
+   list(movie.user_set)
+   >>> [<User object>]
+
+However, it is important to remember that if no instance of a model as ever
+been added to the set, retrieving the ``<modelname_set>`` will raise an
+``AttributeError``::
+
+   class Opera(Video):
+       pass
+   opera = Opera.objects.create()
+   list(opera.user_set)
+   >>> AttributeError: 'Opera' object has no attribute 'user_set'
+   user.preferred_videos.add(opera)
+   list(opera.user_set)
+   >>> [<User object>]
+
+Indeed, the ``GM2MField`` has no idea what relation it is expected to create
+until you provide it with a minimum of information.
+
+However, if you want some reverse relations to be created before any instance
+is added, so that retrieving the ``<modelname_set>`` attribute never raises an
+exception, it is possible to explicitly provide a list of models as arguments
+of the ``GM2MField`` constructor. You may use model names if necessary to
+avoid circular imports::
+
+   class Concert(Video):
+       pass
 
    class User(models.Model):
-      preferred_videos = GM2MField(Movie, 'Documentary')
+      preferred_shows = GM2MField('Opera', Concert)
 
-Note that this will not prevent the addition of instances from any other models
-to the generic many-to-many field. This only creates reverse relations.
+This way, the reverse relations are created when the model class is created
+and available even if no instance has been added yet::
+
+   concert = Concert.objects.create()
+   list(concert.user_set)
+   >>> []
+
+If you need to add relations afterwards, or if the ``GM2MField`` is defined in
+a third-party library you do not want to patch, you can still manually add
+relations afterwards::
+
+   class Theater(Video):
+      pass
+   User.preferred_shows.add_relation(Theater)
+
+Note that providing models to ``GM2MField`` does not prevent you from adding
+instances from other models.You can still add instances from other models, and
+the relation will be created. Providing a list of models will only create
+reverse relations by default, nothing more.
 
 
 Deletion
 --------
 
-When an instance of an unrelated model is deleted, no relation is deleted, as
-the unrelated model has no way to know (yet) that one of its instances has
-been added to a Many-to-Many relation.
-
-By default, when an instance from a related model or source model  is deleted,
-all relations linking this instance are deleted. It is possible, if you are
+By default, when an instance from a source or target model is deleted, all
+relations linking this instance are deleted. It is possible, if you are
 using Django 1.6 or later, to change this behavior by using the ``on_delete``,
 ``on_delete_src`` and ``on_delete_tgt`` keyword arguments when creating the
 ``GM2MField``::
@@ -220,8 +256,6 @@ related_query_name
 Future improvements
 -------------------
 
-- Automatic creation of relations when an instance of an unrelated model
-  is added to the many-to-many. This implies deletion as well.
 - More deletion behavior options (possibility to pass any custom function?)
 - Add Django admin and possibly ``limit_choices_to`` support
 
