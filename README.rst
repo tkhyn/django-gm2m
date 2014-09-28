@@ -21,11 +21,14 @@ Features
 --------
 
 - Works like the built-in Django related fields
-- Creates only one table per relation, like ``ManyToManyField``
-- No need to modify the existing model classes that need to be linked
-- Reverse relations ``<model_name>_set``
-- Related objects prefetching
-- Deletion behaviour customization (Django 1.6+)
+- Creates one table per relation, like ``ManyToManyField``, and not one big
+  table linking anything to anything (django-generic-m2m_'s default approach)
+- No need to modify nor monkey-patch the existing model classes that need to be
+  linked
+- Reverse relations_ ``<model_name>_set``
+- Related objects `prefetching`_
+- `Through models`_
+- `Deletion`_ behaviour customization (Django 1.6+)
 
 
 Installation
@@ -35,9 +38,9 @@ As straightforward as it can be, using ``pip``::
 
    pip install django-gm2m
 
-You then need to add ``gm2m`` to your ``INSTALLED_APPS``.
+You then need to add ``'gm2m'`` to your ``INSTALLED_APPS``.
 
-You will also need to have ``django.contrib.contenttypes`` enabled.
+You will obviously also need to have ``django.contrib.contenttypes`` enabled.
 
 
 Quick start
@@ -62,10 +65,12 @@ Suppose you have some models describing videos types::
 Now, if you want to have a field for the preferred videos of a User, you simply
 need to add a default ``GM2MField`` to the ``User`` model::
 
+   from gm2m import GM2MField
+
    class User(models.Model):
       preferred_videos = GM2MField()
 
-Now you can add videos to the preferred_videos set::
+Now you can add videos to the ``preferred_videos`` set::
 
    user = User.objects.create()
    movie = Movie.objects.create()
@@ -118,9 +123,10 @@ the unrelated model has no way to know (yet) that one of its instances has
 been added to a Many-to-Many relation.
 
 By default, when an instance from a related model or source model  is deleted,
-all relations to this instance are deleted. It is possible, from Django 1.6, to
-change this behavior by using the ``on_delete``, ``on_delete_src`` and
-``on_delete_tgt`` keyword arguments when creating the GM2M field::
+all relations linking this instance are deleted. It is possible, if you are
+using Django 1.6 or later, to change this behavior by using the ``on_delete``,
+``on_delete_src`` and ``on_delete_tgt`` keyword arguments when creating the
+``GM2MField``::
 
    from gm2m.deletion import DO_NOTHING
 
@@ -128,7 +134,7 @@ change this behavior by using the ``on_delete``, ``on_delete_src`` and
       preferred_videos = GM2MField(Movie, 'Documentary', on_delete=DO_NOTHING)
 
 If you only want this behaviour on one side of the relationship (e.g. on the
-source model side), use ``on_delete_src``::
+source model side), use ``on_delete_src`` or ``on_delete_tgt``::
 
    class User(models.Model):
       preferred_videos = GM2MField(Movie, 'Documentary',
@@ -136,10 +142,10 @@ source model side), use ``on_delete_src``::
 
 ``on_delete_src`` and ``on_delete_tgt`` override ``on_delete``.
 
-The only customisation is - for the moment - to use the ``DO_NOTHING``
-function. When using ``DO_NOTHING``, the relation is not deleted with the
-related instance. It is your responsibility to ensure that the database
-remains consistent after the deletion operation.
+The only customisation available is - for the moment - to use the
+``DO_NOTHING`` function. When using ``DO_NOTHING``, the relation is not deleted
+with the related instance. It is your responsibility to ensure that the
+database remains consistent after the deletion operation.
 
 
 Prefetching
