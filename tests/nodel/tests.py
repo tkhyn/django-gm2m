@@ -8,7 +8,7 @@ from ..base import TestCase
 
 
 @skipIf(django.VERSION < (1, 6), 'No deletion customisation for Django < 1.6')
-class DeletionTests(TestCase):
+class CustomDeletionTests(TestCase):
 
     def setUp(self):
         self.project1 = Project.objects.create()

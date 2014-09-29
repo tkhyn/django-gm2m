@@ -4,7 +4,7 @@ from .models import Links
 from ..base import TestCase
 
 
-class LinksTests(TestCase):
+class RelatedNameTests(TestCase):
 
     def setUp(self):
         self.project = Project.objects.create()
