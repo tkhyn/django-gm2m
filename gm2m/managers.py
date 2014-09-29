@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
@@ -210,33 +208,31 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
 
             else:
 
-                # sorting by content type to rationalise the number of queries
-                ct_objs = defaultdict(lambda: [])
+                models = []
+                objs_set = set()
                 for obj in objs:
-                    # Convert the obj to (content_type, primary_key)
-                    obj_ct = get_content_type(obj)
-                    ct_objs[obj_ct].append(obj)
+                    # extract content type and primary key for each object
+                    objs_set.add((get_content_type(obj),
+                                  obj._get_pk_val()))
+                    m = compat.get_model(obj)
+                    if m not in models:
+                        # call field.add_relation for each model
+                        models.append(m)
+                        self.field.add_relation(m)
 
                 vals = self.through._default_manager.using(db) \
-                                     .values_list(self.field_names['tgt_ct'],
-                                                  self.field_names['tgt_fk']) \
-                                     .filter(**{
-                                         self.field_names['src']: self._fk_val
-                                     })
+                           .filter(**{self.field_names['src']: self._fk_val }) \
+                           .values_list(self.field_names['tgt_ct'],
+                                        self.field_names['tgt_fk'])
+
                 to_add = []
-                for ct, instances in six.iteritems(ct_objs):
-                    self.field.add_relation(compat.get_model(instances[0]))
-                    pks = set(inst._get_pk_val() for inst in instances)
-                    ctvals = vals.filter(**{'%s__exact' %
-                                            self.field_names['tgt_ct']: ct.pk,
-                                            '%s__in' %
-                                            self.field_names['tgt_fk']: pks})
-                    for pk in pks.difference(ctvals):
-                        to_add.append(self.through(**{
-                            '%s_id' % self.field_names['src']: self._fk_val,
-                            self.field_names['tgt_ct']: ct,
-                            self.field_names['tgt_fk']: pk
-                        }))
+                for ct, pk in objs_set.difference(vals):
+                    to_add.append(self.through(**{
+                        '%s_id' % self.field_names['src']: self._fk_val,
+                        self.field_names['tgt_ct']: ct,
+                        self.field_names['tgt_fk']: pk
+                    }))
+
             # Add the new entries in the db table
             self.through._default_manager.using(db).bulk_create(to_add)
         add.alters_data = True
