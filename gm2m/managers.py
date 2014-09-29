@@ -225,7 +225,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
                                      })
                 to_add = []
                 for ct, instances in six.iteritems(ct_objs):
-                    self.field.add_relation(instances[0]._meta.model)
+                    self.field.add_relation(compat.get_model(instances[0]))
                     pks = set(inst._get_pk_val() for inst in instances)
                     ctvals = vals.filter(**{'%s__exact' %
                                             self.field_names['tgt_ct']: ct.pk,

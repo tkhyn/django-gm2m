@@ -130,6 +130,13 @@ class Manager(mngr_base):
             return models.Q(**query)
 
 
+def get_model(instance):
+    try:
+        return instance._meta.model
+    except AttributeError:  # Django < 1.6
+        return instance.__class__
+
+
 def get_model_name(x):
     opts = x if isinstance(x, Options) else x._meta
     try:
