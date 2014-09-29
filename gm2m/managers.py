@@ -254,7 +254,7 @@ class GM2MBaseTgtManager(compat.Manager):
             # extract content type and primary key for each object
             objs_set.add((get_content_type(obj),
                           obj._get_pk_val()))
-            m = compat.get_model(obj)
+            m = obj.__class__
             if m not in models:
                 # call field.add_relation for each model
                 models.append(m)
