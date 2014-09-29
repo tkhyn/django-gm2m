@@ -26,14 +26,13 @@ class GM2MRelatedDescriptor(ManyRelatedObjectsDescriptor):
         if instance is None:
             return self
         return self.related_manager_cls(
+            field=self.related.field,
             model=self.related.model,
             instance=instance,
             through=self.rel.through,
-            rel=self.rel,
             query_field_name=get_model_name(self.related.field.rels.through),
             field_names=self.related.field.rels.through._meta._field_names,
             prefetch_cache_name=self.related.field.related_query_name(),
-            gm2m_field=self.related.field,
         )
 
     def __set__(self, instance, value):
@@ -60,14 +59,13 @@ class ReverseGM2MRelatedDescriptor(ReverseManyRelatedObjectsDescriptor):
             return self
         field_names = self.field.rels.through._meta._field_names
         return self.related_manager_cls(
+            field=self.field,
             model=self.field.model,
             instance=instance,
             through=self.field.rels.through,
-            rel=None,
             query_field_name=field_names['src'],
             field_names=field_names,
             prefetch_cache_name=self.field.name,
-            gm2m_field=self.field,
         )
 
     def __set__(self, instance, value):
