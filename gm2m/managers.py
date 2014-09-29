@@ -281,9 +281,18 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
 
         def clear(self):
             db = router.db_for_write(self.through, instance=self.instance)
-            self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.field_names['src']: self._fk_val
-            }).delete()
+
+            if self.rel:
+                f = {
+                    self.field_names['tgt_ct']: get_content_type(self.instance),
+                    self.field_names['tgt_fk']: self.instance._get_pk_val()
+                }
+            else:
+                f = {
+                    '%s_id' % self.field_names['src']: self._fk_val
+                }
+
+            self.through._default_manager.using(db).filter(**f).delete()
         clear.alters_data = True
 
     return GM2MManager
