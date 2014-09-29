@@ -60,6 +60,14 @@ class GM2MRel(GM2MRelBase):
             self.do_related_class()
 
     def do_related_class(self):
+        # check that the relation does not already exist
+        all_rels = self.field.rels.rels
+        if self.to in [r.to for r in all_rels if r != self]:
+            # if it does, it needs to be removed from the list, and no further
+            # action should be taken
+            all_rels.remove(self)
+            return
+
         self.related = GM2MRelatedObject(self.to, self.field.model,
                                          self.field, self)
         if not self.field.model._meta.abstract:

@@ -25,7 +25,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
 
     class GM2MManager(compat.Manager, superclass):
         def __init__(self, model, instance, through, rel, query_field_name,
-                     field_names, prefetch_cache_name):
+                     field_names, prefetch_cache_name, gm2m_field):
             super(GM2MManager, self).__init__()
 
             self.instance = instance
@@ -35,6 +35,7 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
             self.through = through
             self.rel = rel
             self.field_names = field_names
+            self.field = gm2m_field
 
             self.core_filters = {}
             self.source_related_fields = None
@@ -184,12 +185,11 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
                 return
 
             # sorting by content type to rationalise the number of queries
-            ct_pks = defaultdict(lambda: set())
+            ct_objs = defaultdict(lambda: [])
             for obj in objs:
                 # Convert the obj to (content_type, primary_key)
                 obj_ct = get_content_type(obj)
-                obj_pk = obj.pk
-                ct_pks[obj_ct].add(obj_pk)
+                ct_objs[obj_ct].append(obj)
 
             db = router.db_for_write(self.through, instance=self.instance)
             vals = self.through._default_manager.using(db) \
@@ -198,7 +198,9 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
                                  .filter(**{self.field_names['src']:
                                                 self._fk_val})
             to_add = []
-            for ct, pks in six.iteritems(ct_pks):
+            for ct, instances in six.iteritems(ct_objs):
+                self.field.add_relation(instances[0]._meta.model)
+                pks = set(inst.pk for inst in instances)
                 ctvals = vals.filter(**{'%s__exact' %
                                         self.field_names['tgt_ct']: ct.pk,
                                         '%s__in' %
