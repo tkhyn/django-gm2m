@@ -27,6 +27,31 @@ class RelatedTests(TestCase):
         self.assertIn(self.links, task.links_set.all())
 
 
+class ReverseOperationsTest(TestCase):
+
+    def setUp(self):
+        self.links1 = Links.objects.create()
+        self.links2 = Links.objects.create()
+        self.project = Project.objects.create()
+        self.links1.related_objects.add(self.project)
+
+    def test_reverse_add(self):
+        self.project.links_set.add(self.links2)
+        self.assertListEqual(list(self.links2.related_objects.all()),
+                             [self.project])
+
+    def test_reverse_remove(self):
+        self.links2.related_objects.add(self.project)
+        self.project.links_set.remove(self.links2)
+        self.assertEqual(self.links2.related_objects.count(), 0)
+
+    def test_reverse_clear(self):
+        self.links2.related_objects.add(self.project)
+        self.project.links_set.clear()
+        self.assertEqual(self.links1.related_objects.count(), 0)
+        self.assertEqual(self.links2.related_objects.count(), 0)
+
+
 class DeletionTests(TestCase):
 
     def setUp(self):

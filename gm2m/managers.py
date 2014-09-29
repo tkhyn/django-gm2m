@@ -184,33 +184,59 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
             if not objs:
                 return
 
-            # sorting by content type to rationalise the number of queries
-            ct_objs = defaultdict(lambda: [])
-            for obj in objs:
-                # Convert the obj to (content_type, primary_key)
-                obj_ct = get_content_type(obj)
-                ct_objs[obj_ct].append(obj)
-
             db = router.db_for_write(self.through, instance=self.instance)
-            vals = self.through._default_manager.using(db) \
-                                 .values_list(self.field_names['tgt_ct'],
-                                              self.field_names['tgt_fk']) \
-                                 .filter(**{self.field_names['src']:
-                                                self._fk_val})
-            to_add = []
-            for ct, instances in six.iteritems(ct_objs):
-                self.field.add_relation(instances[0]._meta.model)
-                pks = set(inst.pk for inst in instances)
-                ctvals = vals.filter(**{'%s__exact' %
-                                        self.field_names['tgt_ct']: ct.pk,
-                                        '%s__in' %
-                                        self.field_names['tgt_fk']: pks})
-                for pk in pks.difference(ctvals):
-                    to_add.append(self.through(**{
-                        '%s_id' % self.field_names['src']: self._fk_val,
-                        self.field_names['tgt_ct']: ct,
-                        self.field_names['tgt_fk']: pk
-                    }))
+
+            if self.rel:
+                # a relation is defined, that means that we're using the
+                # reverse relation to add source model instances
+                inst_ct = get_content_type(self.instance)
+                inst_pk = self.instance._get_pk_val()
+
+                vals = self.through._default_manager.using(db) \
+                                   .values_list(self.field_names['src']) \
+                                   .filter(**{
+                                       self.field_names['tgt_ct']: inst_ct,
+                                       self.field_names['tgt_fk']: inst_pk
+                                   })
+                to_add = []
+                for obj in objs:
+                    if obj._get_pk_val() not in vals:
+                        to_add.append(self.through(**{
+                            '%s_id' % self.field_names['src']:
+                                obj._get_pk_val(),
+                            self.field_names['tgt_ct']: inst_ct,
+                            self.field_names['tgt_fk']: inst_pk
+                        }))
+
+            else:
+
+                # sorting by content type to rationalise the number of queries
+                ct_objs = defaultdict(lambda: [])
+                for obj in objs:
+                    # Convert the obj to (content_type, primary_key)
+                    obj_ct = get_content_type(obj)
+                    ct_objs[obj_ct].append(obj)
+
+                vals = self.through._default_manager.using(db) \
+                                     .values_list(self.field_names['tgt_ct'],
+                                                  self.field_names['tgt_fk']) \
+                                     .filter(**{
+                                         self.field_names['src']: self._fk_val
+                                     })
+                to_add = []
+                for ct, instances in six.iteritems(ct_objs):
+                    self.field.add_relation(instances[0]._meta.model)
+                    pks = set(inst._get_pk_val() for inst in instances)
+                    ctvals = vals.filter(**{'%s__exact' %
+                                            self.field_names['tgt_ct']: ct.pk,
+                                            '%s__in' %
+                                            self.field_names['tgt_fk']: pks})
+                    for pk in pks.difference(ctvals):
+                        to_add.append(self.through(**{
+                            '%s_id' % self.field_names['src']: self._fk_val,
+                            self.field_names['tgt_ct']: ct,
+                            self.field_names['tgt_fk']: pk
+                        }))
             # Add the new entries in the db table
             self.through._default_manager.using(db).bulk_create(to_add)
         add.alters_data = True
@@ -226,26 +252,47 @@ def create_gm2m_related_manager(superclass=GM2MTgtManager):
             if not objs:
                 return
 
-            # sorting by content type to rationalise the number of queries
-            q = Q()
-            for obj in objs:
-                # Convert the obj to (content_type, primary_key)
-                q = q | Q(**{
-                    self.field_names['tgt_ct']: get_content_type(obj),
-                    self.field_names['tgt_fk']: obj.pk
+            if self.rel:
+                # a relation is defined, that means that we're using the
+                # reverse relation to delete source model instances
+                inst_ct = get_content_type(self.instance)
+                inst_pk = self.instance._get_pk_val()
+                q = Q(**{
+                    '%s_id__in' % self.field_names['src']:
+                        [obj._get_pk_val() for obj in objs],
+                    self.field_names['tgt_ct']: inst_ct,
+                    self.field_names['tgt_fk']: inst_pk
+                })
+            else:
+                q = Q()
+                for obj in objs:
+                    # Convert the obj to (content_type, primary_key)
+                    q = q | Q(**{
+                        self.field_names['tgt_ct']: get_content_type(obj),
+                        self.field_names['tgt_fk']: obj.pk
+                    })
+                q = q & Q(**{
+                    '%s_id' % self.field_names['src']: self._fk_val
                 })
 
             db = router.db_for_write(self.through, instance=self.instance)
-            self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.field_names['src']: self._fk_val
-            }).filter(q).delete()
+            self.through._default_manager.using(db).filter(q).delete()
         remove.alters_data = True
 
         def clear(self):
             db = router.db_for_write(self.through, instance=self.instance)
-            self.through._default_manager.using(db).filter(**{
-                '%s_id' % self.field_names['src']: self._fk_val
-            }).delete()
+
+            if self.rel:
+                f = {
+                    self.field_names['tgt_ct']: get_content_type(self.instance),
+                    self.field_names['tgt_fk']: self.instance._get_pk_val()
+                }
+            else:
+                f = {
+                    '%s_id' % self.field_names['src']: self._fk_val
+                }
+
+            self.through._default_manager.using(db).filter(**f).delete()
         clear.alters_data = True
 
     return GM2MManager

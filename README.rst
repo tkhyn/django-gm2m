@@ -154,6 +154,9 @@ instances from other models.You can still add instances from other models, and
 the relation will be created. Providing a list of models will only create
 reverse relations by default, nothing more.
 
+The reverse relations provide you with the full set of operations that normal
+Django reverse relation exposes: ``add``, ``remove`` and ``clear``.
+
 
 Deletion
 --------
