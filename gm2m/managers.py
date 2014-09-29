@@ -1,7 +1,6 @@
 from django.db import router
-from django.db.models import Q, Manager
+from django.db.models import Q
 from django.db import connections
-from django.utils import six
 
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
@@ -10,22 +9,12 @@ from . import compat
 
 
 class GM2MBaseManager(compat.Manager):
-    def __init__(self, field, model, instance, through, query_field_name,
-                 field_names, prefetch_cache_name):
+    def __init__(self, instance):
         super(GM2MBaseManager, self).__init__()
-
-        self.field = field
-        self.model = model
+        self.model = self._model  # see create_gm2m_related_manager
         self.instance = instance
         self._fk_val = instance._get_pk_val()
-        self.through = through
-
-        self.query_field_name = query_field_name
-        self.field_names = field_names
-        self.prefetch_cache_name = prefetch_cache_name
-
         self.core_filters = {}
-        self.source_related_fields = None
 
     def get_queryset(self):
         try:
@@ -119,9 +108,9 @@ class GM2MBaseManager(compat.Manager):
 
 
 class GM2MBaseSrcManager(compat.Manager):
-    def __init__(self, **kwargs):
+    def __init__(self, instance):
         # the manager's model is the source model
-        super(GM2MBaseSrcManager, self).__init__(**kwargs)
+        super(GM2MBaseSrcManager, self).__init__(instance)
         self.core_filters['%s__%s' % (self.query_field_name,
                                       self.field_names['tgt_ct'])] = \
             get_content_type(self.instance)
@@ -214,10 +203,9 @@ class GM2MBaseSrcManager(compat.Manager):
 
 class GM2MBaseTgtManager(compat.Manager):
 
-    def __init__(self, **kwargs):
+    def __init__(self, instance):
         # the manager's model is the through model
-        super(GM2MBaseTgtManager, self).__init__(**kwargs)
-        self.model = self.through
+        super(GM2MBaseTgtManager, self).__init__(instance)
         self._mk_core_filters_norel(self.instance)
 
     def _get_queryset(self, using):
@@ -305,7 +293,7 @@ class GM2MBaseTgtManager(compat.Manager):
         }
 
 
-def create_gm2m_related_manager(superclass=None):
+def create_gm2m_related_manager(superclass=None, **kwargs):
     """
     Dynamically create a manager class that only concerns an instance (source
     or target)
@@ -322,4 +310,7 @@ def create_gm2m_related_manager(superclass=None):
         bases.insert(0, GM2MBaseSrcManager)
         bases.append(superclass)
 
-    return type(compat.Manager)('GM2MManager', tuple(bases), {})
+    # Django's Manager constructor sets model to None, we store it under the
+    # class's attribute '_model' and it is retrieved in __init__
+    kwargs['_model'] = kwargs.pop('model')
+    return type(compat.Manager)('GM2MManager', tuple(bases), kwargs)
