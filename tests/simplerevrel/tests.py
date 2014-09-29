@@ -12,7 +12,6 @@ class LinksTests(TestCase):
 
     def test_related_accessor(self):
         self.links.related_objects.add(self.project)
-        self.links.save()
         self.assertEqual(self.project.links_set.count(), 1)
         self.assertIn(self.links, self.project.links_set.all())
 
@@ -36,14 +35,12 @@ class DeletionTests(TestCase):
 
     def test_delete_src(self):
         self.links.related_objects = [self.project1, self.project2]
-        self.links.save()
         self.links.delete()
         self.assertEqual(self.project1.links_set.count(), 0)
         self.assertEqual(self.project2.links_set.count(), 0)
 
     def test_delete_tgt(self):
         self.links.related_objects = [self.project1, self.project2]
-        self.links.save()
         self.project2.delete()
         self.assertEqual(self.links.related_objects.count(), 1)
 
@@ -57,10 +54,8 @@ class PrefetchTests(TestCase):
         self.links2 = Links.objects.create()
 
         self.links1.related_objects = [self.project, self.task]
-        self.links1.save()
 
         self.links2.related_objects = [self.project]
-        self.links2.save()
 
     def test_prefetch_forward(self):
         with self.assertNumQueries(4):

@@ -14,7 +14,6 @@ class LinksTests(TestCase):
 
     def test_add(self):
         self.links.related_objects.add(self.project)
-        self.links.save()
         self.assertIn(self.project, self.links.related_objects.all())
 
     def test_set(self):
@@ -30,7 +29,6 @@ class LinksTests(TestCase):
 
     def test_reverse(self):
         self.links.related_objects = [self.project, self.task1]
-        self.links.save()
         self.assertListEqual(list(self.project.links_set.all()), [self.links])
         self.assertListEqual(list(self.task1.links_set.all()), [self.links])
 
@@ -44,13 +42,11 @@ class DeletionTests(TestCase):
 
     def test_delete_src(self):
         self.links.related_objects = [self.project1, self.project2]
-        self.links.save()
         self.links.delete()
         self.assertEqual(self.project1.links_set.count(), 0)
         self.assertEqual(self.project2.links_set.count(), 0)
 
     def test_delete_tgt(self):
         self.links.related_objects = [self.project1, self.project2]
-        self.links.save()
         self.project2.delete()
         self.assertEqual(self.links.related_objects.count(), 1)

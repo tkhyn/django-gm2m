@@ -17,7 +17,6 @@ class DeletionTests(TestCase):
 
     def test_delete_src(self):
         self.links.related_objects = [self.project1, self.project2]
-        self.links.save()
         self.links.delete()
         # no more Links instances
         self.assertEqual(Links.objects.count(), 0)
@@ -26,7 +25,6 @@ class DeletionTests(TestCase):
 
     def test_delete_tgt(self):
         self.links.related_objects = [self.project1, self.project2]
-        self.links.save()
         self.project1.delete()
         self.project2.delete()
         # no more Project instances
