@@ -40,8 +40,15 @@ except ImportError:
         ForeignObjectRel = GenericRel
 
 
-class RelatedObject(related.RelatedObject):
-    if django.VERSION < (1, 6):
+if django.VERSION < (1, 6):
+    from django.db.models import Field
+
+    class RelatedObject(related.RelatedObject, Field):
+        def __init__(self, parent_model, model, field):
+            super(RelatedObject, self).__init__(parent_model, model, field)
+            self.creation_counter = Field.auto_creation_counter
+            Field.auto_creation_counter -= 1
+
         def related_query_name(self):
             return self.field.related_query_name()
 
@@ -53,7 +60,9 @@ class RelatedObject(related.RelatedObject):
 
         def __lt__(self, ro):
             # for python 3.3
-            return id(self) < id(ro)
+            return self.creation_counter < ro.creation_counter
+else:
+    RelatedObject = related.RelatedObject
 
 
 if django.VERSION < (1, 6):
