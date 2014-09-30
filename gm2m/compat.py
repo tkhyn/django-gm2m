@@ -112,12 +112,11 @@ class Manager(mngr_base):
         __metaclass__ = GetQSetRenamer
 
         def _mk_core_filters_norel(self, instance):
-            self.core_filters = {'%s__pk' % self.query_field_name:
-                                 instance._get_pk_val()}
+            self.core_filters = {'%s__pk' % self.query_field_name: instance.pk}
 
         def _prefetch_qset_query_norel(self, instances):
             return models.Q(**{'%s_id__in' % self.field_names['src']:
-                set(obj._get_pk_val() for obj in instances)})
+                set(obj.pk for obj in instances)})
 
     else:
 

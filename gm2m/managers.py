@@ -13,7 +13,7 @@ class GM2MBaseManager(compat.Manager):
         super(GM2MBaseManager, self).__init__()
         self.model = self._model  # see create_gm2m_related_manager
         self.instance = instance
-        self._fk_val = instance._get_pk_val()
+        self.pk = instance.pk
         self.core_filters = {}
 
     def get_queryset(self):
@@ -116,7 +116,7 @@ class GM2MBaseSrcManager(compat.Manager):
             get_content_type(self.instance)
         self.core_filters['%s__%s' % (self.query_field_name,
                                       self.field_names['tgt_fk'])] = \
-            self.instance._get_pk_val()
+            self.instance.pk
 
     def _get_prefetch_queryset_params(self, instances, queryset, db):
 
@@ -131,7 +131,7 @@ class GM2MBaseSrcManager(compat.Manager):
                      get_content_type(obj),
                 '%s__%s' % (self.query_field_name,
                             self.field_names['tgt_fk']):
-                     obj._get_pk_val()
+                     obj.pk
             })
 
         # Annotating the query in order to retrieve the primary model
@@ -154,7 +154,7 @@ class GM2MBaseSrcManager(compat.Manager):
 
         # model attribute retrieval function
         instance_attr = lambda inst: \
-            (get_content_type(inst)._get_pk_val(), inst._get_pk_val())
+            (get_content_type(inst).pk, inst.pk)
 
         return qs, rel_obj_attr, instance_attr
 
@@ -162,23 +162,21 @@ class GM2MBaseSrcManager(compat.Manager):
         # we're using the reverse relation to add source model
         # instances
         inst_ct = get_content_type(self.instance)
-        inst_pk = self.instance._get_pk_val()
-
         vals = self.through._default_manager.using(db) \
                            .values_list(self.field_names['src'],
                                         flat=True) \
                            .filter(**{
                                self.field_names['tgt_ct']: inst_ct,
-                               self.field_names['tgt_fk']: inst_pk
+                               self.field_names['tgt_fk']: self.pk
                            })
         to_add = []
         for obj in objs:
-            if obj._get_pk_val() not in vals:
+            if obj.pk not in vals:
                 to_add.append(self.through(**{
                     '%s_id' % self.field_names['src']:
-                        obj._get_pk_val(),
+                        obj.pk,
                     self.field_names['tgt_ct']: inst_ct,
-                    self.field_names['tgt_fk']: inst_pk
+                    self.field_names['tgt_fk']: self.pk
                 }))
         return to_add
 
@@ -186,18 +184,17 @@ class GM2MBaseSrcManager(compat.Manager):
         # we're using the reverse relation to delete source model
         # instances
         inst_ct = get_content_type(self.instance)
-        inst_pk = self.instance._get_pk_val()
         return Q(**{
             '%s_id__in' % self.field_names['src']:
-                [obj._get_pk_val() for obj in objs],
+                [obj.pk for obj in objs],
             self.field_names['tgt_ct']: inst_ct,
-            self.field_names['tgt_fk']: inst_pk
+            self.field_names['tgt_fk']: self.pk
         })
 
     def to_clear(self):
         return {
             self.field_names['tgt_ct']: get_content_type(self.instance),
-            self.field_names['tgt_fk']: self.instance._get_pk_val()
+            self.field_names['tgt_fk']: self.instance.pk
         }
 
 
@@ -253,7 +250,7 @@ class GM2MBaseTgtManager(compat.Manager):
         for obj in objs:
             # extract content type and primary key for each object
             objs_set.add((get_content_type(obj),
-                          obj._get_pk_val()))
+                          obj.pk))
             m = obj.__class__
             if m not in models:
                 # call field.add_relation for each model
@@ -261,14 +258,14 @@ class GM2MBaseTgtManager(compat.Manager):
                 self.field.add_relation(m)
 
         vals = self.through._default_manager.using(db) \
-                   .filter(**{self.field_names['src']: self._fk_val}) \
+                   .filter(**{self.field_names['src']: self.pk}) \
                    .values_list(self.field_names['tgt_ct'],
                                 self.field_names['tgt_fk'])
 
         to_add = []
         for ct, pk in objs_set.difference(vals):
             to_add.append(self.through(**{
-                '%s_id' % self.field_names['src']: self._fk_val,
+                '%s_id' % self.field_names['src']: self.pk,
                 self.field_names['tgt_ct']: ct,
                 self.field_names['tgt_fk']: pk
             }))
@@ -284,12 +281,12 @@ class GM2MBaseTgtManager(compat.Manager):
                 self.field_names['tgt_fk']: obj.pk
             })
         return q & Q(**{
-            '%s_id' % self.field_names['src']: self._fk_val
+            '%s_id' % self.field_names['src']: self.pk
         })
 
     def to_clear(self):
         return {
-            '%s_id' % self.field_names['src']: self._fk_val
+            '%s_id' % self.field_names['src']: self.pk
         }
 
 
