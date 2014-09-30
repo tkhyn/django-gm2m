@@ -9,7 +9,6 @@ import sys
 from imp import reload
 from importlib import import_module
 
-import django
 from django import test
 from django.conf import settings
 from django.db.models.loading import cache
