@@ -109,8 +109,6 @@ class Manager(mngr_base):
 
     if django.VERSION < (1, 6):
 
-        __metaclass__ = GetQSetRenamer
-
         def _mk_core_filters_norel(self, instance):
             self.core_filters = {'%s__pk' % self.query_field_name: instance.pk}
 
