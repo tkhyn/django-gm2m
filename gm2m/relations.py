@@ -78,10 +78,12 @@ class GM2MRel(GM2MRelBase):
         Appends accessors to related classes
         """
 
+        # this enables cascade deletion for any relation (even hidden ones)
+        add_related_field(self.to._meta, self.related)
+
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
         if not self.is_hidden() and not is_swapped(self.related.model):
-            add_related_field(self.to._meta, self.related)
             setattr(self.to, self.related_name
                         or (get_model_name(self.field.model._meta) + '_set'),
                     GM2MRelatedDescriptor(self.related, self))
