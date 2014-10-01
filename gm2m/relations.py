@@ -1,9 +1,11 @@
 from django.db.models.fields.related import add_lazy_relation
 from django.contrib.contenttypes.generic import GenericForeignKey
+from django.utils.functional import cached_property
 from django.utils import six
 
 from .models import create_gm2m_intermediary_model
-from .descriptors import GM2MRelatedDescriptor
+from .managers import create_gm2m_related_manager
+from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .compat import ForeignObjectRel, is_swapped, add_related_field, \
                     get_model_name
 from .deletion import CASCADE, GM2MRelatedObject
@@ -88,6 +90,20 @@ class GM2MRel(GM2MRelBase):
                         or (get_model_name(self.field.model._meta) + '_set'),
                     GM2MRelatedDescriptor(self.related, self))
 
+    @cached_property
+    def related_manager_cls(self):
+        # the related manager class getter is implemented here rather than in
+        # the descriptor as we may need to access it even for hidden relations
+        return create_gm2m_related_manager(
+            superclass=self.to._default_manager.__class__,
+            field=self.related.field,
+            model=self.related.model,
+            through=self.through,
+            query_field_name=get_model_name(self.through),
+            field_names=self.through._meta._field_names,
+            prefetch_cache_name=self.related.field.related_query_name()
+        )
+
 
 class GM2MRels(object):
 
@@ -127,6 +143,10 @@ class GM2MRels(object):
             rel.contribute_to_class()
 
     def contribute_to_class(self, cls):
+
+        # Connect the descriptor for this field
+        setattr(cls, self.field.attname,
+                ReverseGM2MRelatedDescriptor(self.field))
 
         if not self.through:
             self.through = create_gm2m_intermediary_model(self.field, cls)
@@ -172,3 +192,16 @@ class GM2MRels(object):
 
         for rel in self.rels:
             rel.contribute_to_class()
+
+    @cached_property
+    def related_manager_cls(self):
+        field_names = self.through._meta._field_names
+        return create_gm2m_related_manager(
+            superclass=None,
+            field=self.field,
+            model=self.through,
+            through=self.through,
+            query_field_name=field_names['src'],
+            field_names=field_names,
+            prefetch_cache_name=self.field.name
+        )

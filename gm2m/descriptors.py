@@ -1,10 +1,5 @@
 from django.db.models.fields.related import ManyRelatedObjectsDescriptor, \
                                             ReverseManyRelatedObjectsDescriptor
-from django.utils.functional import cached_property
-
-
-from .managers import create_gm2m_related_manager
-from .compat import get_model_name
 
 
 class GM2MDescriptor(object):
@@ -40,17 +35,9 @@ class GM2MRelatedDescriptor(GM2MDescriptor, ManyRelatedObjectsDescriptor):
     def through(self):
         return self.rel.through
 
-    @cached_property
+    @property
     def related_manager_cls(self):
-        return create_gm2m_related_manager(
-            superclass=self.rel.to._default_manager.__class__,
-            field=self.related.field,
-            model=self.related.model,
-            through=self.through,
-            query_field_name=get_model_name(self.related.field.rels.through),
-            field_names=self.through._meta._field_names,
-            prefetch_cache_name=self.related.field.related_query_name()
-        )
+        return self.rel.related_manager_cls
 
 
 class ReverseGM2MRelatedDescriptor(GM2MDescriptor,
@@ -67,18 +54,9 @@ class ReverseGM2MRelatedDescriptor(GM2MDescriptor,
     def through(self):
         return self.field.rels.through
 
-    @cached_property
+    @property
     def related_manager_cls(self):
-        field_names = self.through._meta._field_names
-        return create_gm2m_related_manager(
-            superclass=None,
-            field=self.field,
-            model=self.through,
-            through=self.through,
-            query_field_name=field_names['src'],
-            field_names=field_names,
-            prefetch_cache_name=self.field.name
-        )
+        return self.field.rels.related_manager_cls
 
     def __set__(self, instance, value):
         # clear() can change expected output of 'value' queryset,

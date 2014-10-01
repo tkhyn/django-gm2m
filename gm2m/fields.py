@@ -58,9 +58,6 @@ class GM2MField(RelatedField):
         self.model = cls
         self.opts = cls._meta
 
-        # Connect the descriptor for this field
-        setattr(cls, name, ReverseGM2MRelatedDescriptor(self))
-
         # Set up related classes if relations are defined
         self.rels.contribute_to_class(cls)
 
