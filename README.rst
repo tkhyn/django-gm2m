@@ -182,10 +182,50 @@ source model side), use ``on_delete_src`` or ``on_delete_tgt``::
 
 ``on_delete_src`` and ``on_delete_tgt`` override ``on_delete``.
 
-The only customisation available is - for the moment - to use the
-``DO_NOTHING`` function. When using ``DO_NOTHING``, the relation is not deleted
-with the related instance. It is your responsibility to ensure that the
-database remains consistent after the deletion operation.
+Several deletion functions are available:
+
+CASCADE [default]
+   The relation is deleted with the instance it is related to. The database
+   remains consistent, no ``ForeignKey`` `nor ``GenericForeignKey`` can point
+   to a non-existent object after the operation.
+
+DO_NOTHING
+   The relation is not deleted with the instance it is related to. It is your
+   responsibility to ensure that the database remains consistent after the
+   deletion operation.
+
+CASCADE_SIGNAL
+   Same as CASCADE but sends either the ``deleting_src`` or the
+   ``deleting_tgt`` signal (see Signals_ below) depending on which side of the
+   relation the deleted instance is.
+
+CASCADE_SIGNAL_VETO
+   Sends a ``deleting_src/tgt`` signal, and if no receiver vetoes the deletion
+   by returning ``True`` or a Truthy value, calls CASCADE. Be careful using
+   this one as when the deletion is vetoed, the database is left in an
+   inconsistent state.
+
+DO_NOTHING_SIGNAL
+   Same as DO_NOTHING but sends a ``deleting_src/tgt`` signal.
+
+
+Signals
+-------
+
+The signals listed below can be imported from the ``gm2m.signals`` module.
+
+deleting_src
+   Sent when instances involved in the source side of a GM2M relationship
+   (= instances of the model where the ``GM2MField`` is defined) are being
+   deleted. The receivers take the keyword argument ``objs`` as an iterable
+   containing the objects being deleted. The ``sender`` is the model of the
+   instance originating the cascade deletion.
+
+deleting_tgt
+   Same thing but for an instance on the target side of a GM2M relationship.
+
+The deleting_src/tgt signals can be used to customize the behaviour when
+deleting a source or target instance.
 
 
 Prefetching
@@ -260,7 +300,6 @@ related_query_name
 Future improvements
 -------------------
 
-- More deletion behavior options (possibility to pass any custom function?)
 - Add Django admin and possibly ``limit_choices_to`` support
 
 

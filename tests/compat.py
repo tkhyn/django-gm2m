@@ -1,6 +1,12 @@
 import django
 from django.db.models.loading import cache
 
+try:
+    from unittest import mock
+except ImportError:
+    # Python 2
+    import mock
+
 __test__ = False
 
 try:
