@@ -1,27 +1,38 @@
 from django.db.models import Q
 from django.db.models.deletion import CASCADE, DO_NOTHING
 from django.db.utils import DEFAULT_DB_ALIAS
+from django.utils import six
 
 from .compat import RelatedObject
 from .helpers import get_content_type
 from .signals import deleting_src, deleting_tgt
 
 
+def collector_data_iterator(data):
+    for __, instances in six.iteritems(data):
+        for instance in instances:
+            yield instance
+
+
 def CASCADE_SIGNAL(collector, field, sub_objs, using):
-    deleting_src.send(field.rel.to, objs=sub_objs)
+    deleting_src.send(field, del_objs=collector_data_iterator(collector.data),
+                      rel_objs=sub_objs)
     CASCADE(collector, field, sub_objs, using)
 
 
 def CASCADE_SIGNAL_VETO(collector, field, sub_objs, using):
-    results = deleting_src.send(field.rel.to, objs=sub_objs)
-    if not any(r[1] for r in results):
+    res = deleting_src.send(field,
+                            del_objs=collector_data_iterator(collector.data),
+                            rel_objs=sub_objs)
+    if not any(r[1] for r in res):
         # if no receiver returned a truthy result (veto), we can
         # cascade-collect, else we do nothing
         CASCADE(collector, field, sub_objs, using)
 
 
 def DO_NOTHING_SIGNAL(collector, field, sub_objs, using):
-    deleting_src.send(field.rel.to, objs=sub_objs)
+    deleting_src.send(field, del_objs=collector_data_iterator(collector.data),
+                      rel_objs=sub_objs)
 
 
 class GM2MRelatedObject(RelatedObject):
@@ -59,13 +70,17 @@ class GM2MRelatedObject(RelatedObject):
 
             if on_delete in (DO_NOTHING_SIGNAL, CASCADE_SIGNAL,
                              CASCADE_SIGNAL_VETO):
-                results = deleting_tgt.send(self.rel.to, objs=qs)
+                results = deleting_tgt.send(sender=self.field,
+                                            del_objs=objs, rel_objs=qs)
 
             if on_delete in (CASCADE, CASCADE_SIGNAL) \
             or on_delete is CASCADE_SIGNAL_VETO \
             and not any(r[1] for r in results):
                 # if CASCADE must be called or if no receiver returned a veto
                 # we return the qs for deletion
+                # note that it is an homogeneous queryset (as Collector.collect
+                # which is called afterwards only works with homogeneous
+                # collections)
                 return qs
 
         # do not delete anything by default

@@ -217,9 +217,13 @@ The signals listed below can be imported from the ``gm2m.signals`` module.
 deleting_src
    Sent when instances involved in the source side of a GM2M relationship
    (= instances of the model where the ``GM2MField`` is defined) are being
-   deleted. The receivers take the keyword argument ``objs`` as an iterable
-   containing the objects being deleted. The ``sender`` is the model of the
-   instance originating the cascade deletion.
+   deleted. The receivers take 2 keyword arguments:
+      - ``del_objs``, an iterable containing the objects being deleted in the
+        first place
+      - ``rel_objs``, an iterable containing the objects related to the objects
+        in ``del_objs``, and that are to be deleted if cascade deletion is
+        enabled
+   The ``sender`` is the ``GM2MField`` instance.
 
 deleting_tgt
    Same thing but for an instance on the target side of a GM2M relationship.
