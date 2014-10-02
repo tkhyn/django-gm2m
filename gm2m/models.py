@@ -7,8 +7,8 @@ from .compat import get_model_name, get_fk_kwargs, get_gfk_kwargs
 
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'
-CT_ATTNAME = 'gm2m_content_type'
-FK_ATTNAME = 'gm2m_object_id'
+CT_ATTNAME = 'gm2m_ct'
+FK_ATTNAME = 'gm2m_pk'
 
 
 def create_gm2m_intermediary_model(field, klass):
