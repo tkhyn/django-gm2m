@@ -1,8 +1,12 @@
-from django.db.models.fields.related import ManyRelatedObjectsDescriptor, \
-                                            ReverseManyRelatedObjectsDescriptor
+"""
+Generic many-to-many relations descriptors
+"""
 
 
 class GM2MDescriptor(object):
+
+    def __init__(self, field):
+        self.field = field
 
     def __get__(self, instance, instance_type=None):
         if instance is None:
@@ -21,7 +25,7 @@ class GM2MDescriptor(object):
         manager.add(*value)
 
 
-class GM2MRelatedDescriptor(GM2MDescriptor, ManyRelatedObjectsDescriptor):
+class GM2MRelatedDescriptor(GM2MDescriptor):
     """
     Provides a generic many-to-many descriptor to make the related manager
     available from the source model class
@@ -40,8 +44,7 @@ class GM2MRelatedDescriptor(GM2MDescriptor, ManyRelatedObjectsDescriptor):
         return self.rel.related_manager_cls
 
 
-class ReverseGM2MRelatedDescriptor(GM2MDescriptor,
-                                   ReverseManyRelatedObjectsDescriptor):
+class ReverseGM2MRelatedDescriptor(GM2MDescriptor):
     """
     Provides a generic many-to-many descriptor to make the source manager
     available from a target model class
