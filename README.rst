@@ -195,18 +195,16 @@ DO_NOTHING
    deletion operation.
 
 CASCADE_SIGNAL
-   Same as CASCADE but sends either the ``deleting_src`` or the
-   ``deleting_tgt`` signal (see Signals_ below) depending on which side of the
-   relation the deleted instance is.
+   Same as CASCADE but sends the ``deleting`` signal (see Signals_ below).
 
 CASCADE_SIGNAL_VETO
-   Sends a ``deleting_src/tgt`` signal, and if no receiver vetoes the deletion
+   Sends a ``deleting`` signal, and if no receiver vetoes the deletion
    by returning ``True`` or a Truthy value, calls CASCADE. Be careful using
    this one as when the deletion is vetoed, the database is left in an
    inconsistent state.
 
 DO_NOTHING_SIGNAL
-   Same as DO_NOTHING but sends a ``deleting_src/tgt`` signal.
+   Same as DO_NOTHING but sends a ``deleting`` signal.
 
 
 Signals
@@ -214,22 +212,18 @@ Signals
 
 The signals listed below can be imported from the ``gm2m.signals`` module.
 
-deleting_src
+deleting
    Sent when instances involved in the source side of a GM2M relationship
    (= instances of the model where the ``GM2MField`` is defined) are being
-   deleted. The receivers take 2 keyword arguments:
+   deleted. The ``sender`` is the ``GM2MField`` instance. The receivers take
+   2 keyword arguments:
       - ``del_objs``, an iterable containing the objects being deleted in the
         first place
       - ``rel_objs``, an iterable containing the objects related to the objects
         in ``del_objs``, and that are to be deleted if cascade deletion is
         enabled
-   The ``sender`` is the ``GM2MField`` instance.
-
-deleting_tgt
-   Same thing but for an instance on the target side of a GM2M relationship.
-
-The deleting_src/tgt signals can be used to customize the behaviour when
-deleting a source or target instance.
+   This signal can be used to customize the behaviour when deleting a source
+   or target instance.
 
 
 Prefetching

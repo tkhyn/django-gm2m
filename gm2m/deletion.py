@@ -5,7 +5,11 @@ from django.utils import six
 
 from .compat import RelatedObject
 from .helpers import get_content_type
-from .signals import deleting_src, deleting_tgt
+from .signals import deleting
+
+
+__all__ = ['CASCADE', 'DO_NOTHING', 'CASCADE_SIGNAL', 'CASCADE_SIGNAL_VETO',
+           'DO_NOTHING_SIGNAL']
 
 
 def collector_data_iterator(data):
@@ -15,15 +19,15 @@ def collector_data_iterator(data):
 
 
 def CASCADE_SIGNAL(collector, field, sub_objs, using):
-    deleting_src.send(field, del_objs=collector_data_iterator(collector.data),
-                      rel_objs=sub_objs)
+    deleting.send(field, del_objs=collector_data_iterator(collector.data),
+                  rel_objs=sub_objs)
     CASCADE(collector, field, sub_objs, using)
 
 
 def CASCADE_SIGNAL_VETO(collector, field, sub_objs, using):
-    res = deleting_src.send(field,
-                            del_objs=collector_data_iterator(collector.data),
-                            rel_objs=sub_objs)
+    res = deleting.send(field,
+                        del_objs=collector_data_iterator(collector.data),
+                        rel_objs=sub_objs)
     if not any(r[1] for r in res):
         # if no receiver returned a truthy result (veto), we can
         # cascade-collect, else we do nothing
@@ -31,8 +35,8 @@ def CASCADE_SIGNAL_VETO(collector, field, sub_objs, using):
 
 
 def DO_NOTHING_SIGNAL(collector, field, sub_objs, using):
-    deleting_src.send(field, del_objs=collector_data_iterator(collector.data),
-                      rel_objs=sub_objs)
+    deleting.send(field, del_objs=collector_data_iterator(collector.data),
+                  rel_objs=sub_objs)
 
 
 handlers_with_signal = (CASCADE_SIGNAL, CASCADE_SIGNAL_VETO, DO_NOTHING_SIGNAL)
@@ -73,8 +77,8 @@ class GM2MRelatedObject(RelatedObject):
 
             if on_delete in (DO_NOTHING_SIGNAL, CASCADE_SIGNAL,
                              CASCADE_SIGNAL_VETO):
-                results = deleting_tgt.send(sender=self.field,
-                                            del_objs=objs, rel_objs=qs)
+                results = deleting.send(sender=self.field,
+                                        del_objs=objs, rel_objs=qs)
 
             if on_delete in (CASCADE, CASCADE_SIGNAL) \
             or on_delete is CASCADE_SIGNAL_VETO \

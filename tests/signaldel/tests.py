@@ -3,7 +3,7 @@ from django.utils.unittest import skipIf
 
 from mock_django.signals import mock_signal_receiver
 
-from gm2m.signals import deleting_src, deleting_tgt
+from gm2m.signals import deleting
 
 from ..app.models import Project
 from .models import Links
@@ -22,7 +22,7 @@ class SignalDeletionTests(TestCase):
     def test_delete_src(self):
         self.links.related_objects = [self.project1, self.project2]
 
-        with mock_signal_receiver(deleting_src) as on_delete:
+        with mock_signal_receiver(deleting) as on_delete:
             self.links.delete()
             self.assertEqual(on_delete.call_count, 1)
 
@@ -36,7 +36,7 @@ class SignalDeletionTests(TestCase):
         links2 = Links.objects.create()
         links2.related_objects = [self.project2]
 
-        with mock_signal_receiver(deleting_src) as on_delete:
+        with mock_signal_receiver(deleting) as on_delete:
             Links.objects.all().delete()
             self.assertEqual(on_delete.call_count, 1)
 
@@ -48,7 +48,7 @@ class SignalDeletionTests(TestCase):
     def test_delete_tgt(self):
         self.links.related_objects = [self.project1, self.project2]
 
-        with mock_signal_receiver(deleting_tgt) as on_delete:
+        with mock_signal_receiver(deleting) as on_delete:
             self.project1.delete()
             self.assertEqual(on_delete.call_count, 1)
 
@@ -60,7 +60,7 @@ class SignalDeletionTests(TestCase):
     def test_group_delete_tgt(self):
         self.links.related_objects = [self.project1, self.project2]
 
-        with mock_signal_receiver(deleting_tgt) as on_delete:
+        with mock_signal_receiver(deleting) as on_delete:
             Project.objects.all().delete()
             self.assertEqual(on_delete.call_count, 1)
 
