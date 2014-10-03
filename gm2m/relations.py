@@ -9,7 +9,7 @@ from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .compat import ForeignObjectRel, is_swapped, add_related_field, \
                     get_model_name
-from .deletion import CASCADE, GM2MRelatedObject
+from .deletion import CASCADE, GM2MRelatedObject, handlers_with_signal
 
 
 # default relation attributes
@@ -87,10 +87,12 @@ class GM2MRel(GM2MRelBase):
         # this enables cascade deletion for any relation (even hidden ones)
         add_related_field(self.to._meta, self.related)
 
-        # we connect a dummy receiver to pre_delete so that the model is not
-        # 'fast_delete'-able
-        # (see django.db.models.deletion.Collector.can_fast_delete)
-        pre_delete.connect(self.dummy_pre_delete, sender=self.to)
+        if self.on_delete in handlers_with_signal:
+            # if a signal should be sent on deletion, we connect a dummy
+            # receiver to pre_delete so that the model is not
+            # 'fast_delete'-able
+            # (see django.db.models.deletion.Collector.can_fast_delete)
+            pre_delete.connect(self.dummy_pre_delete, sender=self.to)
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.

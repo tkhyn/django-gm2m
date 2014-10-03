@@ -35,6 +35,9 @@ def DO_NOTHING_SIGNAL(collector, field, sub_objs, using):
                       rel_objs=sub_objs)
 
 
+handlers_with_signal = (CASCADE_SIGNAL, CASCADE_SIGNAL_VETO, DO_NOTHING_SIGNAL)
+
+
 class GM2MRelatedObject(RelatedObject):
 
     unique = False
