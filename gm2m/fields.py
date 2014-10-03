@@ -1,6 +1,5 @@
 from django.db.models.fields.related import RelatedField
 
-from .descriptors import ReverseGM2MRelatedDescriptor
 from .relations import GM2MRels
 
 from .compat import get_model_name, assert_compat_params
