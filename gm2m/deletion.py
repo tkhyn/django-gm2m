@@ -9,7 +9,7 @@ from .signals import deleting
 
 
 __all__ = ['CASCADE', 'DO_NOTHING', 'CASCADE_SIGNAL', 'CASCADE_SIGNAL_VETO',
-           'DO_NOTHING_SIGNAL']
+           'DO_NOTHING_SIGNAL', 'handlers_with_signal', 'handlers_do_nothing']
 
 
 def collector_data_iterator(data):
@@ -39,6 +39,7 @@ def DO_NOTHING_SIGNAL(collector, field, sub_objs, using):
                   rel_objs=sub_objs)
 
 
+handlers_do_nothing = (DO_NOTHING, DO_NOTHING_SIGNAL)
 handlers_with_signal = (CASCADE_SIGNAL, CASCADE_SIGNAL_VETO, DO_NOTHING_SIGNAL)
 
 
