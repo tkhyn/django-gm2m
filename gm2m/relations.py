@@ -1,5 +1,6 @@
 from django.db.models.fields.related import add_lazy_relation
 from django.contrib.contenttypes.generic import GenericForeignKey
+from django.db.models.signals import pre_delete
 from django.utils.functional import cached_property
 from django.utils import six
 
@@ -9,6 +10,7 @@ from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .compat import ForeignObjectRel, is_swapped, add_related_field, \
                     get_model_name
 from .deletion import CASCADE, GM2MRelatedObject
+
 
 # default relation attributes
 REL_ATTRS = {
@@ -38,6 +40,8 @@ class GM2MRelBase(ForeignObjectRel):
 
 
 class GM2MRel(GM2MRelBase):
+
+    dummy_pre_delete = lambda s, **kwargs: None
 
     def __getattribute__(self, name):
         """
@@ -82,6 +86,11 @@ class GM2MRel(GM2MRelBase):
 
         # this enables cascade deletion for any relation (even hidden ones)
         add_related_field(self.to._meta, self.related)
+
+        # we connect a dummy receiver to pre_delete so that the model is not
+        # 'fast_delete'-able
+        # (see django.db.models.deletion.Collector.can_fast_delete)
+        pre_delete.connect(self.dummy_pre_delete, sender=self.to)
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
