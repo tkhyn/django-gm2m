@@ -50,7 +50,7 @@ class GM2MRelatedObject(RelatedObject):
 
     def __init__(self, parent_model, model, field, rel):
         super(GM2MRelatedObject, self).__init__(parent_model, model, field)
-        self.rel = self.rels = rel
+        self.rel = self.rel = rel
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
@@ -59,7 +59,7 @@ class GM2MRelatedObject(RelatedObject):
         not use the deletion functions as such
         """
 
-        through = self.field.rels.through
+        through = self.field.rel.through
         base_mngr = through._base_manager.db_manager(using)
 
         on_delete = self.rel.on_delete

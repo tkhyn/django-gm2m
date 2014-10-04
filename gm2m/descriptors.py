@@ -55,11 +55,11 @@ class ReverseGM2MRelatedDescriptor(GM2MDescriptor):
 
     @property
     def through(self):
-        return self.field.rels.through
+        return self.field.rel.through
 
     @property
     def related_manager_cls(self):
-        return self.field.rels.related_manager_cls
+        return self.field.rel.related_manager_cls
 
     def __set__(self, instance, value):
         # clear() can change expected output of 'value' queryset,

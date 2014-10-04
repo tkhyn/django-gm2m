@@ -23,12 +23,12 @@ REL_ATTRS = {
 }
 
 
-class GM2MRelBase(ForeignObjectRel):
+class GM2MUnitRelBase(ForeignObjectRel):
     # this is a separate implementation from GM2M below for compatibility
     # reasons (see compat.add_related_field)
 
     def __init__(self, field, to):
-        super(GM2MRelBase, self).__init__(field, to)
+        super(GM2MUnitRelBase, self).__init__(field, to)
         self.multiple = True
 
     def get_related_field(self):
@@ -39,19 +39,19 @@ class GM2MRelBase(ForeignObjectRel):
         return self.to._meta.pk
 
 
-class GM2MRel(GM2MRelBase):
+class GM2MUnitRel(GM2MUnitRelBase):
 
     dummy_pre_delete = lambda s, **kwargs: None
 
     def __getattribute__(self, name):
         """
-        General attributes are those from the GM2MRels object
+        General attributes are those from the GM2MRel object
         """
-        sup = super(GM2MRel, self).__getattribute__
+        sup = super(GM2MUnitRel, self).__getattribute__
         if name in REL_ATTRS.keys():
             if name == 'on_delete':
                 name += '_tgt'
-            return getattr(sup('field').rels, name)
+            return getattr(sup('field').rel, name)
         else:
             return sup(name)
 
@@ -67,7 +67,7 @@ class GM2MRel(GM2MRelBase):
 
     def do_related_class(self):
         # check that the relation does not already exist
-        all_rels = self.field.rels.rels
+        all_rels = self.field.rel.rels
         if self.to in [r.to for r in all_rels if r != self]:
             # if it does, it needs to be removed from the list, and no further
             # action should be taken
@@ -116,7 +116,9 @@ class GM2MRel(GM2MRelBase):
         )
 
 
-class GM2MRels(object):
+class GM2MRel(object):
+
+    to = ''  # faking a 'normal' relation for Django 1.7
 
     def __init__(self, field, related_models, **params):
 
@@ -148,7 +150,7 @@ class GM2MRels(object):
             'be either a model or a model name' \
             % (self.field.__class__.__name__, model)
 
-        rel = GM2MRel(self.field, model)
+        rel = GM2MUnitRel(self.field, model)
         self.rels.append(rel)
         if contribute_to_class:
             rel.contribute_to_class()
@@ -170,17 +172,17 @@ class GM2MRels(object):
                 'app_label': self.field.model._meta.app_label.lower()
             }
 
-        def calc_field_names(rels):
+        def calc_field_names(rel):
             # Extract field names from through model
             field_names = {}
-            for f in rels.through._meta.fields:
+            for f in rel.through._meta.fields:
                 if hasattr(f, 'rel') and f.rel \
-                and (f.rel.to == rels.field.model
-                     or f.rel.to == '%s.%s' % (rels.field.model.__module__,
-                                               rels.field.model.__name__)):
+                and (f.rel.to == rel.field.model
+                     or f.rel.to == '%s.%s' % (rel.field.model.__module__,
+                                               rel.field.model.__name__)):
                     field_names['src'] = f.name
                     break
-            for f in rels.through._meta.virtual_fields:
+            for f in rel.through._meta.virtual_fields:
                 if isinstance(f, GenericForeignKey):
                     field_names['tgt'] = f.name
                     field_names['tgt_ct'] = f.ct_field
@@ -190,13 +192,13 @@ class GM2MRels(object):
             if not set(field_names.keys()).issuperset(('src', 'tgt')):
                 raise ValueError('Bad through model for GM2M relationship.')
 
-            rels.through._meta._field_names = field_names
+            rel.through._meta._field_names = field_names
 
         # resolve through model if it's provided as a string
         if isinstance(self.through, six.string_types):
-            def resolve_through_model(rels, model, cls):
+            def resolve_through_model(rel, model, cls):
                 self.through = model
-                calc_field_names(rels)
+                calc_field_names(rel)
             add_lazy_relation(cls, self, self.through, resolve_through_model)
         else:
             calc_field_names(self)

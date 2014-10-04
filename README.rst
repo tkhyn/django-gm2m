@@ -26,10 +26,10 @@ Features
   table linking anything to anything (django-generic-m2m_'s default approach)
 - No need to modify nor monkey-patch the existing model classes that need to be
   linked
-- Automatic reverse relations_ ``<model_name>_set`` when an instance is added
+- Automatic reverse relations_ when an instance is added
 - Related objects `prefetching`_
 - `Through models`_
-- `Deletion`_ behaviour customization (Django 1.6+)
+- `Deletion`_ behaviour customization using signals (Django 1.6+)
 
 
 Installation
