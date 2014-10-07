@@ -211,11 +211,13 @@ deleting
    (= instances of the model where the ``GM2MField`` is defined) are being
    deleted. The ``sender`` is the ``GM2MField`` instance. The receivers take
    2 keyword arguments:
-      - ``del_objs``, an iterable containing the objects being deleted in the
-        first place
-      - ``rel_objs``, an iterable containing the objects related to the objects
-        in ``del_objs``, and that are to be deleted if cascade deletion is
-        enabled
+
+   - ``del_objs``, an iterable containing the objects being deleted in the
+     first place
+   - ``rel_objs``, an iterable containing the objects related to the objects
+     in ``del_objs``, and that are to be deleted if cascade deletion is
+     enabled
+
    This signal can be used to customize the behaviour when deleting a source
    or target instance.
 
