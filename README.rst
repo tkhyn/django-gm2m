@@ -11,12 +11,6 @@ the features of the standard Django ``ManyToManyField`` and
 
 It works with Django 1.4 to 1.7 and matching Python versions (2.6 to 3.4).
 
-.. warning::
-
-   This a **beta** release. It is unsafe to use a beta release in a
-   production environment. But feel free to experiment with it and report the
-   bugs you may find!
-
 
 Features
 --------

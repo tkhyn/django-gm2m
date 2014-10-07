@@ -2,10 +2,10 @@ django-gm2m - changes
 =====================
 
 
-v0.1dev
--------
+v0.1 (08-10-2014)
+-----------------
 
-Added:
+Features:
 - Automatic and explicitly defined reverse relations
 - Related objects prefetching
 - Through models
