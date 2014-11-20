@@ -52,9 +52,9 @@ class SignalDeletionTests(TestCase):
             self.project1.delete()
             self.assertEqual(on_delete.call_count, 1)
 
-        # no more Project instances
+        # only 1 Project instance left
         self.assertEqual(Project.objects.count(), 1)
-        # and the through model instances have been deleted
+        # and the through model instance has not been deleted
         self.assertEqual(self.links.related_objects.through.objects.count(), 1)
 
     def test_group_delete_tgt(self):
