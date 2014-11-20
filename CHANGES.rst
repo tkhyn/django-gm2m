@@ -2,6 +2,13 @@ django-gm2m - changes
 =====================
 
 
+v0.1.1 (21-11-2014)
+-------------------
+
+Bugfix:
+- Inheritance of models with GM2MField no longer causes issues in Django 1.7
+
+
 v0.1 (08-10-2014)
 -----------------
 

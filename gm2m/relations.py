@@ -2,14 +2,18 @@ from django.db.models.fields.related import add_lazy_relation
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db.models.signals import pre_delete
 from django.utils.functional import cached_property
+from django.db.utils import DEFAULT_DB_ALIAS
+from django.db.models import Q
 from django.utils import six
 
 from .models import create_gm2m_intermediary_model
 from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
-from .compat import ForeignObjectRel, is_swapped, add_related_field, \
-                    get_model_name
-from .deletion import CASCADE, GM2MRelatedObject, handlers_with_signal
+from .compat import ForeignObject, ForeignObjectRel, is_swapped, \
+                    add_related_field, get_model_name
+from .deletion import *
+from .signals import deleting
+from .helpers import get_content_type
 
 
 # default relation attributes
@@ -21,6 +25,69 @@ REL_ATTRS = {
     'for_concrete_model': True,
     'on_delete': CASCADE,
 }
+
+
+class GM2MRelation(ForeignObject):
+    """
+    A reverse relation for a GM2MField.
+    Each related model has a GM2MRelation towards the source model
+    """
+
+    generate_reverse_relation = False  # only used in Django 1.7
+    related_accessor_class = GM2MRelatedDescriptor
+
+    def __init__(self, to, field, rel, **kwargs):
+        self.field = field
+        kwargs['rel'] = rel
+        super(GM2MRelation, self).__init__(to, from_fields=[field.name],
+                                           to_fields=[], **kwargs)
+
+    def contribute_to_class(self, cls, name, virtual_only=False):
+        pass
+
+    def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
+        """
+        Return all objects related to objs
+        The returned result will be passed to Collector.collect, so one should
+        not use the deletion functions as such
+        """
+
+        through = self.field.rel.through
+        base_mngr = through._base_manager.db_manager(using)
+
+        on_delete = self.rel.on_delete
+
+        if on_delete is not DO_NOTHING:
+            # collect related objects
+            field_names = through._meta._field_names
+            q = Q()
+            for obj in objs:
+                # Convert each obj to (content_type, primary_key)
+                q = q | Q(**{
+                    field_names['tgt_ct']: get_content_type(obj),
+                    field_names['tgt_fk']: obj.pk
+                })
+            qs = base_mngr.filter(q)
+
+            if on_delete in (DO_NOTHING_SIGNAL, CASCADE_SIGNAL,
+                             CASCADE_SIGNAL_VETO):
+                results = deleting.send(sender=self.field,
+                                        del_objs=objs, rel_objs=qs)
+
+            if on_delete in (CASCADE, CASCADE_SIGNAL) \
+            or on_delete is CASCADE_SIGNAL_VETO \
+            and not any(r[1] for r in results):
+                # if CASCADE must be called or if no receiver returned a veto
+                # we return the qs for deletion
+                # note that it is an homogeneous queryset (as Collector.collect
+                # which is called afterwards only works with homogeneous
+                # collections)
+                return qs
+
+        # do not delete anything by default
+        empty_qs = base_mngr.none()
+        empty_qs.query.set_empty()
+        return empty_qs
 
 
 class GM2MUnitRelBase(ForeignObjectRel):
@@ -74,8 +141,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
             all_rels.remove(self)
             return
 
-        self.related = GM2MRelatedObject(self.to, self.field.model,
-                                         self.field, self)
+        self.related = GM2MRelation(self.field.model, self.field, self)
         if not self.field.model._meta.abstract:
             self.contribute_to_related_class()
 
@@ -96,7 +162,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
-        if not self.is_hidden() and not is_swapped(self.related.model):
+        if not self.is_hidden() and not is_swapped(self.field.model):
             setattr(self.to, self.related_name
                         or (get_model_name(self.field.model._meta) + '_set'),
                     GM2MRelatedDescriptor(self.related, self))
@@ -108,7 +174,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         return create_gm2m_related_manager(
             superclass=self.to._default_manager.__class__,
             field=self.related.field,
-            model=self.related.model,
+            model=self.field.model,
             through=self.through,
             query_field_name=get_model_name(self.through),
             field_names=self.through._meta._field_names,
