@@ -1,10 +1,9 @@
 from django.utils import six
 from django.db.models.fields import Field
-from django.contrib.contenttypes.generic import GenericForeignKey
 
 from .relations import GM2MRel, REL_ATTRS
 
-from .compat import apps, checks, get_model_name, assert_compat_params, \
+from .compat import checks, get_model_name, assert_compat_params, \
                     add_field
 
 
@@ -37,12 +36,8 @@ class GM2MField(Field):
 
     def check(self, **kwargs):
         errors = super(GM2MField, self).check(**kwargs)
-
-        for rel in self.rel.rels:
-            errors.extend(rel.check())
-
         errors.extend(self._check_unique(**kwargs))
-        errors.extend(self._check_relationship_model(**kwargs))
+        errors.extend(self.rel.check(**kwargs))
         return errors
 
     def _check_unique(self, **kwargs):
@@ -56,96 +51,6 @@ class GM2MField(Field):
                 )
             ]
         return []
-
-    def _check_relationship_model(self, from_model=None, **kwargs):
-        if hasattr(self.rel.through, '_meta'):
-            qualified_model_name = "%s.%s" % (
-                self.rel.through._meta.app_label, self.rel.through.__name__)
-        else:
-            qualified_model_name = self.rel.through
-
-        errors = []
-
-        if self.rel.through not in apps.get_models(include_auto_created=True):
-            # The relationship model is not installed.
-            errors.append(
-                checks.Error(
-                    ("Field specifies a many-to-many relation through model "
-                     "'%s', which has not been installed.") %
-                    qualified_model_name,
-                    hint=None,
-                    obj=self,
-                    id='gm2m.E011',
-                )
-            )
-
-        else:
-
-            assert from_model is not None, \
-                "GM2MField with intermediate " \
-                "tables cannot be checked if you don't pass the model " \
-                "where the field is attached to."
-
-            # Set some useful local variables
-            from_model_name = from_model._meta.object_name
-
-            # Count foreign keys in intermediate model
-            seen_from = sum(from_model == getattr(field.rel, 'to', None)
-                for field in self.rel.through._meta.fields)
-
-            if seen_from == 0:
-                errors.append(
-                    checks.Error(
-                        ("The model is used as an intermediate model by '%s', "
-                         "but it does not have a foreign key to '%s' or a "
-                         "generic foreign key.") % (self, from_model_name),
-                        hint=None,
-                        obj=self.rel.through,
-                        id='gm2m.E012',
-                    )
-                )
-            elif seen_from > 1:
-                errors.append(
-                    checks.Warning(
-                        ("The model is used as an intermediate model by "
-                         "'%s', but it has more than one foreign key "
-                         "from '%s', which is ambiguous (the one that is used "
-                         "is the first declared in the model).")
-                         % (self, from_model_name),
-                        hint=None,
-                        obj=self,
-                        id='gm2m.W011',
-                    )
-                )
-
-            seen_to = sum(isinstance(field, GenericForeignKey)
-                for field in self.rel.through._meta.virtual_fields)
-
-            if seen_to == 0:
-                errors.append(
-                    checks.Error(
-                        "The model is used as an intermediate model by "
-                         "'%s', but it does not have a a generic foreign key."
-                         % (self, from_model_name),
-                        hint=None,
-                        obj=self.rel.through,
-                        id='gm2m.E013',
-                    )
-                )
-            elif seen_to > 1:
-                errors.append(
-                    checks.Warning(
-                        ("The model is used as an intermediate model by "
-                         "'%s', but it has more than one generic foreign "
-                         "key, which is ambiguous (the one that is used is "
-                         "the first declared in the model).") % self,
-                        hint=None,
-                        obj=self,
-                        id='gm2m.W012',
-                    )
-                )
-
-        return errors
 
     def deconstruct(self):
         name, path, args, kwargs = super(GM2MField, self).deconstruct()

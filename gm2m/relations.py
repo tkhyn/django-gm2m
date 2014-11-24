@@ -393,6 +393,217 @@ class GM2MRel(object):
             rel.contribute_to_class()
         return rel
 
+
+    def check(self, **kwargs):
+        errors = []
+        for rel in self.rels:
+            errors.extend(rel.check(**kwargs))
+        errors.extend(self._check_relationship_model(**kwargs))
+        return errors
+
+    def _check_relationship_model(self, from_model=None, **kwargs):
+        if hasattr(self.through, '_meta'):
+            qualified_model_name = "%s.%s" % (
+                self.through._meta.app_label, self.through.__name__)
+        else:
+            qualified_model_name = self.through
+
+        errors = []
+
+        if self.through not in apps.get_models(include_auto_created=True):
+            # The relationship model is not installed.
+            errors.append(
+                checks.Error(
+                    ("Field specifies a many-to-many relation through model "
+                     "'%s', which has not been installed.") %
+                    qualified_model_name,
+                    hint=None,
+                    obj=self,
+                    id='gm2m.E101',
+                )
+            )
+
+        else:
+
+            assert from_model is not None, \
+                "GM2MField with intermediate " \
+                "tables cannot be checked if you don't pass the model " \
+                "where the field is attached to."
+
+            # Set some useful local variables
+            from_model_name = from_model._meta.object_name
+
+            # Count foreign keys in intermediate model
+            seen_from = sum(from_model == getattr(field.rel, 'to', None)
+                for field in self.through._meta.fields)
+
+            if seen_from == 0:
+                errors.append(
+                    checks.Error(
+                        ("The model is used as an intermediate model by '%s', "
+                         "but it does not have a foreign key to '%s' or a "
+                         "generic foreign key.") % (self, from_model_name),
+                        hint=None,
+                        obj=self.through,
+                        id='gm2m.E102',
+                    )
+                )
+            elif seen_from > 1 and not self.through_fields:
+                errors.append(
+                    checks.Warning(
+                        "The model is used as an intermediate model by "
+                        "'%s', but it has more than one foreign key "
+                        "from '%s', which is ambiguous. You must specify "
+                        "which foreign key Django should use via the "
+                        "through_fields keyword argument."
+                        % (self, from_model_name),
+                        hint=None,
+                        obj=self,
+                        id='gm2m.E103',
+                    )
+                )
+
+            seen_to = sum(isinstance(field, GenericForeignKey)
+                for field in self.through._meta.virtual_fields)
+
+            if seen_to == 0:
+                errors.append(
+                    checks.Error(
+                        "The model is used as an intermediate model by "
+                         "'%s', but it does not have a a generic foreign key."
+                         % (self, from_model_name),
+                        hint=None,
+                        obj=self.through,
+                        id='gm2m.E104',
+                    )
+                )
+            elif seen_to > 1 and not self.through_fields:
+                errors.append(
+                    checks.Warning(
+                        "The model is used as an intermediate model by "
+                        "'%s', but it has more than one generic foreign "
+                        "key, which is ambiguous. You must specify "
+                        "which generic foreign key Django should use via "
+                        "the through_fields keyword argument." % self,
+                        hint=None,
+                        obj=self,
+                        id='gm2m.E105',
+                    )
+                )
+
+        # Validate `through_fields`
+        if self.through_fields is not None:
+            # Validate that we're given an iterable of at least two items
+            # and that none of them is "falsy"
+            if not (len(self.through_fields) >= 2 and
+                    self.through_fields[0] and self.through_fields[1]):
+                errors.append(
+                    checks.Error(
+                        ("Field specifies 'through_fields' but does not "
+                         "provide the names of the two link fields that "
+                         "should be used for the relation through model "
+                         "'%s'.") % qualified_model_name,
+                        hint=("Make sure you specify 'through_fields' as "
+                              "through_fields=('field1', 'field2')"),
+                        obj=self,
+                        id='fields.E106',
+                    )
+                )
+
+            # Validate the given through fields -- they should be actual
+            # fields on the through model, and also be foreign keys to the
+            # expected models
+            else:
+                assert from_model is not None, \
+                    "GM2MField with intermediate " \
+                    "tables cannot be checked if you don't pass the model " \
+                    "where the field is attached to."
+
+                src_field_name = self.through_fields[0]
+                through = self.through
+
+                possible_field_names = []
+                for f in through._meta.fields:
+                    if hasattr(f, 'rel') \
+                    and getattr(f.rel, 'to', None) == from_model:
+                        possible_field_names.append(f.name)
+                if possible_field_names:
+                    hint = ("Did you mean one of the following foreign keys "
+                            "to '%s': %s?") % (from_model._meta.object_name,
+                                               ', '.join(possible_field_names))
+                else:
+                    hint = None
+
+                try:
+                    field = through._meta.get_field(src_field_name)
+                except FieldDoesNotExist:
+                    errors.append(
+                        checks.Error(
+                            "The intermediary model '%s' has no field '%s'."
+                            % (qualified_model_name, src_field_name),
+                            hint=hint,
+                            obj=self,
+                            id='gm2m.E107',
+                        )
+                    )
+                else:
+                    if not (hasattr(field, 'rel') and
+                            getattr(field.rel, 'to', None) == from_model):
+                        errors.append(
+                            checks.Error(
+                                "'%s.%s' is not a foreign key to '%s'." % (
+                                    through._meta.object_name, src_field_name,
+                                    from_model._meta.object_name),
+                                hint=hint,
+                                obj=self,
+                                id='gm2m.E108',
+                            )
+                        )
+
+                target_field_name = self.through_fields[1]
+
+                possible_field_names = []
+                for f in through._meta.virtual_fields:
+                    if isinstance(f, GenericForeignKey):
+                        possible_field_names.append(f.name)
+                if possible_field_names:
+                    hint = "Did you mean one of the following generic " \
+                           "foreign keys: %s?" \
+                           % ', '.join(possible_field_names)
+                else:
+                    hint = None
+
+                field = None
+                for f in through._meta.virtual_fields:
+                    if f.name == target_field_name:
+                        field = f
+                        break
+                else:
+                    errors.append(
+                        checks.Error(
+                            "The intermediary model '%s' has no generic "
+                            "foreign key named '%s'."
+                            % (qualified_model_name, src_field_name),
+                            hint=hint,
+                            obj=self,
+                            id='gm2m.E109',
+                        )
+                    )
+
+                if field:
+                    if not isinstance(field, GenericForeignKey):
+                        errors.append(
+                            checks.Error(
+                                "'%s.%s' is not a generic foreign key."
+                                % (through._meta.object_name, src_field_name),
+                                hint=hint,
+                                obj=self,
+                                id='fields.E339',
+                            )
+                        )
+        return errors
+
+
     def contribute_to_class(self, cls, virtual_only=False):
 
         # Connect the descriptor for this field
