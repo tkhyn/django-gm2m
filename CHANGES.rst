@@ -5,8 +5,12 @@ django-gm2m - changes
 v0.2dev
 -------
 
+Added:
+- Full Django 1.7+ migration support
+
 Todo:
 - admin
+- through_fields support
 
 
 v0.1 (08-10-2014)
