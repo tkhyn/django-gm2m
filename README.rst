@@ -257,6 +257,12 @@ For example::
 
       ... any relevant field (e.g. date added)
 
+If there is only one ForeignKey to the source model (User in the above example)
+and only one GenericForeignKey in the target model, they will automatically be
+used for the relationship. Otherwise, if there are more of them, you must
+provide a ``through_fields`` argument (a list or tuple of 2 field names) to
+the ``GM2MField`` constructor.
+
 
 Other parameters
 ----------------
