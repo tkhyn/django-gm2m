@@ -1,6 +1,7 @@
 from django.db.models.fields.related import add_lazy_relation
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db.models.signals import pre_delete
+from django.db.models.fields import FieldDoesNotExist
 from django.utils.functional import cached_property
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
@@ -22,6 +23,7 @@ REL_ATTRS = {
     'related_name': None,
     'related_query_name': None,
     'through': None,
+    'through_fields': None,
     'db_constraint': True,
     'for_concrete_model': True,
     'on_delete': CASCADE,
@@ -399,6 +401,7 @@ class GM2MRel(object):
 
         if not self.through:
             self.through = create_gm2m_intermediary_model(self.field, cls)
+            self.through_fields = None
 
         # set related name
         if not self.field.model._meta.abstract and self.related_name:
@@ -410,19 +413,35 @@ class GM2MRel(object):
         def calc_field_names(rel):
             # Extract field names from through model
             field_names = {}
-            for f in rel.through._meta.fields:
-                if hasattr(f, 'rel') and f.rel \
-                and (f.rel.to == rel.field.model
-                     or f.rel.to == '%s.%s' % (rel.field.model.__module__,
-                                               rel.field.model.__name__)):
-                    field_names['src'] = f.name
-                    break
-            for f in rel.through._meta.virtual_fields:
-                if isinstance(f, GenericForeignKey):
-                    field_names['tgt'] = f.name
-                    field_names['tgt_ct'] = f.ct_field
-                    field_names['tgt_fk'] = f.fk_field
-                    break
+
+            if rel.through_fields:
+                field_names['src'], field_names['tgt'] = \
+                    rel.through_fields[:2]
+                for gfk in rel.through._meta.virtual_fields:
+                    if gfk.name == field_names['tgt']:
+                        break
+                else:
+                    raise FieldDoesNotExist(
+                        'Generic foreign key "%s" does not exist in through '
+                        'model "%s"' % (field_names['tgt'],
+                                        get_model_name(rel.through))
+                    )
+                field_names['tgt_ct'] = gfk.ct_field
+                field_names['tgt_fk'] = gfk.fk_field
+            else:
+                for f in rel.through._meta.fields:
+                    if hasattr(f, 'rel') and f.rel \
+                    and (f.rel.to == rel.field.model
+                         or f.rel.to == '%s.%s' % (rel.field.model.__module__,
+                                                   rel.field.model.__name__)):
+                        field_names['src'] = f.name
+                        break
+                for f in rel.through._meta.virtual_fields:
+                    if isinstance(f, GenericForeignKey):
+                        field_names['tgt'] = f.name
+                        field_names['tgt_ct'] = f.ct_field
+                        field_names['tgt_fk'] = f.fk_field
+                        break
 
             if not set(field_names.keys()).issuperset(('src', 'tgt')):
                 raise ValueError('Bad through model for GM2M relationship.')
