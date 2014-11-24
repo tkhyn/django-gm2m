@@ -6,7 +6,7 @@ from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.utils import six
 
-from .compat import apps, ForeignObject, ForeignObjectRel, is_swapped, \
+from .compat import apps, checks, ForeignObject, ForeignObjectRel, is_swapped, \
                     add_related_field, get_model_name
 
 from .models import create_gm2m_intermediary_model
@@ -45,6 +45,10 @@ class GM2MRelation(ForeignObject):
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         pass
+
+    def get_accessor_name(self):
+        return self.rel.related_name \
+            or (get_model_name(self.field.model) + '_set')
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
@@ -110,6 +114,145 @@ class GM2MUnitRelBase(ForeignObjectRel):
 class GM2MUnitRel(GM2MUnitRelBase):
 
     dummy_pre_delete = lambda s, **kwargs: None
+
+    def check(self, **kwargs):
+        errors = []
+        errors.extend(self._check_referencing_to_swapped_model())
+        errors.extend(self._check_clashes())
+        return errors
+
+    def _check_referencing_to_swapped_model(self):
+        if self.to not in apps.get_models() \
+        and not isinstance(self.to, six.string_types) \
+        and self.to._meta.swapped:
+            model = '%s.%s' % (
+                self.to._meta.app_label,
+                self.to._meta.object_name
+            )
+            return [checks.Error(
+                ("Field defines a relation with the model '%s', "
+                 "which has been swapped out.") % model,
+                hint="Update the relation to point at 'settings.%s'."
+                     % self.rel.to._meta.swappable,
+                obj=self,
+                id='gm2m.E021',
+            )]
+        return []
+
+    def _check_clashes(self):
+        """ Check accessor and reverse query name clashes. """
+
+        from django.db.models.base import ModelBase
+
+        errors = []
+        opts = self.field.model._meta
+
+        # `self.to` may be a string instead of a model. Skip if model name
+        # is not resolved.
+        if not isinstance(self.to, ModelBase):
+            return []
+
+        # If the field doesn't install backward relation on the target
+        # model (so `is_hidden` returns True), then there are no clashes to
+        # check and we can skip these fields.
+        if self.is_hidden():
+            return []
+
+        try:
+            self.related
+        except AttributeError:
+            return []
+
+        # Consider that we are checking field `Model.gm2m` and the
+        # models are:
+        #
+        #     class Target(models.Model):
+        #         model = models.IntegerField()
+        #         model_set = models.IntegerField()
+        #
+        #     class Model(models.Model):
+        #         foreign = models.ForeignKey(Target)
+        #         gm2m = GM2MField(Target)
+
+        rel_opts = self.to._meta
+        # rel_opts.object_name == "Target"
+        rel_name = self.related.get_accessor_name()  # i. e. "model_set"
+        rel_query_name = self.field.related_query_name()  # i. e. "model"
+        field_name = "%s.%s" % (opts.object_name,
+                                self.field.name)  # i. e. "Model.gm2m"
+
+        # Check clashes between accessor or reverse query name of `field`
+        # and any other field name -- i. e. accessor for Model.gm2m is
+        # model_set and it clashes with Target.model_set.
+        potential_clashes = rel_opts.fields + rel_opts.many_to_many
+        for clash_field in potential_clashes:
+            clash_name = "%s.%s" % (rel_opts.object_name,
+                clash_field.name)  # i. e. "Target.model_set"
+            if clash_field.name == rel_name:
+                errors.append(
+                    checks.Error(
+                        "Reverse accessor for '%s' clashes with field "
+                        "name '%s'." % (field_name, clash_name),
+                        hint="Rename field '%s', or add/change a "
+                             "related_name argument to the definition "
+                             "for field '%s'." % (clash_name, field_name),
+                        obj=self,
+                        id='gm2m.E022',
+                    )
+                )
+
+            if clash_field.name == rel_query_name:
+                errors.append(
+                    checks.Error(
+                        "Reverse query name for '%s' clashes with field "
+                        "name '%s'." % (field_name, clash_name),
+                        hint="Rename field '%s', or add/change a "
+                             "related_name argument to the definition "
+                             "for field '%s'." % (clash_name, field_name),
+                        obj=self,
+                        id='gm2m.E023',
+                    )
+                )
+
+        # Check clashes between accessors/reverse query names of `field`
+        # and any other field accessor -- i. e. Model.gm2m accessor clashes
+        # with Model.foreign accessor.
+        potential_clashes = rel_opts.get_all_related_many_to_many_objects()
+        potential_clashes += rel_opts.get_all_related_objects()
+        potential_clashes = (r for r in potential_clashes
+            if r.field is not self)
+        for clash_field in potential_clashes:
+            # "Model.gm2m"
+            clash_name = "%s.%s" % (
+                clash_field.model._meta.object_name,
+                clash_field.field.name)
+            if clash_field.get_accessor_name() == rel_name:
+                errors.append(
+                    checks.Error(
+                        "Reverse accessor for '%s' clashes with reverse "
+                        "accessor for '%s'." % (field_name, clash_name),
+                        hint=("Add or change a related_name argument "
+                              "to the definition for '%s' or '%s'.")
+                             % (field_name, clash_name),
+                        obj=self,
+                        id='gm2m.E024',
+                    )
+                )
+
+            if clash_field.get_accessor_name() == rel_query_name:
+                errors.append(
+                    checks.Error(
+                        "Reverse query name for '%s' clashes with reverse "
+                        "query name for '%s'." % (field_name, clash_name),
+                        hint=("Add or change a related_name argument "
+                              "to the definition for '%s' or '%s'.")
+                             % (field_name, clash_name),
+                        obj=self,
+                        id='gm2m.E025',
+                    )
+                )
+
+        return errors
 
     def __getattribute__(self, name):
         """

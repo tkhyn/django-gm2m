@@ -14,6 +14,11 @@ try:
 except ImportError:
     apps = None
 
+try:
+    from django.core import checks
+except ImportError:
+    checks = None
+
 
 def assert_compat_params(params):
 
