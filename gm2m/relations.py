@@ -7,8 +7,8 @@ from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.utils import six
 
-from .compat import apps, checks, ForeignObject, ForeignObjectRel, is_swapped, \
-                    add_related_field, get_model_name
+from .compat import apps, checks, ForeignObject, ForeignObjectRel, \
+                    is_swapped, add_related_field, get_model_name
 
 from .models import create_gm2m_intermediary_model
 from .managers import create_gm2m_related_manager
@@ -137,7 +137,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
                 hint="Update the relation to point at 'settings.%s'."
                      % self.rel.to._meta.swappable,
                 obj=self,
-                id='gm2m.E021',
+                id='gm2m.E201',
             )]
         return []
 
@@ -199,7 +199,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
                              "related_name argument to the definition "
                              "for field '%s'." % (clash_name, field_name),
                         obj=self,
-                        id='gm2m.E022',
+                        id='gm2m.E202',
                     )
                 )
 
@@ -212,7 +212,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
                              "related_name argument to the definition "
                              "for field '%s'." % (clash_name, field_name),
                         obj=self,
-                        id='gm2m.E023',
+                        id='gm2m.E203',
                     )
                 )
 
@@ -237,7 +237,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
                               "to the definition for '%s' or '%s'.")
                              % (field_name, clash_name),
                         obj=self,
-                        id='gm2m.E024',
+                        id='gm2m.E204',
                     )
                 )
 
@@ -250,7 +250,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
                               "to the definition for '%s' or '%s'.")
                              % (field_name, clash_name),
                         obj=self,
-                        id='gm2m.E025',
+                        id='gm2m.E205',
                     )
                 )
 
@@ -506,7 +506,7 @@ class GM2MRel(object):
                         hint=("Make sure you specify 'through_fields' as "
                               "through_fields=('field1', 'field2')"),
                         obj=self,
-                        id='fields.E106',
+                        id='gm2m.E106',
                     )
                 )
 
@@ -598,7 +598,7 @@ class GM2MRel(object):
                                 % (through._meta.object_name, src_field_name),
                                 hint=hint,
                                 obj=self,
-                                id='fields.E339',
+                                id='gm2m.E110',
                             )
                         )
         return errors
