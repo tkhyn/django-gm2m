@@ -25,7 +25,8 @@ Features
 - `Through models`_
 - `Deletion`_ behaviour customization using signals (Django 1.6+)
 - Compatible with `Django 1.7+ migrations`_ (not with south_ migrations however,
-  and it is unlikely that django-gm2m will ever support south)
+  and it is unlikely that django-gm2m will ever support south, the plan being
+  to drop support for Django < 1.7 asap)
 
 
 Installation
@@ -267,8 +268,9 @@ the ``GM2MField`` constructor.
 Other parameters
 ----------------
 
-In addition to the specific ``on_delete*`` and ``through`` parameters, you can
-use the following optional keyword arguments when defining a ``GM2MField``.
+In addition to the specific ``on_delete*`` and the ``through`` /
+``through_fields`` parameters, you can use the following optional keyword
+arguments when defining a ``GM2MField``.
 Most of them have the same signification than for Django's ``ManyToManyField``
 or ``GenericForeignKey``.
 
@@ -372,6 +374,8 @@ Future improvements
 -------------------
 
 - Add Django admin and possibly ``limit_choices_to`` support
+- Think about porting the doc to readthedocs as this README is getting a little
+  too long.
 
 
 .. |copyright| unicode:: 0xA9
