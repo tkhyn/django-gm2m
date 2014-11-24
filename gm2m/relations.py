@@ -6,11 +6,12 @@ from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.utils import six
 
+from .compat import apps, ForeignObject, ForeignObjectRel, is_swapped, \
+                    add_related_field, get_model_name
+
 from .models import create_gm2m_intermediary_model
 from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
-from .compat import ForeignObject, ForeignObjectRel, is_swapped, \
-                    add_related_field, get_model_name
 from .deletion import *
 from .signals import deleting
 from .helpers import get_content_type
@@ -181,6 +182,31 @@ class GM2MUnitRel(GM2MUnitRelBase):
             prefetch_cache_name=self.related.field.related_query_name()
         )
 
+    @property
+    def swappable_setting(self):
+        """
+        Gets the setting that this is powered from for swapping, or None
+        if it's not swapped in
+        """
+        # can only be called by Django 1.7+, the apps module will be available
+
+        # Work out string form of "to"
+        if isinstance(self.to, six.string_types):
+            to_string = self.to
+        else:
+            to_string = "%s.%s" % (
+                self.to._meta.app_label,
+                self.to._meta.object_name,
+            )
+        # See if anything swapped/swappable matches
+        for model in apps.get_models(include_swapped=True):
+            if model._meta.swapped == to_string \
+            or model._meta.swappable \
+            and ("%s.%s" % (model._meta.app_label,
+                            model._meta.object_name)) == to_string:
+                return model._meta.swappable
+        return None
+
 
 class GM2MRel(object):
 
@@ -220,8 +246,9 @@ class GM2MRel(object):
         self.rels.append(rel)
         if contribute_to_class:
             rel.contribute_to_class()
+        return rel
 
-    def contribute_to_class(self, cls):
+    def contribute_to_class(self, cls, virtual_only=False):
 
         # Connect the descriptor for this field
         setattr(cls, self.field.attname,
@@ -229,7 +256,6 @@ class GM2MRel(object):
 
         if not self.through:
             self.through = create_gm2m_intermediary_model(self.field, cls)
-        cls._meta.add_virtual_field(self.field)
 
         # set related name
         if not self.field.model._meta.abstract and self.related_name:

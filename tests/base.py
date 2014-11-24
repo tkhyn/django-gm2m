@@ -9,6 +9,12 @@ import sys
 from imp import reload
 from importlib import import_module
 
+try:
+    from unittest2 import skipIf, skip  # python 2.6
+except ImportError:
+    from unittest import skipIf, skip
+
+import django
 from django import test
 from django.conf import settings
 from django.db.models.loading import cache
@@ -17,6 +23,8 @@ from django.core.management import call_command
 from django.utils import six
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
+
+from gm2m import GM2MField
 
 from .compat import apps, cache_handled_init
 from .helpers import app_mod_path, del_app_models
@@ -123,3 +131,35 @@ class TestCase(test.TestCase):
 
         del_app_models('.'.join(cls.__module__.split('.')[1]),
                        app_module=True)
+
+    @skipIf(django.VERSION < (1, 7),
+            'deconstruct method does not exist for django < 1.7')
+    def test_deconstruct(self):
+        # this test will run on *all* testcases having no subclasses
+
+        if self.__class__.__subclasses__():
+            return skip('not an end test class')
+
+        try:
+            field = self.links.__class__._meta.get_field('related_objects')
+        except AttributeError:
+            return
+
+        __, __, args, kwargs = field.deconstruct()
+        new_field = GM2MField(*args, **kwargs)
+
+        for attr in (''):
+            self.assertEqual(getattr(field, attr),
+                             getattr(new_field, attr))
+
+        for attr in (''):
+            self.assertEqual(getattr(field.rel, attr),
+                             getattr(new_field.rel, attr))
+
+        # just checking the stings output, as for an attr to attr comparison
+        # we would need to run contribute_to_class
+        self.assertSetEqual(set(['%s.%s' % (r.to._meta.app_label,
+                                            r.to._meta.object_name)
+                                 for r in field.rel.rels
+                                 if not getattr(r, '_added', False)]),
+                            set(args))
