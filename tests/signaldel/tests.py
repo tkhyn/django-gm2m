@@ -8,11 +8,11 @@ from gm2m.signals import deleting
 from ..app.models import Project
 from .models import Links
 
-from ..base import TestCase
+from .. import base
 
 
 @skipIf(django.VERSION < (1, 6), 'No deletion customisation for Django < 1.6')
-class SignalDeletionTests(TestCase):
+class SignalDeletionTests(base.TestCase):
 
     def setUp(self):
         self.project1 = Project.objects.create()

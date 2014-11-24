@@ -9,6 +9,17 @@ from django.db.models.fields import related
 from django.utils import six
 
 
+try:
+    from django.apps import apps
+except ImportError:
+    apps = None
+
+try:
+    from django.core import checks
+except ImportError:
+    checks = None
+
+
 def assert_compat_params(params):
 
     if django.VERSION < (1, 6):
@@ -144,8 +155,8 @@ def get_model_name(x):
         return opts.object_name.lower()
 
 
-def add_related_field(opts, field):
-    if django.VERSION < (1, 6):
+if django.VERSION < (1, 6):
+    def add_related_field(opts, field):
         # hack to enable deletion cascading when the collector does not loop on
         # virtual fields
         from .relations import GM2MUnitRelBase
@@ -158,8 +169,24 @@ def add_related_field(opts, field):
                 delattr(opts, attr)
             except AttributeError:
                 pass
-    else:
+else:
+    def add_related_field(opts, field):
         opts.add_virtual_field(field)
+
+
+if django.VERSION < (1, 7):
+    def add_field(opts, field):
+        opts.add_virtual_field(field)
+else:
+    def add_field(opts, field):
+        opts.local_many_to_many.insert(bisect(opts.local_many_to_many, field),
+                                       field)
+        for attr in ('_m2m_cache', '_name_map'):
+            try:
+                delattr(opts, attr)
+            except AttributeError:
+                pass
+
 
 
 def get_local_related_fields(fk):
@@ -176,16 +203,26 @@ def get_foreign_related_fields(fk):
         return (fk.rel.get_related_field(),)
 
 
-def get_fk_kwargs(field):
-    if django.VERSION < (1, 6):
+if django.VERSION < (1, 6):
+    def get_fk_kwargs(field):
         return {}
-    return {'db_constraint': field.rel.db_constraint}
+
+    def get_gfk_kwargs(field):
+        return {}
+else:
+    def get_fk_kwargs(field):
+        return {'db_constraint': field.rel.db_constraint}
+
+    def get_gfk_kwargs(field):
+        return {'for_concrete_model': field.rel.for_concrete_model}
 
 
-def get_gfk_kwargs(field):
-    if django.VERSION < (1, 6):
+if django.VERSION < (1, 7):
+    def get_meta_kwargs(field):
         return {}
-    return {'for_concrete_model': field.rel.for_concrete_model}
+else:
+    def get_meta_kwargs(field):
+        return {'apps': field.model._meta.apps}
 
 
 def is_swapped(model):

@@ -4,11 +4,11 @@ from django.utils.unittest import skipIf
 from ..app.models import Project
 from .models import Links
 
-from ..base import TestCase
+from .. import base
 
 
 @skipIf(django.VERSION < (1, 6), 'No deletion customisation for Django < 1.6')
-class CustomDeletionTests(TestCase):
+class CustomDeletionTests(base.TestCase):
 
     def setUp(self):
         self.project1 = Project.objects.create()

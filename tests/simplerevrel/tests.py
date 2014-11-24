@@ -1,10 +1,10 @@
 from ..app.models import Project, Task
 from .models import Links
 
-from ..base import TestCase
+from .. import base
 
 
-class RelatedTests(TestCase):
+class RelatedTests(base.TestCase):
 
     def setUp(self):
         self.project = Project.objects.create()
@@ -27,7 +27,7 @@ class RelatedTests(TestCase):
         self.assertIn(self.links, task.links_set.all())
 
 
-class ReverseOperationsTest(TestCase):
+class ReverseOperationsTest(base.TestCase):
 
     def setUp(self):
         self.links1 = Links.objects.create()
@@ -52,7 +52,7 @@ class ReverseOperationsTest(TestCase):
         self.assertEqual(self.links2.related_objects.count(), 0)
 
 
-class DeletionTests(TestCase):
+class DeletionTests(base.TestCase):
 
     def setUp(self):
         self.project1 = Project.objects.create()
@@ -71,7 +71,7 @@ class DeletionTests(TestCase):
         self.assertEqual(self.links.related_objects.count(), 1)
 
 
-class PrefetchTests(TestCase):
+class PrefetchTests(base.TestCase):
 
     def setUp(self):
         self.project = Project.objects.create()

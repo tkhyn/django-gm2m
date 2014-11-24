@@ -24,6 +24,9 @@ Features
 - Related objects `prefetching`_
 - `Through models`_
 - `Deletion`_ behaviour customization using signals (Django 1.6+)
+- Compatible with `Django 1.7+ migrations`_ (not with south_ migrations however,
+  and it is unlikely that django-gm2m will ever support south, the plan being
+  to drop support for Django < 1.7 asap)
 
 
 Installation
@@ -255,12 +258,19 @@ For example::
 
       ... any relevant field (e.g. date added)
 
+If there is only one ForeignKey to the source model (User in the above example)
+and only one GenericForeignKey in the target model, they will automatically be
+used for the relationship. Otherwise, if there are more of them, you must
+provide a ``through_fields`` argument (a list or tuple of 2 field names) to
+the ``GM2MField`` constructor.
+
 
 Other parameters
 ----------------
 
-In addition to the specific ``on_delete*`` and ``through`` parameters, you can
-use the following optional keyword arguments when defining a ``GM2MField``.
+In addition to the specific ``on_delete*`` and the ``through`` /
+``through_fields`` parameters, you can use the following optional keyword
+arguments when defining a ``GM2MField``.
 Most of them have the same signification than for Django's ``ManyToManyField``
 or ``GenericForeignKey``.
 
@@ -291,12 +301,85 @@ related_query_name
    Defaults to the value of ``related_name`` or the name of the model.
 
 
+System checks
+-------------
+
+django-gm2m adds a few system checks, derived from built-in django checks for
+related fields and many to many fields. Here are the errors they may raise,
+with the builtin counterpart between brackets:
+
+gm2m.E001 [fields.E330]
+   GM2MFields cannot be unique
+
+gm2m.E101 [fields.E331]
+   Field specifies a many-to-many relation through model which has not been
+   installed
+
+gm2m.E102 [fields.E333]
+   The model used as an intermediate model but does not have a foreign key to
+   the source model
+
+gm2m.E103 [fields.E334]
+   The model used as an intermediate model but has more than one foreign key to
+   the source model, which is ambiguous (the one that is used is the first
+   declared in the model).
+
+gm2m.E104 [fields.E333]
+   The model used as an intermediate model but does not have a generic foreign
+   key
+
+gm2m.E105 [fields.E334]
+   The model used as an intermediate model but has more than one generic
+   foreign key, which is ambiguous (the one that is used is the first declared
+   in the model).
+
+gm2m.E106 [fields.E337]
+   The field specifies 'through_fields' but does not provide the names of the
+   two link fields that should be used for the relation through model
+
+gm2m.E107 [fields.E338]
+   The model used as an intermediate model does not have the field specified
+   in ``through_field``
+
+gm2m.E108 [fields.E339]
+   The field specified in ``through_field`` is not a foreign key to the
+   source model
+
+gm2m.E109 [fields.E338]
+   The model used as an intermediate model does not have the generic foreign
+   key field specified in ``through_field``
+
+gm2m.E110 [fields.E339]
+   The field specified in ``through_field`` is not a generic foreign key
+
+gm2m.E201 [fieldsE301]
+   Field defines a relation with a model that has been swapped out
+
+gm2m.E202 [fields.E302]
+   Reverse accessor for the field clashes with a field from the target model
+
+gm2m.E203 [fields.E303]
+   Reverse query name for the field clashes with a field from the target model
+
+gm2m.E204 [fields.E304]
+   Reverse accessor for the field clashes with reverse accessor from another
+   field
+
+gm2m.E205 [fields.E305]
+   Reverse accessor for the field clashes with reverse query name from another
+   field
+
+
 Future improvements
 -------------------
 
 - Add Django admin and possibly ``limit_choices_to`` support
+- Think about porting the doc to readthedocs as this README is getting a little
+  too long.
 
 
 .. |copyright| unicode:: 0xA9
 
 .. _django-generic-m2m: https://pypi.python.org/pypi/django-generic-m2m
+.. _`Django 1.7+ migrations`: https://docs.djangoproject.com/en/dev/topics/migrations/
+.. _south: http://south.readthedocs.org/

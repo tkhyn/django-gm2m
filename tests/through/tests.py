@@ -1,10 +1,10 @@
-from ..base import TestCase
+from .. import base
 
 from ..app.models import Project
 from .models import Links, RelLinks
 
 
-class ThroughTests(TestCase):
+class ThroughTests(base.TestCase):
 
     def setUp(self):
         self.project1 = Project.objects.create()
