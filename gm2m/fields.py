@@ -104,7 +104,7 @@ class GM2MField(Field):
                         id='gm2m.E012',
                     )
                 )
-            elif seen_from > 1 and not self.rel.through_fields:
+            elif seen_from > 1:
                 errors.append(
                     checks.Warning(
                         ("The model is used as an intermediate model by "
@@ -132,7 +132,7 @@ class GM2MField(Field):
                         id='gm2m.E013',
                     )
                 )
-            elif seen_to > 1 and not self.rel.through_fields:
+            elif seen_to > 1:
                 errors.append(
                     checks.Warning(
                         ("The model is used as an intermediate model by "
