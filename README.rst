@@ -303,56 +303,69 @@ System checks
 -------------
 
 django-gm2m adds a few system checks, derived from built-in django checks for
-related fields and many to many fields. Here are the errors and warning they
-may raise, with the builtin counterpart between brackets:
-
-Errors
-......
+related fields and many to many fields. Here are the errors they may raise,
+with the builtin counterpart between brackets:
 
 gm2m.E001 [fields.E330]
    GM2MFields cannot be unique
 
-gm2m.E011 [fields.E331]
+gm2m.E101 [fields.E331]
    Field specifies a many-to-many relation through model which has not been
    installed
 
-gm2m.E012 [fields.E333]
+gm2m.E102 [fields.E333]
    The model used as an intermediate model but does not have a foreign key to
    the source model
 
-gm2m.E013 [fields.E333]
-   The model used as an intermediate model but does not have a generic foreign
-   key
-
-gm2m.E021 [fieldsE301]
-   Field defines a relation with a model that has been swapped out
-
-gm2m.E022 [fields.E302]
-   Reverse accessor for the field clashes with a field from the target model
-
-gm2m.E023 [fields.E303]
-   Reverse query name for the field clashes with a field from the target model
-
-gm2m.E024 [fields.E304]
-   Reverse accessor for the field clashes with reverse accessor from another
-   field
-
-gm2m.E025 [fields.E305]
-   Reverse accessor for the field clashes with reverse query name from another
-   field
-
-Warnings
-........
-
-gm2m.W011 [fields.E334]
+gm2m.E103 [fields.E334]
    The model used as an intermediate model but has more than one foreign key to
    the source model, which is ambiguous (the one that is used is the first
    declared in the model).
 
-gm2m.W012 [fields.E334]
+gm2m.E104 [fields.E333]
+   The model used as an intermediate model but does not have a generic foreign
+   key
+
+gm2m.E105 [fields.E334]
    The model used as an intermediate model but has more than one generic
    foreign key, which is ambiguous (the one that is used is the first declared
    in the model).
+
+gm2m.E106 [fields.E337]
+   The field specifies 'through_fields' but does not provide the names of the
+   two link fields that should be used for the relation through model
+
+gm2m.E107 [fields.E338]
+   The model used as an intermediate model does not have the field specified
+   in ``through_field``
+
+gm2m.E108 [fields.E339]
+   The field specified in ``through_field`` is not a foreign key to the
+   source model
+
+gm2m.E109 [fields.E338]
+   The model used as an intermediate model does not have the generic foreign
+   key field specified in ``through_field``
+
+gm2m.E110 [fields.E339]
+   The field specified in ``through_field`` is not a generic foreign key
+
+gm2m.E201 [fieldsE301]
+   Field defines a relation with a model that has been swapped out
+
+gm2m.E202 [fields.E302]
+   Reverse accessor for the field clashes with a field from the target model
+
+gm2m.E203 [fields.E303]
+   Reverse query name for the field clashes with a field from the target model
+
+gm2m.E204 [fields.E304]
+   Reverse accessor for the field clashes with reverse accessor from another
+   field
+
+gm2m.E205 [fields.E305]
+   Reverse accessor for the field clashes with reverse query name from another
+   field
 
 
 Future improvements
