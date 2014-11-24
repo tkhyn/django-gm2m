@@ -129,8 +129,7 @@ class TestCase(test.TestCase):
         cls.settings_manager.revert()
         related.pending_lookups = {}
 
-        del_app_models('.'.join(cls.__module__.split('.')[1]),
-                       app_module=True)
+        del_app_models(cls.__module__.split('.')[1], app_module=True)
 
     @skipIf(django.VERSION < (1, 7),
             'deconstruct method does not exist for django < 1.7')
