@@ -7,10 +7,11 @@ v0.2dev
 
 Added:
 - Full Django 1.7+ migration support
+- through_fields option support
+- system checks (Django 1.7)
 
 Todo:
 - admin
-- through_fields support
 
 
 v0.1 (08-10-2014)
