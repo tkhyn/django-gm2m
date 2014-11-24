@@ -24,6 +24,8 @@ Features
 - Related objects `prefetching`_
 - `Through models`_
 - `Deletion`_ behaviour customization using signals (Django 1.6+)
+- Compatible with `Django 1.7+ migrations`_ (not with south_ migrations however,
+  and it is unlikely that django-gm2m will ever support south)
 
 
 Installation
@@ -356,3 +358,5 @@ Future improvements
 .. |copyright| unicode:: 0xA9
 
 .. _django-generic-m2m: https://pypi.python.org/pypi/django-generic-m2m
+.. _`Django 1.7+ migrations`: https://docs.djangoproject.com/en/dev/topics/migrations/
+.. _south: http://south.readthedocs.org/
