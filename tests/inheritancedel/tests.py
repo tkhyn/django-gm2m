@@ -8,11 +8,11 @@ from gm2m.signals import deleting
 from .models import Task, Subtask, Milestone
 from .models import Links
 
-from ..base import TestCase
+from .. import base
 
 
 @skipIf(django.VERSION < (1, 6), 'No deletion customisation for Django < 1.6')
-class InheritanceDeletionTests(TestCase):
+class InheritanceDeletionTests(base.TestCase):
 
     def setUp(self):
         self.subtask = Subtask.objects.create()

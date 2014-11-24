@@ -1,10 +1,10 @@
 from ..app.models import Project
 from .models import Links
 
-from ..base import TestCase
+from .. import base
 
 
-class ReverseRelationTests(TestCase):
+class ReverseRelationTests(base.TestCase):
 
     def setUp(self):
         self.links = Links.objects.create()
@@ -17,7 +17,7 @@ class ReverseRelationTests(TestCase):
             getattr(self.project, 'related_links+')
 
 
-class HiddenRelDeletionTests(TestCase):
+class HiddenRelDeletionTests(base.TestCase):
     """
     Checks that cascading deletion works with hidden related fields
     """

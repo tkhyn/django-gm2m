@@ -1,10 +1,10 @@
 from ..app.models import Project
 from .models import Links
 
-from ..base import TestCase
+from .. import base
 
 
-class RelatedNameTests(TestCase):
+class RelatedNameTests(base.TestCase):
 
     def setUp(self):
         self.project = Project.objects.create()
