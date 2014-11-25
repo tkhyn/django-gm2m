@@ -18,11 +18,8 @@ Added:
 - System checks (Django 1.7)
 
 v0.2.1 (25-11-2014)
-...................
-
-Fixed:
-- m2m_db_table method bug
-
+   - fixed: m2m_db_table method bug
+   - fixed: related_name type in deconstruct (see Django ticket #23455)
 
 v0.1 (08-10-2014)
 -----------------

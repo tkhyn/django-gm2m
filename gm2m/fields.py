@@ -2,6 +2,7 @@ from django.utils import six
 from django.db.models.fields import Field
 from django.db.backends import util
 from django.db import connection
+from django.utils.encoding import force_text
 
 from .relations import GM2MRel, REL_ATTRS
 
@@ -103,6 +104,8 @@ class GM2MField(Field):
                 continue
             value = getattr(self.rel, k)
             if value != default:
+                if k == 'related_name':
+                    value = force_text(value)
                 kwargs[k] = value
 
         # on_delete options
