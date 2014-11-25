@@ -1,5 +1,7 @@
 from django.utils import six
 from django.db.models.fields import Field
+from django.db.backends import util
+from django.db import connection
 
 from .relations import GM2MRel, REL_ATTRS
 
@@ -128,6 +130,17 @@ class GM2MField(Field):
         columns to another table
         """
         return None
+
+    def m2m_db_table(self):
+        # self.db_table will be None if
+        if self.rel.through is not None:
+            return self.rel.through._meta.db_table
+        elif self.db_table:
+            return self.db_table
+        else:
+            return util.truncate_name('%s_%s' %
+                                      (self.model._meta.db_table, self.name),
+                                      connection.ops.max_name_length())
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         """
