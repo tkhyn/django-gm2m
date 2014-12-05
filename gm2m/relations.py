@@ -273,7 +273,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
             def resolve_related_class(rel, model, cls):
                 rel.to = model
                 rel.do_related_class()
-            add_lazy_relation(self.fields.model, self, self.to,
+            add_lazy_relation(self.field.model, self, self.to,
                               resolve_related_class)
         else:
             self.do_related_class()
