@@ -300,6 +300,13 @@ related_query_name
    The name to use for the reverse filter name from the target model.
    Defaults to the value of ``related_name`` or the name of the model.
 
+pk_maxlength
+   This is useful when using an automatically created intermediate model, to
+   specify the length of the ``CharField`` used to store primary keys in the
+   ``GenericForeignKey``. Indeed, the default value of 16 characters may not
+   be sufficient to accomodate certain large foreign key values (e.g. UUIDs).
+   Defaults to 16. Use ``None`` if you don't want any limitation (this may
+   cause performance issues, though).
 
 System checks
 -------------

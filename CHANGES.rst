@@ -5,6 +5,10 @@ django-gm2m - changes
 v0.3 (dev)
 ----------
 
+Added:
+- pk_maxlength option to set the max length of the primary key to a
+  user-defined value
+
 Todo:
 - admin
 
