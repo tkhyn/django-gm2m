@@ -9,6 +9,8 @@ from .relations import GM2MRel, REL_ATTRS
 from .compat import checks, get_model_name, assert_compat_params, \
                     add_field
 
+from . import monkeypatch
+
 
 class GM2MField(Field):
     """

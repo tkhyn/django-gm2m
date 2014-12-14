@@ -8,6 +8,8 @@ v0.3 (dev)
 Added:
 - pk_maxlength option to set the max length of the primary key to a
   user-defined value
+Fixed:
+- issue with through model fields alteration in Django 1.7+ migrations
 
 Todo:
 - admin
