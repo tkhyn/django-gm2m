@@ -393,7 +393,6 @@ class GM2MRel(object):
             rel.contribute_to_class()
         return rel
 
-
     def check(self, **kwargs):
         errors = []
         for rel in self.rels:

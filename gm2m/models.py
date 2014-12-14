@@ -44,6 +44,10 @@ def create_gm2m_intermediary_model(field, klass):
 
     fk_kwargs = get_fk_kwargs(field)
 
+    fk_maxlength = 16  # default value
+    if field.pk_maxlength is not False:
+        fk_maxlength = field.pk_maxlength
+
     return type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
@@ -51,7 +55,7 @@ def create_gm2m_intermediary_model(field, klass):
                                        on_delete=field.rel.on_delete_src,
                                        **fk_kwargs),
         CT_ATTNAME: models.ForeignKey(ContentType, **fk_kwargs),
-        FK_ATTNAME: models.CharField(max_length=16),
+        FK_ATTNAME: models.CharField(max_length=fk_maxlength),
         TGT_ATTNAME: generic.GenericForeignKey(
                          ct_field=CT_ATTNAME,
                          fk_field=FK_ATTNAME,

@@ -36,9 +36,11 @@ As straightforward as it can be, using ``pip``::
 
    pip install django-gm2m
 
-You then need to add ``'gm2m'`` to your ``INSTALLED_APPS``.
-
-You will obviously also need to have ``django.contrib.contenttypes`` enabled.
+You then need to make sure that Django's contenttype framework is available by
+checking that ``django.contrib.contenttypes`` is mentionned in the
+``INSTALLED_APPS`` tuple. As ``django-gm2m`` itself does not expose any model
+nor require specific initialisation, there is no need to add ``gm2m`` to the
+``INSTALLED_APPS``.
 
 
 Quick start
@@ -300,6 +302,13 @@ related_query_name
    The name to use for the reverse filter name from the target model.
    Defaults to the value of ``related_name`` or the name of the model.
 
+pk_maxlength
+   This is useful when using an automatically created intermediate model, to
+   specify the length of the ``CharField`` used to store primary keys in the
+   ``GenericForeignKey``. Indeed, the default value of 16 characters may not
+   be sufficient to accomodate certain large foreign key values (e.g. UUIDs).
+   Defaults to 16. Use ``None`` if you don't want any limitation (this may
+   cause performance issues, though).
 
 System checks
 -------------
@@ -334,23 +343,23 @@ gm2m.E105 [fields.E334]
    in the model).
 
 gm2m.E106 [fields.E337]
-   The field specifies 'through_fields' but does not provide the names of the
+   The field specifies ``through_fields`` but does not provide the names of the
    two link fields that should be used for the relation through model
 
 gm2m.E107 [fields.E338]
    The model used as an intermediate model does not have the field specified
-   in ``through_field``
+   in ``through_fields``
 
 gm2m.E108 [fields.E339]
-   The field specified in ``through_field`` is not a foreign key to the
+   The field specified in ``through_fields`` is not a foreign key to the
    source model
 
 gm2m.E109 [fields.E338]
    The model used as an intermediate model does not have the generic foreign
-   key field specified in ``through_field``
+   key field specified in ``through_fields``
 
 gm2m.E110 [fields.E339]
-   The field specified in ``through_field`` is not a generic foreign key
+   The field specified in ``through_fields`` is not a generic foreign key
 
 gm2m.E201 [fieldsE301]
    Field defines a relation with a model that has been swapped out

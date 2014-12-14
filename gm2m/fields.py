@@ -9,6 +9,8 @@ from .relations import GM2MRel, REL_ATTRS
 from .compat import checks, get_model_name, assert_compat_params, \
                     add_field
 
+from . import monkeypatch
+
 
 class GM2MField(Field):
     """
@@ -32,10 +34,11 @@ class GM2MField(Field):
         self.rel = GM2MRel(self, related_models, **params)
 
         self.db_table = params.pop('db_table', None)
+        self.pk_maxlength = params.pop('pk_maxlength', False)
         if self.rel.through is not None:
-            assert self.db_table is None, \
-                'django-gm2m: Cannot specify a db_table if an intermediary ' \
-                'model is used.'
+            assert self.db_table is None and self.pk_maxlength is False, \
+                'django-gm2m: Cannot specify a db_table nor a pk_maxlength ' \
+                'if ''an intermediary model is used.'
 
     def check(self, **kwargs):
         errors = super(GM2MField, self).check(**kwargs)
@@ -88,6 +91,8 @@ class GM2MField(Field):
         # handle parameters
         if self.db_table:
             kwargs['db_table'] = self.db_table
+        if self.pk_maxlength is not False:
+            kwargs['pk_maxlength'] = self.pk_maxlength
 
         through = self.rel.through
         if through:

@@ -19,6 +19,12 @@ v0.2.2 (05-12-2014)
 ...................
 - fixed: related models lazy lookup bug (issue #1)
 
+v0.2.3 (14-12-2014)
+...................
+- fixed: issue with through model fields alteration in Django 1.7+ migrations
+- added: pk_maxlength option to set the max length of the primary key to a
+  user-defined value
+
 
 v0.1 (08-10-2014)
 -----------------
