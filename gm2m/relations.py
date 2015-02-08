@@ -42,6 +42,11 @@ class GM2MRelation(ForeignObject):
     def __init__(self, to, field, rel, **kwargs):
         self.field = field
         kwargs['rel'] = rel
+
+        kwargs['blank'] = True
+        kwargs['editable'] = False
+        kwargs['serialize'] = False
+
         super(GM2MRelation, self).__init__(to, from_fields=[field.name],
                                            to_fields=[], **kwargs)
 
