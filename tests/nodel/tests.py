@@ -1,5 +1,4 @@
 import django
-from django.utils.unittest import skipIf
 
 from ..app.models import Project
 from .models import Links
@@ -7,7 +6,8 @@ from .models import Links
 from .. import base
 
 
-@skipIf(django.VERSION < (1, 6), 'No deletion customisation for Django < 1.6')
+@base.skipIf(django.VERSION < (1, 6),
+             'No deletion customisation for Django < 1.6')
 class CustomDeletionTests(base.TestCase):
 
     def setUp(self):

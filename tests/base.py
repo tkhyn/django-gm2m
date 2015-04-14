@@ -9,15 +9,10 @@ import sys
 from imp import reload
 from importlib import import_module
 
-try:
-    from unittest2 import skipIf, skip  # python 2.6
-except ImportError:
-    from unittest import skipIf, skip
 
 import django
 from django import test
 from django.conf import settings
-from django.db.models.loading import cache
 from django.utils.datastructures import SortedDict
 from django.core.management import call_command
 from django.utils import six
@@ -26,7 +21,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init
+from .compat import apps, cache_handled_init, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
 
@@ -63,14 +58,14 @@ class TestSettingsManager(object):
             self.syncdb()
 
     def syncdb(self):
-        cache.loaded = False
-        cache.app_labels = {}
-        cache.app_store = SortedDict()
-        cache.handled = cache_handled_init()
-        cache.postponed = []
-        cache.nesting_level = 0
-        cache._get_models_cache = {}
-        cache.available_apps = None
+        apps.loaded = False
+        apps.app_labels = {}
+        apps.app_store = SortedDict()
+        apps.handled = cache_handled_init()
+        apps.postponed = []
+        apps.nesting_level = 0
+        apps._get_models_cache = {}
+        apps.available_apps = None
 
         call_command('syncdb', verbosity=0, interactive=False)
 

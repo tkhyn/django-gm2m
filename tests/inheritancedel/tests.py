@@ -1,5 +1,4 @@
 import django
-from django.utils.unittest import skipIf
 
 from mock_django.signals import mock_signal_receiver
 
@@ -11,7 +10,8 @@ from .models import Links
 from .. import base
 
 
-@skipIf(django.VERSION < (1, 6), 'No deletion customisation for Django < 1.6')
+@base.skipIf(django.VERSION < (1, 6),
+             'No deletion customisation for Django < 1.6')
 class InheritanceDeletionTests(base.TestCase):
 
     def setUp(self):

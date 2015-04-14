@@ -1,5 +1,6 @@
 import django
-from django.db.models.loading import cache
+
+__test__ = False
 
 try:
     from unittest import mock
@@ -7,31 +8,18 @@ except ImportError:
     # Python 2
     import mock
 
-__test__ = False
+try:
+    from unittest2 import skipIf, skip  # python 2.6
+except ImportError:
+    from unittest import skipIf, skip
 
 try:
-    # Django 1.7 apps registry
+    # Django 1.7+ apps registry
     from django.apps.registry import apps
+    cache_models = apps.all_models
 except ImportError:
-    # create a dummy apps object
-    class DummyApps(object):
-        app_configs = True
-
-        def populate(self, *args, **kwargs):
-            pass
-
-        def set_installed_apps(self, *args, **kwargs):
-            pass
-
-        def unset_installed_apps(self, *args, **kwargs):
-            pass
-
-    apps = DummyApps()
-
-try:  # Django >= 1.7
-    cache_models = cache.all_models
-except AttributeError:
-    cache_models = cache.app_models
+    from django.db.models.loading import cache as apps
+    cache_models = apps.app_models
 
 
 def cache_handled_init():
