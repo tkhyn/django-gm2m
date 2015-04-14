@@ -9,7 +9,7 @@ This django application exposes a ``GM2MField`` that combines
 the features of the standard Django ``ManyToManyField`` and
 ``GenericForeighKey`` and that can be used exactly the same way.
 
-It works with Django 1.4 to 1.7 and matching Python versions (2.6 to 3.4).
+It works with Django 1.4 to 1.8 and matching Python versions (2.6 to 3.4).
 
 
 Features
