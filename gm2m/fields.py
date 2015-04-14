@@ -134,8 +134,8 @@ class GM2MField(Field):
 
     def db_type(self, connection):
         """
-        By default a GM2M field will not have a column as it relates
-        columns to another table
+        A GM2M field will not have a column as it defines a relation between
+        tables
         """
         return None
 
@@ -175,8 +175,18 @@ class GM2MField(Field):
         # Set up related classes if relations are defined
         self.rel.contribute_to_class(cls)
 
+    def get_attname_column(self):
+        """
+        A GM2M field will not have a column as it defines a relation between
+        tables
+        """
+        attname = self.get_attname()
+        return attname, None
+
     def is_hidden(self):
-        "Should the related object be hidden?"
+        """
+        Should the related object be hidden?
+        """
         return self.rel.related_name and self.rel.related_name[-1] == '+'
 
     def related_query_name(self):
