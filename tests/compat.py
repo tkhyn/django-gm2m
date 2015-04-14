@@ -19,6 +19,9 @@ try:
     cache_models = apps.all_models
 except ImportError:
     from django.db.models.loading import cache as apps
+    apps.app_configs = True
+    apps.set_installed_apps = lambda installed: None
+    apps.unset_installed_apps = lambda: None
     cache_models = apps.app_models
 
 

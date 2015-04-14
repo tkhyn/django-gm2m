@@ -16,6 +16,7 @@ from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.core.management import call_command
 from django.utils import six
+from django.db import models
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
 
@@ -83,6 +84,10 @@ class TestSettingsManager(object):
         self._original_settings = {}
 
 
+class Models(object):
+    pass
+
+
 class TestCase(test.TestCase):
     """
     A subclass of the Django TestCase with a settings_manager
@@ -118,6 +123,16 @@ class TestCase(test.TestCase):
 
         cls.settings_manager.set(
             INSTALLED_APPS=settings.INSTALLED_APPS + (app_path,))
+
+        # import the models
+        cls.models = Models()
+        for path in ('tests.app.models', app_path + '.models'):
+            module = import_module(path)
+            for mod_name in dir(module):
+                model = getattr(module, mod_name)
+                if isinstance(model, models.base.ModelBase) \
+                and not model._meta.abstract:
+                    setattr(cls.models, mod_name, model)
 
     @classmethod
     def tearDownClass(cls):

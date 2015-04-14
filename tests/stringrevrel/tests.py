@@ -1,14 +1,11 @@
-from ..app.models import Project
-from .models import Links
-
 from .. import base
 
 
 class MultipleRelatedTests(base.TestCase):
 
     def setUp(self):
-        self.project = Project.objects.create()
-        self.links = Links.objects.create()
+        self.project = self.models.Project.objects.create()
+        self.links = self.models.Links.objects.create()
 
     def test_related_accessor(self):
         self.assertEqual(self.project.links_set.count(), 0)

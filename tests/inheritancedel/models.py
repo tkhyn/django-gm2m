@@ -1,5 +1,5 @@
 import django
-from django.db.models import Model
+from django.db import models
 
 import gm2m
 from gm2m.deletion import CASCADE, DO_NOTHING_SIGNAL
@@ -15,7 +15,7 @@ else:
 
 
 # we establish the link with Task before declaring the Milestone
-class Links(Model):
+class Links(models.Model):
     related_objects = gm2m.GM2MField(Task, **params)
 
 

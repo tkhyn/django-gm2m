@@ -1,14 +1,11 @@
-from ..app.models import Project, Task
-from .models import Links
-
 from .. import base
 
 
 class RelatedTests(base.TestCase):
 
     def setUp(self):
-        self.project = Project.objects.create()
-        self.links = Links.objects.create()
+        self.project = self.models.Project.objects.create()
+        self.links = self.models.Links.objects.create()
 
     def test_related_accessor(self):
         self.assertEqual(self.project.links_set.count(), 0)
@@ -20,9 +17,9 @@ class RelatedTests(base.TestCase):
         """
         Adds a reverse relation to a GM2MField after an object has been added
         """
-        task = Task.objects.create()
+        task = self.models.Task.objects.create()
         self.links.related_objects.add(task)
-        Links.related_objects.add_relation(Task)
+        self.models.Links.related_objects.add_relation(self.models.Task)
         self.assertEqual(task.links_set.count(), 1)
         self.assertIn(self.links, task.links_set.all())
 
@@ -30,9 +27,9 @@ class RelatedTests(base.TestCase):
 class ReverseOperationsTest(base.TestCase):
 
     def setUp(self):
-        self.links1 = Links.objects.create()
-        self.links2 = Links.objects.create()
-        self.project = Project.objects.create()
+        self.links1 = self.models.Links.objects.create()
+        self.links2 = self.models.Links.objects.create()
+        self.project = self.models.Project.objects.create()
         self.links1.related_objects.add(self.project)
 
     def test_reverse_add(self):
@@ -55,9 +52,9 @@ class ReverseOperationsTest(base.TestCase):
 class DeletionTests(base.TestCase):
 
     def setUp(self):
-        self.project1 = Project.objects.create()
-        self.project2 = Project.objects.create()
-        self.links = Links.objects.create()
+        self.project1 = self.models.Project.objects.create()
+        self.project2 = self.models.Project.objects.create()
+        self.links = self.models.Links.objects.create()
 
     def test_delete_src(self):
         self.links.related_objects = [self.project1, self.project2]
@@ -74,10 +71,10 @@ class DeletionTests(base.TestCase):
 class PrefetchTests(base.TestCase):
 
     def setUp(self):
-        self.project = Project.objects.create()
-        self.task = Task.objects.create()
-        self.links1 = Links.objects.create()
-        self.links2 = Links.objects.create()
+        self.project = self.models.Project.objects.create()
+        self.task = self.models.Task.objects.create()
+        self.links1 = self.models.Links.objects.create()
+        self.links2 = self.models.Links.objects.create()
 
         self.links1.related_objects = [self.project, self.task]
 
@@ -89,11 +86,12 @@ class PrefetchTests(base.TestCase):
             # one query for each related model type (Project, Task)
             # without prefetching it takes 6 queries
             prefetched = [list(l.related_objects.all()) for l
-                          in Links.objects.prefetch_related('related_objects')]
+                          in self.models.Links.objects \
+                                 .prefetch_related('related_objects')]
 
         # without prefetching, we indeed have 6 queries instead of 4
         normal = [list(l.related_objects.all())
-                        for l in Links.objects.all()]
+                        for l in self.models.Links.objects.all()]
 
         self.assertListEqual(prefetched, normal)
 
@@ -102,7 +100,9 @@ class PrefetchTests(base.TestCase):
             # much more efficient this way as there are no supplementary
             # queries due to the generic foreign key
             prefetched = [list(p.links_set.all()) for p
-                          in Project.objects.prefetch_related('links_set')]
+                          in self.models.Project.objects \
+                                 .prefetch_related('links_set')]
 
-        normal = [list(p.links_set.all()) for p in Project.objects.all()]
+        normal = [list(p.links_set.all())
+                  for p in self.models.Project.objects.all()]
         self.assertEqual(prefetched, normal)

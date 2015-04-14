@@ -1,5 +1,4 @@
-from ..app.models import Project
-from .models import Links
+from __future__ import absolute_import
 
 from .. import base
 
@@ -7,8 +6,8 @@ from .. import base
 class RelatedNameTests(base.TestCase):
 
     def setUp(self):
-        self.project = Project.objects.create()
-        self.links = Links.objects.create()
+        self.project = self.models.Project.objects.create()
+        self.links = self.models.Links.objects.create()
 
     def test_related_accessor(self):
         self.links.related_objects.add(self.project)

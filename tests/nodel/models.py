@@ -1,5 +1,5 @@
 import django
-from django.db.models import Model
+from django.db import models
 from django.db.models.deletion import DO_NOTHING
 
 import gm2m
@@ -11,6 +11,6 @@ from ..app.models import Project
 params = {} if django.VERSION < (1, 6) else {'on_delete': DO_NOTHING}
 
 
-class Links(Model):
+class Links(models.Model):
 
     related_objects = gm2m.GM2MField(Project, **params)

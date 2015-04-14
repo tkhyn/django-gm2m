@@ -1,16 +1,13 @@
-from ..app.models import Project, Task
-from .models import Links
-
 from .. import base
 
 
 class NoRevRelTests(base.TestCase):
 
     def setUp(self):
-        self.project = Project.objects.create()
-        self.task1 = Task.objects.create()
-        self.task2 = Task.objects.create()
-        self.links = Links.objects.create()
+        self.project = self.models.Project.objects.create()
+        self.task1 = self.models.Task.objects.create()
+        self.task2 = self.models.Task.objects.create()
+        self.links = self.models.Links.objects.create()
 
 
 class OperationsTests(NoRevRelTests):
