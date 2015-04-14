@@ -8,14 +8,6 @@ key:
 
 v0.3 (dev)
 ----------
-
-* issue when creating ModelForms for related models
-* Django 1.8 compatibility:
-   * add_virtual_field issue (issue #2)
-   * GM2MField's column is None
-   * fixes deprecation warnings regarding renamed django modules
-     (removed in django 1.9)
-
 Todo:
 - admin
 
@@ -41,6 +33,15 @@ v0.2.3 (14-12-2014)
 * issue with through model fields alteration in Django 1.7+ migrations
 + pk_maxlength option to set the max length of the primary key to a
   user-defined value
+
+v.0.2.4 (14-04-2015)
+....................
+* fixes issue when creating ModelForms for related models
+* Django 1.8 compatibility:
+   * add_virtual_field issue (issue #2)
+   * GM2MField's column is None
+   * fixes deprecation warnings regarding renamed django modules
+     (removed in django 1.9)
 
 
 v0.1 (08-10-2014)
