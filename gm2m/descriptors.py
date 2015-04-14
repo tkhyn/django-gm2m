@@ -17,7 +17,7 @@ class GM2MDescriptor(object):
         if not self.through._meta.auto_created:
             opts = self.through._meta
             raise AttributeError(
-                'Cannot set values on a GN2MField which specifies an '
+                'Cannot set values on a GM2MField which specifies an '
                 'intermediary model. Use %s.%s\'s Manager instead.'
                 % (opts.app_label, opts.object_name))
         manager = self.__get__(instance)
