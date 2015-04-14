@@ -10,6 +10,11 @@ v0.3 (dev)
 ----------
 
 * issue when creating ModelForms for related models
+* Django 1.8 compatibility:
+   * add_virtual_field issue (issue #2)
+   * GM2MField's column is None
+   * fixes deprecation warnings regarding renamed django modules
+     (removed in django 1.9)
 
 Todo:
 - admin
