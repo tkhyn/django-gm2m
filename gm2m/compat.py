@@ -171,7 +171,7 @@ if django.VERSION < (1, 6):
                 pass
 else:
     def add_related_field(opts, field):
-        opts.add_virtual_field(field)
+        opts.virtual_fields.append(field)
 
 
 if django.VERSION < (1, 7):
@@ -186,7 +186,6 @@ else:
                 delattr(opts, attr)
             except AttributeError:
                 pass
-
 
 
 def get_local_related_fields(fk):
