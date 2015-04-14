@@ -19,6 +19,18 @@ try:
 except ImportError:
     checks = None
 
+try:
+    # django 1.7+
+    from django.db.backends import utils as db_backends_utils
+except ImportError:
+    from django.db.backends import util as db_backends_utils
+
+try:
+    # django 1.7+
+    from django.contrib.contenttypes.fields import GenericForeignKey
+except ImportError:
+    from django.contrib.contenttypes.generic import GenericForeignKey
+
 
 def assert_compat_params(params):
 

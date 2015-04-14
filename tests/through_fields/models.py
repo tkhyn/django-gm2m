@@ -1,8 +1,8 @@
 from django.db import models
-from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
 import gm2m
+from gm2m.compat import GenericForeignKey
 
 from ..app.models import Project
 

@@ -1,13 +1,12 @@
 from django.utils import six
 from django.db.models.fields import Field
-from django.db.backends import util
 from django.db import connection
 from django.utils.encoding import force_text
 
 from .relations import GM2MRel, REL_ATTRS
 
 from .compat import checks, get_model_name, assert_compat_params, \
-                    add_field
+                    add_field, db_backends_utils
 
 from . import monkeypatch
 
@@ -146,9 +145,9 @@ class GM2MField(Field):
         elif self.db_table:
             return self.db_table
         else:
-            return util.truncate_name('%s_%s' %
-                                      (self.model._meta.db_table, self.name),
-                                      connection.ops.max_name_length())
+            return utils.truncate_name('%s_%s' %
+                                       (self.model._meta.db_table, self.name),
+                                       connection.ops.max_name_length())
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         """

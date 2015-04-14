@@ -1,10 +1,8 @@
-from django.db.backends import util
 from django.db import connection
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
 
-from .compat import get_model_name, get_fk_kwargs, get_gfk_kwargs, \
-                    get_meta_kwargs
+from .compat import GenericForeignKey, get_model_name, get_fk_kwargs, \
+                    get_gfk_kwargs, get_meta_kwargs, db_backends_utils
 
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'
@@ -24,8 +22,9 @@ def create_gm2m_intermediary_model(field, klass):
 
     model_name = get_model_name(klass)
 
-    db_table = util.truncate_name('%s_%s' % (klass._meta.db_table, field.name),
-                                  connection.ops.max_name_length())
+    db_table = db_backends_utils.truncate_name(
+                   '%s_%s' % (klass._meta.db_table, field.name),
+                   connection.ops.max_name_length())
 
     meta_kwargs = {
         'db_table': db_table,
@@ -56,7 +55,7 @@ def create_gm2m_intermediary_model(field, klass):
                                        **fk_kwargs),
         CT_ATTNAME: models.ForeignKey(ContentType, **fk_kwargs),
         FK_ATTNAME: models.CharField(max_length=fk_maxlength),
-        TGT_ATTNAME: generic.GenericForeignKey(
+        TGT_ATTNAME: GenericForeignKey(
                          ct_field=CT_ATTNAME,
                          fk_field=FK_ATTNAME,
                          **get_gfk_kwargs(field)

@@ -1,5 +1,4 @@
 from django.db.models.fields.related import add_lazy_relation
-from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db.models.signals import pre_delete
 from django.db.models.fields import FieldDoesNotExist
 from django.utils.functional import cached_property
@@ -7,8 +6,9 @@ from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.utils import six
 
-from .compat import apps, checks, ForeignObject, ForeignObjectRel, \
-                    is_swapped, add_related_field, get_model_name
+from .compat import apps, checks, GenericForeignKey, ForeignObject, \
+                    ForeignObjectRel, is_swapped, add_related_field, \
+                    get_model_name
 
 from .models import create_gm2m_intermediary_model
 from .managers import create_gm2m_related_manager
