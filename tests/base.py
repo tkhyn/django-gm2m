@@ -21,10 +21,11 @@ from django.utils import six
 from django.db import models, connection
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
+from django.utils.six import StringIO
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init, skip, skipIf, StringIO
+from .compat import apps, cache_handled_init, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
 

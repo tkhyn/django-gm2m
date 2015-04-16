@@ -14,12 +14,6 @@ except ImportError:
     from unittest import skipIf, skip
 
 try:
-    # Python 2
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-try:
     # Django 1.7+ apps registry
     from django.apps.registry import apps
     cache_models = apps.all_models
