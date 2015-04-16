@@ -11,7 +11,6 @@ from imp import reload
 from importlib import import_module
 from inspect import getfile
 from shutil import rmtree
-from StringIO import StringIO
 
 import django
 from django import test
@@ -25,7 +24,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init, skip, skipIf
+from .compat import apps, cache_handled_init, skip, skipIf, StringIO
 from .helpers import app_mod_path, del_app_models
 
 
@@ -91,7 +90,7 @@ class Models(object):
     pass
 
 
-class TestCase(test.TestCase):
+class _TestCase(test.TestCase):
     """
     A subclass of the Django TestCase with a settings_manager
     attribute which is an instance of TestSettingsManager.
@@ -148,6 +147,9 @@ class TestCase(test.TestCase):
 
         del_app_models(cls.__module__.split('.')[1], app_module=True)
 
+
+class TestCase(_TestCase):
+
     @skipIf(django.VERSION < (1, 7),
             'deconstruct method does not exist for django < 1.7')
     def test_deconstruct(self):
@@ -181,7 +183,8 @@ class TestCase(test.TestCase):
                             set(args))
 
 
-class MigrationsTestCase(TestCase):
+@skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
+class MigrationsTestCase(_TestCase):
 
     def _post_teardown(self):
         try:
@@ -250,6 +253,3 @@ class MigrationsTestCase(TestCase):
         s = f.read()
         f.close()
         return s
-
-    def assertMigrationContains(self, content, module='0001_initial'):
-        self.assertIn(content, self.get_migration_content(module))

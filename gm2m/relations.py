@@ -36,6 +36,7 @@ class GM2MRelation(ForeignObject):
     Each related model has a GM2MRelation towards the source model
     """
 
+    concrete = False
     generate_reverse_relation = False  # only used in Django 1.7
     related_accessor_class = GM2MRelatedDescriptor
 
@@ -660,7 +661,8 @@ class GM2MRel(object):
                         field_names['tgt_fk'] = f.fk_field
                         break
 
-            if not set(field_names.keys()).issuperset(('src', 'tgt')):
+            if rel.through.__module__ != '__fake__' \
+            and not set(field_names.keys()).issuperset(('src', 'tgt')):
                 raise ValueError('Bad through model for GM2M relationship.')
 
             rel.through._meta._field_names = field_names

@@ -1,3 +1,7 @@
+import re
+
+import django
+
 from .. import base
 
 
@@ -48,16 +52,37 @@ class MigrationTests(base.MigrationsTestCase):
 
     def test_makemigrations(self):
         self.makemigrations()
-        self.assertMigrationContains("""
+
+        mig_ctnt = re.sub('models\.AutoField\(.+?\)', 'models.AutoField()',
+                          self.get_migration_content())
+
+        if django.VERSION >= (1, 8):
+            self.assertIn("""
     operations = [
         migrations.CreateModel(
             name='Links',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('id', models.AutoField()),
                 ('related_objects', gm2m.fields.GM2MField()),
             ],
         ),
-    ]""")
+    ]""", mig_ctnt)
+
+        else:
+            # django < 1.7
+            self.assertIn("""
+    operations = [
+        migrations.CreateModel(
+            name='Links',
+            fields=[
+                ('id', models.AutoField()),
+                ('related_objects', gm2m.fields.GM2MField()),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+    ]""", mig_ctnt)
 
     def test_migrate_app(self):
         # just check that no exception is raised when calling migrate
