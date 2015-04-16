@@ -42,3 +42,27 @@ class AutoReverseTests(NoRevRelTests):
         self.links.related_objects = [self.project, self.task1]
         self.assertListEqual(list(self.project.links_set.all()), [self.links])
         self.assertListEqual(list(self.task1.links_set.all()), [self.links])
+
+
+class MigrationTests(base.MigrationsTestCase):
+
+    def test_makemigrations(self):
+        self.makemigrations()
+        self.assertMigrationContains("""
+    operations = [
+        migrations.CreateModel(
+            name='Links',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('related_objects', gm2m.fields.GM2MField()),
+            ],
+        ),
+    ]""")
+
+    def test_migrate_app(self):
+        # just check that no exception is raised when calling migrate
+        self.makemigrations()
+        self.migrate()
+
+    def test_migrate_all(self):
+        self.migrate(all=True)
