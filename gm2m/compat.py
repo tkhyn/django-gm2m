@@ -167,7 +167,13 @@ def get_model_name(x):
         return opts.object_name.lower()
 
 
-if django.VERSION < (1, 6):
+if django.VERSION >= (1, 8):
+    def add_related_field(opts, field):
+        opts.add_field(field, virtual=True)
+elif django.VERSION >= (1, 6):
+    def add_related_field(opts, field):
+        opts.add_virtual_field(field)
+else:
     def add_related_field(opts, field):
         # hack to enable deletion cascading when the collector does not loop on
         # virtual fields
@@ -181,12 +187,12 @@ if django.VERSION < (1, 6):
                 delattr(opts, attr)
             except AttributeError:
                 pass
-else:
-    def add_related_field(opts, field):
-        opts.virtual_fields.append(field)
 
-
-if django.VERSION < (1, 7):
+if django.VERSION >= (1, 8):
+    def add_field(opts, field):
+        opts.add_field(field)
+        opts._expire_cache()
+elif django.VERSION < (1, 7):
     def add_field(opts, field):
         opts.add_virtual_field(field)
 else:

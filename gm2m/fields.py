@@ -19,18 +19,24 @@ class GM2MField(Field):
     Reverse relations can be established with models provided as arguments
     """
 
+    # field flags
+    many_to_many = True
+    many_to_one = False
+    one_to_many = False
+    one_to_one = False
+    related_model = ''
+
     def __init__(self, *related_models, **params):
 
         super(GM2MField, self).__init__(
             verbose_name=params.pop('verbose_name', None),
             name=params.pop('name', None),
             help_text=params.pop('help_text', u''),
-            error_messages=params.pop('error_messages', None)
+            error_messages=params.pop('error_messages', None),
+            rel=GM2MRel(self, related_models, **params),
         )
 
         assert_compat_params(params)
-
-        self.rel = GM2MRel(self, related_models, **params)
 
         self.db_table = params.pop('db_table', None)
         self.pk_maxlength = params.pop('pk_maxlength', False)

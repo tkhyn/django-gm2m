@@ -37,6 +37,10 @@ v.0.2.4 (14-04-2015)
    * fixes deprecation warnings regarding renamed django modules
      (removed in django 1.9)
 
+v.0.2.5 (14-04-2015)
+....................
+* fixes migration problems when using complex relations between models
+  (issue #3)
 
 v0.1 (08-10-2014)
 -----------------

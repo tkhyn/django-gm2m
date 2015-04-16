@@ -6,9 +6,11 @@ It takes care of resetting the models and databases for each Testcase
 """
 
 import sys
+import os
 from imp import reload
 from importlib import import_module
-
+from inspect import getfile
+from shutil import rmtree
 
 import django
 from django import test
@@ -16,13 +18,13 @@ from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.core.management import call_command
 from django.utils import six
-from django.db import models
+from django.db import models, connection
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init, skip, skipIf
+from .compat import apps, cache_handled_init, skip, skipIf, StringIO
 from .helpers import app_mod_path, del_app_models
 
 
@@ -88,7 +90,7 @@ class Models(object):
     pass
 
 
-class TestCase(test.TestCase):
+class _TestCase(test.TestCase):
     """
     A subclass of the Django TestCase with a settings_manager
     attribute which is an instance of TestSettingsManager.
@@ -96,6 +98,10 @@ class TestCase(test.TestCase):
     Comes with a tearDown() method that calls
     self.settings_manager.revert().
     """
+
+    @classmethod
+    def app_name(cls):
+        return cls.__module__.split('.')[1]
 
     @classmethod
     def setUpClass(cls):
@@ -115,7 +121,7 @@ class TestCase(test.TestCase):
 
         # finally, we need to reload the current test module as it relies upon
         # the app's models
-        app_name = cls.__module__.split('.')[1]
+        app_name = cls.app_name()
         app_path = app_mod_path(app_name)
         del_app_models(app_name)  # to make sure the app models are flushed
         import_module(app_path)  # needed to import app.test
@@ -140,6 +146,9 @@ class TestCase(test.TestCase):
         related.pending_lookups = {}
 
         del_app_models(cls.__module__.split('.')[1], app_module=True)
+
+
+class TestCase(_TestCase):
 
     @skipIf(django.VERSION < (1, 7),
             'deconstruct method does not exist for django < 1.7')
@@ -172,3 +181,75 @@ class TestCase(test.TestCase):
                                  for r in field.rel.rels
                                  if not getattr(r, '_added', False)]),
                             set(args))
+
+
+@skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
+class MigrationsTestCase(_TestCase):
+
+    def _post_teardown(self):
+        try:
+            mig_dir = self.migrations_dir
+            for d in (mig_dir, mig_dir + '_bak'):
+                try:
+                    rmtree(d)
+                except OSError:
+                    pass
+        finally:
+            try:
+                del sys.modules[self.migrations_module]
+            except KeyError:
+                pass
+            finally:
+                super(MigrationsTestCase, self)._post_teardown()
+
+    def makemigrations(self):
+        call_command('makemigrations', self.app_name())
+
+    def migrate(self, all=False):
+        app_name = self.app_name()
+
+        # drop the application's tables
+        # we need to 'hide' the migrations module from django to generate the
+        # sql
+        mig_dir = self.migrations_dir
+        sql_io = StringIO()
+        try:
+            os.rename(mig_dir, mig_dir + '_bak')
+            do_rename = True
+        except OSError:
+            do_rename = False
+        try:
+            del sys.modules[self.migrations_module]
+        except KeyError:
+            pass
+        call_command('sqlclear', app_name, stdout=sql_io)
+        if do_rename:
+            os.rename(mig_dir + '_bak', mig_dir)
+
+        sql_io.seek(0)
+        sql = sql_io.read()
+        for statement in sql.split('\n')[1:-3]:
+            connection.cursor().execute(statement)
+
+        # migrate
+        if all:
+            args = []
+        else:
+            args = [app_name]
+        call_command('migrate')
+
+    @property
+    def migrations_dir(self):
+        return os.path.join(os.path.dirname(getfile(self.__class__)),
+                            'migrations')
+
+    @property
+    def migrations_module(self):
+        return '.'.join(self.__class__.__module__.split('.')[:-1]
+                        + ['migrations'])
+
+    def get_migration_content(self, module='0001_initial'):
+        f = open(os.path.join(self.migrations_dir, module + '.py'))
+        s = f.read()
+        f.close()
+        return s
