@@ -189,6 +189,11 @@ class TestCase(_TestCase):
                                  if not getattr(r, '_added', False)]),
                             set(args))
 
+    @skipIf(django.VERSION < (1, 7),
+            'system check does not exist in django < 1.7')
+    def test_check(self):
+        call_command('check')
+
 
 @skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
 class MigrationsTestCase(_TestCase):
