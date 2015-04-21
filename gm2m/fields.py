@@ -151,9 +151,9 @@ class GM2MField(Field):
         elif self.db_table:
             return self.db_table
         else:
-            return utils.truncate_name('%s_%s' %
-                                       (self.model._meta.db_table, self.name),
-                                       connection.ops.max_name_length())
+            return db_backends_utils.truncate_name(
+                '%s_%s' % (self.model._meta.db_table, self.name),
+                connection.ops.max_name_length())
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         """
