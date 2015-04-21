@@ -237,7 +237,7 @@ class MigrationsTestCase(_TestCase):
             args = []
         else:
             args = [app_name]
-        call_command('migrate')
+        call_command('migrate', *args)
 
     @property
     def migrations_dir(self):
