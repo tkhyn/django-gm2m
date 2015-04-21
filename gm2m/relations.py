@@ -230,7 +230,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         potential_clashes = rel_opts.get_all_related_many_to_many_objects()
         potential_clashes += rel_opts.get_all_related_objects()
         potential_clashes = (r for r in potential_clashes
-            if r.field is not self)
+            if r.field is not self.field)
         for clash_field in potential_clashes:
             # "Model.gm2m"
             clash_name = "%s.%s" % (
