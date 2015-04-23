@@ -8,7 +8,7 @@ from django.utils import six
 
 from .compat import apps, checks, GenericForeignKey, ForeignObject, \
                     ForeignObjectRel, is_swapped, add_related_field, \
-                    get_model_name
+                    get_model_name, StateApps
 
 from .models import create_gm2m_intermediary_model
 from .managers import create_gm2m_related_manager
@@ -660,7 +660,8 @@ class GM2MRel(object):
                         field_names['tgt_fk'] = f.fk_field
                         break
 
-            if rel.through.__module__ != '__fake__' \
+            if (not StateApps or
+                not isinstance(rel.through._meta.apps, StateApps)) \
             and not set(field_names.keys()).issuperset(('src', 'tgt')):
                 raise ValueError('Bad through model for GM2M relationship.')
 
