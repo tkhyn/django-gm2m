@@ -610,7 +610,6 @@ class GM2MRel(object):
                         )
         return errors
 
-
     def contribute_to_class(self, cls, virtual_only=False):
 
         # Connect the descriptor for this field
