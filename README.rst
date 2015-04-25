@@ -291,7 +291,7 @@ db_constraint
 
 for_concrete_model
    If set to ``False``, the field will be able to reference proxy models.
-   Default to ``True``.
+   Defaults to ``True``.
 
 related_name
    The name that will be used for the relation from a related object back to
