@@ -19,6 +19,11 @@ from .helpers import get_content_type
 
 
 # default relation attributes
+# we set that here as they are used to retrieve the GM2MRel attribute from
+# a GM2MUnitRel (see GM2MUnitRel.__getattribute__ below)
+# they are also used in GM2MField.deconstruct
+
+# attributes whose values can be overriden by kwargs
 REL_ATTRS = {
     'related_name': None,
     'related_query_name': None,
@@ -28,6 +33,16 @@ REL_ATTRS = {
     'for_concrete_model': True,
     'on_delete': CASCADE,
 }
+
+# attributes whose values cannot be changed
+REL_ATTRS_FIXED = {
+    'multiple': True,
+    'symmetrical': False,
+    'parent_link': False,
+    'limit_choices_to': {}
+}
+
+REL_ATTRS_NAMES = list(REL_ATTRS.keys()) + list(REL_ATTRS_FIXED.keys())
 
 
 class GM2MRelation(ForeignObject):
@@ -275,7 +290,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         General attributes are those from the GM2MRel object
         """
         sup = super(GM2MUnitRel, self).__getattribute__
-        if name in REL_ATTRS.keys():
+        if name in REL_ATTRS_NAMES:
             if name == 'on_delete':
                 name += '_tgt'
             return getattr(sup('field').rel, name)
@@ -377,6 +392,8 @@ class GM2MRel(object):
 
         for name, default in six.iteritems(REL_ATTRS):
             setattr(self, name, params.pop(name, default))
+        for name, value in six.iteritems(REL_ATTRS_FIXED):
+            setattr(self, name, value)
 
         self.on_delete_src = params.pop('on_delete_src', self.on_delete)
         self.on_delete_tgt = params.pop('on_delete_tgt', self.on_delete)
