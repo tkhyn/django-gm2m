@@ -36,6 +36,12 @@ class GM2MRelation(ForeignObject):
     Each related model has a GM2MRelation towards the source model
     """
 
+    # copies GM2MField flags (as self.field will always be a GM2MField)
+    many_to_many = True
+    many_to_one = False
+    one_to_many = False
+    one_to_one = False
+
     concrete = False
     generate_reverse_relation = False  # only used in Django 1.7
     related_accessor_class = GM2MRelatedDescriptor

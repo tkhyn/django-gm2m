@@ -1,3 +1,5 @@
+import django
+
 from .. import base
 
 
@@ -23,6 +25,8 @@ class RelatedTests(base.TestCase):
         self.assertEqual(task.links_set.count(), 1)
         self.assertIn(self.links, task.links_set.all())
 
+    @base.skipIf(django.VERSION < (1, 7),
+        'reverse relation is not added to virtual_fields in django < 1.7')
     def test_not_in_reverse_rel_option_fields(self):
         """
         Check that the reverse relation is not in the Project's options fields
