@@ -23,6 +23,14 @@ class RelatedTests(base.TestCase):
         self.assertEqual(task.links_set.count(), 1)
         self.assertIn(self.links, task.links_set.all())
 
+    def test_not_in_reverse_rel_option_fields(self):
+        """
+        Check that the reverse relation is not in the Project's options fields
+        """
+
+        self.assertNotIn(self.models.Project._meta.virtual_fields[0],
+                         self.models.Project._meta.fields)
+
 
 class ReverseOperationsTest(base.TestCase):
 
