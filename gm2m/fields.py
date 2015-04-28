@@ -2,6 +2,7 @@ from django.utils import six
 from django.db.models.fields import Field
 from django.db import connection
 from django.utils.encoding import force_text
+from django.utils.translation import ugettext_lazy as _
 
 from .relations import GM2MRel, REL_ATTRS
 
@@ -25,6 +26,8 @@ class GM2MField(Field):
     one_to_many = False
     one_to_one = False
     related_model = ''
+
+    description = _('Generic many-to-many relationship')
 
     def __init__(self, *related_models, **params):
 
@@ -151,9 +154,9 @@ class GM2MField(Field):
         elif self.db_table:
             return self.db_table
         else:
-            return utils.truncate_name('%s_%s' %
-                                       (self.model._meta.db_table, self.name),
-                                       connection.ops.max_name_length())
+            return db_backends_utils.truncate_name(
+                '%s_%s' % (self.model._meta.db_table, self.name),
+                connection.ops.max_name_length())
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         """

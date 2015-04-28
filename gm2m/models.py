@@ -2,7 +2,9 @@ from django.db import connection
 from django.contrib.contenttypes.models import ContentType
 
 from .compat import GenericForeignKey, get_model_name, get_fk_kwargs, \
-                    get_gfk_kwargs, get_meta_kwargs, db_backends_utils
+                    get_gfk_kwargs, get_meta_kwargs, db_backends_utils, \
+                    StateApps, ModelState
+
 
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'
@@ -47,7 +49,7 @@ def create_gm2m_intermediary_model(field, klass):
     if field.pk_maxlength is not False:
         fk_maxlength = field.pk_maxlength
 
-    body = {
+    model = type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
         SRC_ATTNAME: models.ForeignKey(klass,
@@ -55,17 +57,16 @@ def create_gm2m_intermediary_model(field, klass):
                                        **fk_kwargs),
         CT_ATTNAME: models.ForeignKey(ContentType, **fk_kwargs),
         FK_ATTNAME: models.CharField(max_length=fk_maxlength),
-    }
+        TGT_ATTNAME: GenericForeignKey(
+                         ct_field=CT_ATTNAME,
+                         fk_field=FK_ATTNAME,
+                         **get_gfk_kwargs(field)
+                     ),
+    })
 
-    if klass.__module__ != '__fake__':
-        # if we are building a fake model for migrations purposes, do not add
-        # the generic foreign key (see issue #3)
-        body.update({
-            TGT_ATTNAME: GenericForeignKey(
-                             ct_field=CT_ATTNAME,
-                             fk_field=FK_ATTNAME,
-                             **get_gfk_kwargs(field)
-                         ),
-        })
+    if StateApps and isinstance(klass._meta.apps, StateApps):
+        # if we are building a fake model for migrations purposes, create a
+        # ModelState from the model and render it (see issues #3 and #5)
+        return ModelState.from_model(model).render(klass._meta.apps)
 
-    return type(str(name), (models.Model,), body)
+    return model

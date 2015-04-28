@@ -21,10 +21,11 @@ from django.utils import six
 from django.db import models, connection
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
+from django.utils.six import StringIO
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init, skip, skipIf, StringIO
+from .compat import apps, cache_handled_init, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
 
@@ -99,6 +100,8 @@ class _TestCase(test.TestCase):
     self.settings_manager.revert().
     """
 
+    other_apps = ()
+
     @classmethod
     def app_name(cls):
         return cls.__module__.split('.')[1]
@@ -108,9 +111,12 @@ class _TestCase(test.TestCase):
 
         cls.settings_manager = TestSettingsManager()
 
-        # unloads the test.models module and test app to 'forget' the links
-        # created by the previous test case
-        del_app_models('app')
+        cls.inst_apps = ('app', cls.app_name(),) + cls.other_apps
+
+        # unloads the test.models module and test app to make sure no link
+        # subsists from the previous test case
+        for app in cls.inst_apps:
+            del_app_models(app, app_module=True)
 
         # resets ContentType's related object cache to 'forget' the links
         # created by the previous test case, they'll be regenerated
@@ -121,19 +127,18 @@ class _TestCase(test.TestCase):
 
         # finally, we need to reload the current test module as it relies upon
         # the app's models
-        app_name = cls.app_name()
-        app_path = app_mod_path(app_name)
-        del_app_models(app_name)  # to make sure the app models are flushed
-        import_module(app_path)  # needed to import app.test
+        # needed to import app.test
+        app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
+        import_module(app_mod_path(cls.inst_apps[1]))
         reload(sys.modules[cls.__module__])
 
-        cls.settings_manager.set(
-            INSTALLED_APPS=settings.INSTALLED_APPS + (app_path,))
+        cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
+                                 + app_paths)
 
-        # import the models
+        # import the needed models
         cls.models = Models()
-        for path in ('tests.app.models', app_path + '.models'):
-            module = import_module(path)
+        for app_path in app_paths:
+            module = import_module(app_path + '.models')
             for mod_name in dir(module):
                 model = getattr(module, mod_name)
                 if isinstance(model, models.base.ModelBase) \
@@ -145,7 +150,9 @@ class _TestCase(test.TestCase):
         cls.settings_manager.revert()
         related.pending_lookups = {}
 
-        del_app_models(cls.__module__.split('.')[1], app_module=True)
+        cls.models = Models()
+        for app in cls.inst_apps:
+            del_app_models(app, app_module=True)
 
 
 class TestCase(_TestCase):
@@ -181,6 +188,11 @@ class TestCase(_TestCase):
                                  for r in field.rel.rels
                                  if not getattr(r, '_added', False)]),
                             set(args))
+
+    @skipIf(django.VERSION < (1, 7),
+            'system check does not exist in django < 1.7')
+    def test_check(self):
+        call_command('check')
 
 
 @skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
@@ -236,7 +248,7 @@ class MigrationsTestCase(_TestCase):
             args = []
         else:
             args = [app_name]
-        call_command('migrate')
+        call_command('migrate', *args)
 
     @property
     def migrations_dir(self):

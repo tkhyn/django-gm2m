@@ -9,7 +9,13 @@ try:
 
     # ALL BACKENDS EXCEPT SQLITE
 
-    from django.db.backends.schema import BaseDatabaseSchemaEditor
+    try:
+        # django 1.8
+        from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+    except ImportError:
+        # django 1.7
+        from django.db.backends.schema import BaseDatabaseSchemaEditor
+
     _alter_many_to_many_0 = BaseDatabaseSchemaEditor._alter_many_to_many
 
     def _alter_many_to_many(self, model, old_field, new_field, strict):
@@ -52,6 +58,7 @@ try:
     # SQLITE BACKEND, SPECIFIC IMPLEMENTATION
 
     from django.db.backends.sqlite3.schema import DatabaseSchemaEditor
+
     _alter_many_to_many_sqlite0 = DatabaseSchemaEditor._alter_many_to_many
 
     def _alter_many_to_many(self, model, old_field, new_field, strict):

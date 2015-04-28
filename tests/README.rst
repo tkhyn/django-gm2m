@@ -14,13 +14,16 @@ The tests
 django-gm2m uses nose_ and django_nose_ for testing. All the test modules are
 contained in individual dummy Django apps in the ``tests`` directory. The test
 modules are named ``tests*.py`` so that nose can discover them, and the test
-classes are subclasses of ``tests.TestCase`` so that when running
+classes are subclasses of ``tests._TestCase`` so that when running
 tests in an app, the app is automatically enabled and the associated models
 defined in ``models.py`` are created. After the tests for that app have
 finished, the app is disabled and the models are destroyed for the next app.
 
 The ``tests.app`` app is always enabled and contains some base models. No test
 should be written in this app.
+
+A test class can install other apps during its test by using the ``other_apps``
+class attribute, which is an empty tuple by default.
 
 The ``setup.cfg`` file contains coverage pre-configuration information,
 but coverage is disabled by default.

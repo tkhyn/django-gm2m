@@ -31,6 +31,12 @@ try:
 except ImportError:
     from django.contrib.contenttypes.generic import GenericForeignKey
 
+try:
+    # django 1.7+
+    from django.db.migrations.state import ModelState, StateApps
+except:
+    StateApps = ModelState = None
+
 
 def assert_compat_params(params):
 

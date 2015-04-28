@@ -8,7 +8,7 @@ from django.utils import six
 
 from .compat import apps, checks, GenericForeignKey, ForeignObject, \
                     ForeignObjectRel, is_swapped, add_related_field, \
-                    get_model_name
+                    get_model_name, StateApps
 
 from .models import create_gm2m_intermediary_model
 from .managers import create_gm2m_related_manager
@@ -19,6 +19,11 @@ from .helpers import get_content_type
 
 
 # default relation attributes
+# we set that here as they are used to retrieve the GM2MRel attribute from
+# a GM2MUnitRel (see GM2MUnitRel.__getattribute__ below)
+# they are also used in GM2MField.deconstruct
+
+# attributes whose values can be overriden by kwargs
 REL_ATTRS = {
     'related_name': None,
     'related_query_name': None,
@@ -29,12 +34,28 @@ REL_ATTRS = {
     'on_delete': CASCADE,
 }
 
+# attributes whose values cannot be changed
+REL_ATTRS_FIXED = {
+    'multiple': True,
+    'symmetrical': False,
+    'parent_link': False,
+    'limit_choices_to': {}
+}
+
+REL_ATTRS_NAMES = list(REL_ATTRS.keys()) + list(REL_ATTRS_FIXED.keys())
+
 
 class GM2MRelation(ForeignObject):
     """
     A reverse relation for a GM2MField.
     Each related model has a GM2MRelation towards the source model
     """
+
+    # copies GM2MField flags (as self.field will always be a GM2MField)
+    many_to_many = True
+    many_to_one = False
+    one_to_many = False
+    one_to_one = False
 
     concrete = False
     generate_reverse_relation = False  # only used in Django 1.7
@@ -230,7 +251,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         potential_clashes = rel_opts.get_all_related_many_to_many_objects()
         potential_clashes += rel_opts.get_all_related_objects()
         potential_clashes = (r for r in potential_clashes
-            if r.field is not self)
+            if r.field is not self.field)
         for clash_field in potential_clashes:
             # "Model.gm2m"
             clash_name = "%s.%s" % (
@@ -269,7 +290,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         General attributes are those from the GM2MRel object
         """
         sup = super(GM2MUnitRel, self).__getattribute__
-        if name in REL_ATTRS.keys():
+        if name in REL_ATTRS_NAMES:
             if name == 'on_delete':
                 name += '_tgt'
             return getattr(sup('field').rel, name)
@@ -371,6 +392,8 @@ class GM2MRel(object):
 
         for name, default in six.iteritems(REL_ATTRS):
             setattr(self, name, params.pop(name, default))
+        for name, value in six.iteritems(REL_ATTRS_FIXED):
+            setattr(self, name, value)
 
         self.on_delete_src = params.pop('on_delete_src', self.on_delete)
         self.on_delete_tgt = params.pop('on_delete_tgt', self.on_delete)
@@ -610,7 +633,6 @@ class GM2MRel(object):
                         )
         return errors
 
-
     def contribute_to_class(self, cls, virtual_only=False):
 
         # Connect the descriptor for this field
@@ -661,7 +683,8 @@ class GM2MRel(object):
                         field_names['tgt_fk'] = f.fk_field
                         break
 
-            if rel.through.__module__ != '__fake__' \
+            if (not StateApps or
+                not isinstance(rel.through._meta.apps, StateApps)) \
             and not set(field_names.keys()).issuperset(('src', 'tgt')):
                 raise ValueError('Bad through model for GM2M relationship.')
 
