@@ -150,8 +150,11 @@ class GM2MBaseSrcManager(compat.Manager):
             t = []
             for f in extra_fields:
                 try:
-                    model = ContentType.objects.get(pk=t[0]).model_class()
+                    # t already contains the content type id
+                    # we use get_for_id to retrieve the cached content type
+                    model = ContentType.objects.get_for_id(t[0]).model_class()
                 except IndexError:
+                    # t is empty
                     model = ContentType
                 t.append(model._meta.pk.to_python(
                     getattr(relobj, '_prefetch_related_val_%s' % f.attname)
