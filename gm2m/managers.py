@@ -145,11 +145,7 @@ class GM2MBaseSrcManager(compat.Manager):
 
         qs = self._get_extra_queryset(queryset, q, extra_fields, db)
 
-        to_pythons = (ContentType._meta.pk.to_python,
-                      self.model._meta.pk.to_python)
-
         # primary model retrieval function
-        #
         def rel_obj_attr(relobj):
             t = []
             for f in extra_fields:
