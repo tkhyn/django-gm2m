@@ -173,6 +173,13 @@ def get_model_name(x):
         return opts.object_name.lower()
 
 
+def get_related_model(field):
+    try:
+        return field.related_model
+    except AttributeError:
+        return field.rel.to
+
+
 if django.VERSION >= (1, 8):
     def add_related_field(opts, field):
         opts.add_field(field, virtual=True)

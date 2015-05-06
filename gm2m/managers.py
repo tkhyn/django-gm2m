@@ -240,7 +240,7 @@ class GM2MBaseTgtManager(compat.Manager):
                     v = v.pop()
                 except AttributeError:  # v is not a list
                     pass
-                t.append(f.related_model._meta.pk.to_python(v))
+                t.append(compat.get_related_model(f)._meta.pk.to_python(v))
             return tuple(t)
 
         # model attribute retrieval function
