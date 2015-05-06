@@ -108,9 +108,8 @@ class PrefetchTests(base.TestCase):
         self.assertListEqual(prefetched, normal)
 
     def test_prefetch_reverse(self):
-        with self.assertNumQueries(2):
-            # much more efficient this way as there are no supplementary
-            # queries due to the generic foreign key
+        with self.assertNumQueries(4):
+            # same number of queries as in the forward direction
             prefetched = [list(p.links_set.all()) for p
                           in self.models.Project.objects \
                                  .prefetch_related('links_set')]

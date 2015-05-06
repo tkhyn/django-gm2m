@@ -1,6 +1,7 @@
 from django.db import router
 from django.db.models import Q
 from django.db import connections
+from django.contrib.contenttypes.models import ContentType
 
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
@@ -136,6 +137,7 @@ class GM2MBaseSrcManager(compat.Manager):
 
         # Annotating the query in order to retrieve the primary model
         # content type and id in the same query
+        # content type must be the 1st element, see rel_obj_attr below
         extra_fields = (
             self.through._meta.get_field(self.field_names['tgt_ct']),
             self.through._meta.get_field(self.field_names['tgt_fk'])
@@ -143,13 +145,21 @@ class GM2MBaseSrcManager(compat.Manager):
 
         qs = self._get_extra_queryset(queryset, q, extra_fields, db)
 
+        to_pythons = (ContentType._meta.pk.to_python,
+                      self.model._meta.pk.to_python)
+
         # primary model retrieval function
+        #
         def rel_obj_attr(relobj):
             t = []
             for f in extra_fields:
-                t.append(relobj._meta.pk.to_python(
-                    getattr(relobj,
-                            '_prefetch_related_val_%s' % f.attname)))
+                try:
+                    model = ContentType.objects.get(pk=t[0]).model_class()
+                except IndexError:
+                    model = ContentType
+                t.append(model._meta.pk.to_python(
+                    getattr(relobj, '_prefetch_related_val_%s' % f.attname)
+                ))
             return tuple(t)
 
         # model attribute retrieval function
@@ -234,7 +244,7 @@ class GM2MBaseTgtManager(compat.Manager):
                     v = v.pop()
                 except AttributeError:  # v is not a list
                     pass
-                t.append(relobj._meta.pk.to_python(v))
+                t.append(f.related_model._meta.pk.to_python(v))
             return tuple(t)
 
         # model attribute retrieval function
