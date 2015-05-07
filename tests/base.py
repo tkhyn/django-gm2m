@@ -15,7 +15,6 @@ from shutil import rmtree
 import django
 from django import test
 from django.conf import settings
-from django.utils.datastructures import SortedDict
 from django.core.management import call_command
 from django.utils import six
 from django.db import models, connection
@@ -25,7 +24,7 @@ from django.utils.six import StringIO
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init, skip, skipIf
+from .compat import apps, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
 
@@ -62,13 +61,13 @@ class TestSettingsManager(object):
             self.syncdb()
 
     def syncdb(self):
+        for dicname in ('app_labels', 'app_store', 'handled',
+                        '_get_models_cache'):
+            getattr(apps, dicname, {}).clear()
+
         apps.loaded = False
-        apps.app_labels = {}
-        apps.app_store = SortedDict()
-        apps.handled = cache_handled_init()
         apps.postponed = []
         apps.nesting_level = 0
-        apps._get_models_cache = {}
         apps.available_apps = None
 
         call_command('syncdb', verbosity=0, interactive=False)
