@@ -48,7 +48,7 @@ class AutoReverseTests(NoRevRelTests):
         self.assertListEqual(list(self.task1.links_set.all()), [self.links])
 
 
-class MigrationTests(base.MigrationsTestCase):
+class MigrationTests(base.MigrateTestCase):
 
     def test_makemigrations(self):
         self.makemigrations()
