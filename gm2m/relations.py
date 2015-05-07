@@ -672,8 +672,9 @@ class GM2MRel(object):
                 for f in rel.through._meta.fields:
                     if hasattr(f, 'rel') and f.rel \
                     and (f.rel.to == rel.field.model
-                         or f.rel.to == '%s.%s' % (rel.field.model.__module__,
-                                                   rel.field.model.__name__)):
+                         or f.rel.to == '%s.%s' % (
+                            rel.field.model._meta.app_label,
+                            rel.field.model._meta.object_name)):
                         field_names['src'] = f.name
                         break
                 for f in rel.through._meta.virtual_fields:
