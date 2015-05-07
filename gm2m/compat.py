@@ -33,9 +33,23 @@ except ImportError:
 
 try:
     # django 1.7+
-    from django.db.migrations.state import ModelState, StateApps
-except:
-    StateApps = ModelState = None
+    from django.db.migrations.state import ModelState
+    try:
+        # django 1.8
+        from django.db.migrations.state import StateApps
+
+        def is_fake_model(model):
+            return isinstance(model._meta.apps, StateApps)
+    except ImportError:
+        # django 1.7
+        def is_fake_model(model):
+            return model.__module__ == '__fake__'
+
+except ImportError:
+    ModelState = None
+
+    def is_fake_model(model):
+        return False
 
 
 def assert_compat_params(params):
