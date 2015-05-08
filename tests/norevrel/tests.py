@@ -58,6 +58,10 @@ class MigrationTests(base.MigrateTestCase):
 
         if django.VERSION >= (1, 8):
             self.assertIn("""
+    dependencies = [
+        ('contenttypes', '0002_remove_content_type_name'),
+    ]
+
     operations = [
         migrations.CreateModel(
             name='Links',
@@ -71,6 +75,10 @@ class MigrationTests(base.MigrateTestCase):
         else:
             # django < 1.7
             self.assertIn("""
+    dependencies = [
+        ('contenttypes', '0001_initial'),
+    ]
+
     operations = [
         migrations.CreateModel(
             name='Links',
