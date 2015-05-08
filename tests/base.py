@@ -10,7 +10,8 @@ import os
 from imp import reload
 from importlib import import_module
 from inspect import getfile
-from shutil import rmtree
+from shutil import rmtree, copy
+
 
 import django
 from django import test
@@ -58,7 +59,8 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
-            self.syncdb()
+            if kwargs.get('syncdb', True):
+                self.syncdb()
 
     def syncdb(self):
         for dicname in ('app_labels', 'app_store', 'handled',
@@ -72,7 +74,7 @@ class TestSettingsManager(object):
 
         call_command('syncdb', verbosity=0, interactive=False)
 
-    def revert(self):
+    def revert(self, syncdb=True):
         for k, v in six.iteritems(self._original_settings):
             if v == NO_SETTING:
                 delattr(settings, k)
@@ -81,7 +83,8 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
-            self.syncdb()
+            if syncdb:
+                self.syncdb()
 
         self._original_settings = {}
 
@@ -196,40 +199,17 @@ class TestCase(_TestCase):
 
 @skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
 class MigrationsTestCase(_TestCase):
-
-    @property
-    def migrations_dir(self):
-        return os.path.join(os.path.dirname(getfile(self.__class__)),
-                            'migrations')
-
-    @property
-    def migrations_module(self):
-        return '.'.join(self.__class__.__module__.split('.')[:-1]
-                        + ['migrations'])
-
-    def get_migration_content(self, module='0001_initial'):
-        f = open(os.path.join(self.migrations_dir, module + '.py'))
-        s = f.read()
-        f.close()
-        return s
-
-    def makemigrations(self):
-        call_command('makemigrations', self.app_name())
-
-    def migrate(self, all=False):
-        app_name = self.app_name()
-        if all:
-            args = []
-        else:
-            args = [app_name]
-        call_command('migrate', *args)
-
-
-class MigrateTestCase(MigrationsTestCase):
     """
-    Handles migration module deletion after they are generated, and ignores
-    existing migrations when calling 'migrate'
+    Handles migration module deletion after they are generated
     """
+
+    @classmethod
+    def setUpClass(cls):
+        super(MigrationsTestCase, cls).setUpClass()
+        cls.migrations_dir = os.path.join(os.path.dirname(getfile(cls)),
+                                          'migrations')
+        cls.migrations_module = '.'.join(cls.__module__.split('.')[:-1]
+                                         + ['migrations'])
 
     def _post_teardown(self):
         try:
@@ -246,6 +226,15 @@ class MigrateTestCase(MigrationsTestCase):
                 pass
             finally:
                 super(MigrationsTestCase, self)._post_teardown()
+
+    def get_migration_content(self, module='0001_initial'):
+        f = open(os.path.join(self.migrations_dir, module + '.py'))
+        s = f.read()
+        f.close()
+        return s
+
+    def makemigrations(self):
+        call_command('makemigrations', self.app_name())
 
     def migrate(self, all=False):
         app_name = self.app_name()
@@ -273,4 +262,62 @@ class MigrateTestCase(MigrationsTestCase):
         for statement in sql.split('\n')[1:-3]:
             connection.cursor().execute(statement)
 
-        super(MigrateTestCase, self).migrate(all)
+        if all:
+            args = []
+        else:
+            args = [app_name]
+        call_command('migrate', *args)
+
+
+class MultiMigrationsTestCase(MigrationsTestCase):
+    """
+    The models module can be modified to generate several migrations
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super(MultiMigrationsTestCase, cls).setUpClass()
+        directory = os.path.dirname(getfile(cls))
+        cls.models_path = os.path.join(directory, 'models.py')
+        cls.backup_path = os.path.join(directory, 'models.py.bak')
+        try:
+            os.remove(cls.backup_path)
+        except OSError:
+            pass
+
+    def setUp(self):
+        # creates a backup copy of the models module
+        os.rename(self.models_path, self.backup_path)
+        copy(self.backup_path, self.models_path)
+
+    def tearDown(self):
+        # restores the backup copy
+        os.remove(self.models_path)
+        os.rename(self.backup_path, self.models_path)
+
+    def replace(self, old_str, new_str):
+        """
+        Carries out a search and replace on the models module
+        """
+        with open(self.models_path, 'rt') as fh:
+            code = fh.read()
+        with open(self.models_path, 'w') as fh:
+            fh.write(code.replace(old_str, new_str))
+
+        # reload apps so that next migration can be generated (yes, all of
+        # them, it does not work if only the test one is reloaded)
+        cls = self.__class__
+        cls.settings_manager.revert(syncdb=False)
+        for app in cls.inst_apps:
+            del_app_models(app, app_module=True)
+
+        # this is required as we need to erases the cached reverse relations
+        # associated to FKs to ContentType
+        try:
+            del ContentType._meta._related_objects_cache
+        except AttributeError:
+            pass
+
+        app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
+        cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
+                                 + app_paths, syncdb=False)
