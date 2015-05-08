@@ -11,8 +11,9 @@ class MigrationTests(base.MigrationsTestCase):
     def test_makemigrations(self):
         self.makemigrations()
 
-        mig_ctnt = re.sub('models\.AutoField\(.+?\)', 'models.AutoField()',
+        mig_ctnt = re.sub(r'models\.AutoField\(.+?\)', 'models.AutoField()',
                           self.get_migration_content())
+        mig_ctnt = re.sub(r"([\s\(])b'", r"\1'", mig_ctnt)
 
         if django.VERSION >= (1, 8):
             self.assertIn("""
@@ -25,7 +26,7 @@ class MigrationTests(base.MigrationsTestCase):
             name='Links',
             fields=[
                 ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField()),
+                ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
             ],
         ),
     ]""", mig_ctnt)
@@ -42,7 +43,7 @@ class MigrationTests(base.MigrationsTestCase):
             name='Links',
             fields=[
                 ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField()),
+                ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
             ],
             options={
             },

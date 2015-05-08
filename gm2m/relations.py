@@ -11,7 +11,7 @@ from .compat import apps, checks, GenericForeignKey, ForeignObject, \
                     ForeignObjectRel, is_swapped, add_related_field, \
                     get_model_name, is_fake_model
 
-from .models import create_gm2m_intermediary_model
+from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .deletion import *
@@ -656,7 +656,10 @@ class GM2MRel(object):
 
         if not self.through:
             self.through = create_gm2m_intermediary_model(self.field, cls)
-            self.through_fields = None
+            # we set through_fields to the default intermediary model's
+            # THROUGH_FIELDS as it carries fields assignments for
+            # ModelState instances
+            self.through_fields = THROUGH_FIELDS
 
         # set related name
         if not self.field.model._meta.abstract and self.related_name:
@@ -666,23 +669,36 @@ class GM2MRel(object):
             }
 
         def calc_field_names(rel):
-            # Extract field names from through model
-            field_names = {}
+            # Extract field names from through model and stores them in
+            # rel.through_field (so that they are sent on deconstruct and
+            # passed to ModelState instances)
+
+            tf_dict = {}
+
+            if is_fake_model(rel.through):
+                # we populate the through field dict using rel.through_fields
+                # that was either provided or computed beforehand with the
+                # actual model
+                for f, k in zip(rel.through_fields,
+                                ('src', 'tgt', 'tgt_ct', 'tgt_fk')):
+                    tf_dict[k] = f
+                rel.through._meta._field_names = tf_dict
+                return
 
             if rel.through_fields:
-                field_names['src'], field_names['tgt'] = \
+                tf_dict['src'], tf_dict['tgt'] = \
                     rel.through_fields[:2]
                 for gfk in rel.through._meta.virtual_fields:
-                    if gfk.name == field_names['tgt']:
+                    if gfk.name == tf_dict['tgt']:
                         break
                 else:
                     raise FieldDoesNotExist(
                         'Generic foreign key "%s" does not exist in through '
-                        'model "%s"' % (field_names['tgt'],
+                        'model "%s"' % (tf_dict['tgt'],
                                         get_model_name(rel.through))
                     )
-                field_names['tgt_ct'] = gfk.ct_field
-                field_names['tgt_fk'] = gfk.fk_field
+                tf_dict['tgt_ct'] = gfk.ct_field
+                tf_dict['tgt_fk'] = gfk.fk_field
             else:
                 for f in rel.through._meta.fields:
                     if hasattr(f, 'rel') and f.rel \
@@ -690,20 +706,27 @@ class GM2MRel(object):
                          or f.rel.to == '%s.%s' % (
                             rel.field.model._meta.app_label,
                             rel.field.model._meta.object_name)):
-                        field_names['src'] = f.name
+                        tf_dict['src'] = f.name
                         break
                 for f in rel.through._meta.virtual_fields:
                     if isinstance(f, GenericForeignKey):
-                        field_names['tgt'] = f.name
-                        field_names['tgt_ct'] = f.ct_field
-                        field_names['tgt_fk'] = f.fk_field
+                        tf_dict['tgt'] = f.name
+                        tf_dict['tgt_ct'] = f.ct_field
+                        tf_dict['tgt_fk'] = f.fk_field
                         break
 
-            if not is_fake_model(rel.through) \
-            and not set(field_names.keys()).issuperset(('src', 'tgt')):
+            if not set(tf_dict.keys()).issuperset(('src', 'tgt')):
                 raise ValueError('Bad through model for GM2M relationship.')
 
-            rel.through._meta._field_names = field_names
+            rel.through._meta._field_names = tf_dict
+
+            # save the result in rel.through_fields so that it appears
+            # in the deconstruction. Without that there would be no way for
+            # a ModelState constructed from a migration to know which fields
+            # have which function, as all virtual fields are stripped
+            rel.through_fields = []
+            for f in ('src', 'tgt', 'tgt_ct', 'tgt_fk'):
+                self.through_fields.append(tf_dict[f])
 
         # resolve through model if it's provided as a string
         if isinstance(self.through, six.string_types):

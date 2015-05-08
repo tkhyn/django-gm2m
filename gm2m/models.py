@@ -11,6 +11,8 @@ TGT_ATTNAME = 'gm2m_tgt'
 CT_ATTNAME = 'gm2m_ct'
 FK_ATTNAME = 'gm2m_pk'
 
+THROUGH_FIELDS = (SRC_ATTNAME, TGT_ATTNAME, CT_ATTNAME, FK_ATTNAME)
+
 
 def create_gm2m_intermediary_model(field, klass):
     """
