@@ -121,6 +121,24 @@ try:
                                                new_field, strict)
     DatabaseSchemaEditor._alter_many_to_many = _alter_many_to_many
 
+    from  django.db.migrations.autodetector import MigrationAutodetector
+
+    def only_relation_agnostic_fields(self, fields):
+        """
+        We only change the way the 'to' key is deleted from the dict
+        (as GM2MField.deconstruct does not return a 'to' kwarg)
+        """
+        fields_def = []
+        for __, field in fields:
+            deconstruction = self.deep_deconstruct(field)
+            if field.rel and field.rel.to:
+                deconstruction[2].pop('to', None)
+            fields_def.append(deconstruction)
+        return fields_def
+
+    MigrationAutodetector.only_relation_agnostic_fields = \
+        only_relation_agnostic_fields
+
 
 except (ImportError, AttributeError):
     # Django < 1.7, don't worry about the migration stuff

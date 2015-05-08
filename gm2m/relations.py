@@ -1,6 +1,7 @@
 from django.db.models.fields.related import add_lazy_relation
 from django.db.models.signals import pre_delete
 from django.db.models.fields import FieldDoesNotExist
+from django.db.models.options import Options
 from django.utils.functional import cached_property
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
@@ -382,9 +383,23 @@ class GM2MUnitRel(GM2MUnitRelBase):
         return None
 
 
+class GM2MTo(object):
+    """
+    A 'dummy' model-like class that enables django to find out that GM2MField
+    depends on contenttypes
+    Indeed, unlike a GFK, GM2MField does not create any FK to ContentType on
+    the source model
+    """
+
+    def __init__(self):
+        self._meta = Options(None, 'contenttypes')
+        self._meta.object_name = 'ContentType'
+        self._meta.model_name = 'contenttype'
+
+
 class GM2MRel(object):
 
-    to = ''  # faking a 'normal' relation for Django 1.7
+    to = GM2MTo()
 
     def __init__(self, field, related_models, **params):
 
