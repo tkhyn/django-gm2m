@@ -11,7 +11,7 @@ from imp import reload
 from importlib import import_module
 from inspect import getfile
 from shutil import rmtree, copy
-
+import time
 
 import django
 from django import test
@@ -28,6 +28,8 @@ from gm2m import GM2MField
 from .compat import apps, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
+# patches the migration questioner
+from . import monkeypatch
 
 # no nose tests here !
 __test__ = False
@@ -238,35 +240,15 @@ class MigrationsTestCase(_TestCase):
 
     def migrate(self, all=False):
         app_name = self.app_name()
-
-        # drop the application's tables
-        # we need to 'hide' the migrations module from django to generate the
-        # sql
-        mig_dir = self.migrations_dir
-        sql_io = StringIO()
-        try:
-            os.rename(mig_dir, mig_dir + '_bak')
-            do_rename = True
-        except OSError:
-            do_rename = False
-        try:
-            del sys.modules[self.migrations_module]
-        except KeyError:
-            pass
-        call_command('sqlclear', app_name, stdout=sql_io)
-        if do_rename:
-            os.rename(mig_dir + '_bak', mig_dir)
-
-        sql_io.seek(0)
-        sql = sql_io.read()
-        for statement in sql.split('\n')[1:-3]:
-            connection.cursor().execute(statement)
-
         if all:
             args = []
         else:
             args = [app_name]
-        call_command('migrate', *args)
+
+        # we need to use fake_initial as the database has already been
+        # initialized and is in the state of the initial migration
+        call_command('migrate', *args, verbosity=0, interactive=False,
+                     fake_initial=True)
 
 
 class MultiMigrationsTestCase(MigrationsTestCase):
@@ -294,6 +276,13 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         # restores the backup copy
         os.remove(self.models_path)
         os.rename(self.backup_path, self.models_path)
+
+    def makemigrations(self):
+        super(MultiMigrationsTestCase, self).makemigrations()
+        # the delay guarantees there is a 1s gap between migrations, a
+        # migration with the same second-resolution timestamp than the previous
+        # one seems to be ignored
+        time.sleep(1)
 
     def replace(self, old_str, new_str):
         """
