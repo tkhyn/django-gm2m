@@ -103,13 +103,13 @@ try:
                 ', '.join([
                     "id",
                     gfbn_new(old_names['src'])[0].column,
-                    gfbn_new(old_names['tgt_pk'])[0].column,
+                    gfbn_new(old_names['tgt_fk'])[0].column,
                     gfbn_new(old_names['tgt_ct'])[0].column,
                 ]),
                 ', '.join([
                     "id",
                     gfbn_old(old_names['src'])[0].column,
-                    gfbn_old(old_names['tgt_pk'])[0].column,
+                    gfbn_old(old_names['tgt_fk'])[0].column,
                     gfbn_old(old_names['tgt_ct'])[0].column,
                 ]),
                 self.quote_name(old_field.rel.through._meta.db_table),

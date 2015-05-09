@@ -72,5 +72,9 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
                      'gm2m.GM2MField(pk_maxlength=50)')
         self.makemigrations()
 
+        # renames the GM2MField
+        self.replace('related_objects', 'projects_and_tasks')
+        self.makemigrations()
+
         # check that no exception is raised when calling migrate
         self.migrate()

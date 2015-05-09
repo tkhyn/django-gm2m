@@ -16,7 +16,6 @@ class ExoticPKPrefetchTests(base.TestCase):
 
         self.day.tasks.add(self.task)
 
-
     def test_forward(self):
         self.assertEqual(
             self.models.Day.objects.prefetch_related('tasks')[0], self.day
