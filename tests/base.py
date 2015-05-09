@@ -10,12 +10,12 @@ import os
 from imp import reload
 from importlib import import_module
 from inspect import getfile
-from shutil import rmtree
+from shutil import rmtree, copy
+import time
 
 import django
 from django import test
 from django.conf import settings
-from django.utils.datastructures import SortedDict
 from django.core.management import call_command
 from django.utils import six
 from django.db import models, connection
@@ -25,9 +25,11 @@ from django.utils.six import StringIO
 
 from gm2m import GM2MField
 
-from .compat import apps, cache_handled_init, skip, skipIf
+from .compat import apps, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
+# patches the migration questioner
+from . import monkeypatch
 
 # no nose tests here !
 __test__ = False
@@ -59,21 +61,22 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
-            self.syncdb()
+            if kwargs.get('syncdb', True):
+                self.syncdb()
 
     def syncdb(self):
+        for dicname in ('app_labels', 'app_store', 'handled',
+                        '_get_models_cache'):
+            getattr(apps, dicname, {}).clear()
+
         apps.loaded = False
-        apps.app_labels = {}
-        apps.app_store = SortedDict()
-        apps.handled = cache_handled_init()
         apps.postponed = []
         apps.nesting_level = 0
-        apps._get_models_cache = {}
         apps.available_apps = None
 
         call_command('syncdb', verbosity=0, interactive=False)
 
-    def revert(self):
+    def revert(self, syncdb=True):
         for k, v in six.iteritems(self._original_settings):
             if v == NO_SETTING:
                 delattr(settings, k)
@@ -82,7 +85,8 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
-            self.syncdb()
+            if syncdb:
+                self.syncdb()
 
         self._original_settings = {}
 
@@ -197,6 +201,17 @@ class TestCase(_TestCase):
 
 @skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
 class MigrationsTestCase(_TestCase):
+    """
+    Handles migration module deletion after they are generated
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super(MigrationsTestCase, cls).setUpClass()
+        cls.migrations_dir = os.path.join(os.path.dirname(getfile(cls)),
+                                          'migrations')
+        cls.migrations_module = '.'.join(cls.__module__.split('.')[:-1]
+                                         + ['migrations'])
 
     def _post_teardown(self):
         try:
@@ -214,54 +229,84 @@ class MigrationsTestCase(_TestCase):
             finally:
                 super(MigrationsTestCase, self)._post_teardown()
 
-    def makemigrations(self):
-        call_command('makemigrations', self.app_name())
-
-    def migrate(self, all=False):
-        app_name = self.app_name()
-
-        # drop the application's tables
-        # we need to 'hide' the migrations module from django to generate the
-        # sql
-        mig_dir = self.migrations_dir
-        sql_io = StringIO()
-        try:
-            os.rename(mig_dir, mig_dir + '_bak')
-            do_rename = True
-        except OSError:
-            do_rename = False
-        try:
-            del sys.modules[self.migrations_module]
-        except KeyError:
-            pass
-        call_command('sqlclear', app_name, stdout=sql_io)
-        if do_rename:
-            os.rename(mig_dir + '_bak', mig_dir)
-
-        sql_io.seek(0)
-        sql = sql_io.read()
-        for statement in sql.split('\n')[1:-3]:
-            connection.cursor().execute(statement)
-
-        # migrate
-        if all:
-            args = []
-        else:
-            args = [app_name]
-        call_command('migrate', *args)
-
-    @property
-    def migrations_dir(self):
-        return os.path.join(os.path.dirname(getfile(self.__class__)),
-                            'migrations')
-
-    @property
-    def migrations_module(self):
-        return '.'.join(self.__class__.__module__.split('.')[:-1]
-                        + ['migrations'])
-
     def get_migration_content(self, module='0001_initial'):
         f = open(os.path.join(self.migrations_dir, module + '.py'))
         s = f.read()
         f.close()
         return s
+
+    def makemigrations(self):
+        call_command('makemigrations', self.app_name())
+
+    def migrate(self, all=False):
+        app_name = self.app_name()
+        if all:
+            args = []
+        else:
+            args = [app_name]
+
+        # we need to use fake_initial as the database has already been
+        # initialized and is in the state of the initial migration
+        call_command('migrate', *args, verbosity=0, interactive=False,
+                     fake_initial=True)
+
+
+class MultiMigrationsTestCase(MigrationsTestCase):
+    """
+    The models module can be modified to generate several migrations
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super(MultiMigrationsTestCase, cls).setUpClass()
+        directory = os.path.dirname(getfile(cls))
+        cls.models_path = os.path.join(directory, 'models.py')
+        cls.backup_path = os.path.join(directory, 'models.py.bak')
+        try:
+            os.remove(cls.backup_path)
+        except OSError:
+            pass
+
+    def setUp(self):
+        # creates a backup copy of the models module
+        os.rename(self.models_path, self.backup_path)
+        copy(self.backup_path, self.models_path)
+
+    def tearDown(self):
+        # restores the backup copy
+        os.remove(self.models_path)
+        os.rename(self.backup_path, self.models_path)
+
+    def makemigrations(self):
+        super(MultiMigrationsTestCase, self).makemigrations()
+        # the delay guarantees there is a 1s gap between migrations, a
+        # migration with the same second-resolution timestamp than the previous
+        # one seems to be ignored
+        time.sleep(1)
+
+    def replace(self, old_str, new_str):
+        """
+        Carries out a search and replace on the models module
+        """
+        with open(self.models_path, 'rt') as fh:
+            code = fh.read()
+        with open(self.models_path, 'w') as fh:
+            fh.write(code.replace(old_str, new_str))
+
+        # reload apps so that next migration can be generated (yes, all of
+        # them, it does not work if only the test one is reloaded)
+        cls = self.__class__
+        cls.settings_manager.revert(syncdb=False)
+        for app in cls.inst_apps:
+            del_app_models(app, app_module=True)
+
+        # this is required as we need to erases the cached reverse relations
+        # associated to FKs to ContentType
+        try:
+            del ContentType._meta._related_objects_cache
+        except AttributeError:
+            pass
+
+        app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
+        cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
+                                 + app_paths, syncdb=False)

@@ -23,7 +23,3 @@ except ImportError:
     apps.set_installed_apps = lambda installed: None
     apps.unset_installed_apps = lambda: None
     cache_models = apps.app_models
-
-
-def cache_handled_init():
-    return {} if django.VERSION < (1, 6) else set()

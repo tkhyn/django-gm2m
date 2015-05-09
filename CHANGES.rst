@@ -55,6 +55,12 @@ v.0.2.6 (29-04-2015)
 | \* Fixes ``BaseDatabaseSchemaEditor`` import with Django 1.8 (#6)
 | \* Fixes missing field flags on ``GM2MRelation`` and missing attributes on ``GM2MRel`` / ``GM2MUnitRel`` (#7)
 
+v.0.2.7 (09-05-2015)
+....................
+| \* Fixes primary key lookups in fwd and reverse prefetching (#8)
+| \* Fixes migrations application on a migrated app (#9)
+| \* Fixes ``contenttypes.ContentType`` dependency in migrations (#10)
+
 
 v0.1 (08-10-2014)
 -----------------
