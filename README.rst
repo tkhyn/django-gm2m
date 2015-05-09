@@ -21,12 +21,10 @@ Features
 - No need to modify nor monkey-patch the existing model classes that need to be
   linked
 - Automatic reverse relations_ when an instance is added
-- Related objects `prefetching`_
+- Related objects prefetching_
 - `Through models`_
-- `Deletion`_ behaviour customization using signals (Django 1.6+)
-- Compatible with `Django 1.7+ migrations`_ (not with south_ migrations however,
-  and it is unlikely that django-gm2m will ever support south, the plan being
-  to drop support for Django < 1.7 asap)
+- Deletion_ behaviour customization using signals (Django 1.6+)
+- Migrations_ support
 
 
 Installation
@@ -263,7 +261,7 @@ For example::
 If there is only one ForeignKey to the source model (User in the above example)
 and only one GenericForeignKey in the target model, they will automatically be
 used for the relationship. Otherwise, if there are more of them, you must
-provide a ``through_fields`` argument (a list or tuple of 2 field names) to
+provide a ``through_fields`` argument (a list or tuple of 2 to 4 field names) to
 the ``GM2MField`` constructor.
 
 
@@ -309,6 +307,20 @@ pk_maxlength
    be sufficient to accomodate certain large foreign key values (e.g. UUIDs).
    Defaults to 16. Use ``None`` if you don't want any limitation (this may
    cause performance issues, though).
+
+
+Migrations
+----------
+
+``django-gm2m`` fully supports `Django 1.7+ migrations`_.
+
+When generating migrations for an app using ``GM2MField``, do not be surprised
+to see a ``through_fields`` keyword argument (as a list containing 4 field
+names) in the migration even if you did not provide it when creating the
+``GM2MField`` in your model. This is necessary for django's migrations system
+to keep track of the arguments assignment and build accurate model
+representations from the migrations.
+
 
 System checks
 -------------
@@ -391,4 +403,3 @@ Future improvements
 
 .. _django-generic-m2m: https://pypi.python.org/pypi/django-generic-m2m
 .. _`Django 1.7+ migrations`: https://docs.djangoproject.com/en/dev/topics/migrations/
-.. _south: http://south.readthedocs.org/

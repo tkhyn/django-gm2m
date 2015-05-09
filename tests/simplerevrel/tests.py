@@ -83,38 +83,55 @@ class DeletionTests(base.TestCase):
 class PrefetchTests(base.TestCase):
 
     def setUp(self):
-        self.project = self.models.Project.objects.create()
-        self.task = self.models.Task.objects.create()
-        self.links1 = self.models.Links.objects.create()
-        self.links2 = self.models.Links.objects.create()
+        # 5 projects, 5 tasks per project, 5 links instance
+        projects = [self.models.Project.objects.create() for p in range(5)]
+        tasks = [[self.models.Task.objects.create() for t in range(5)]
+                 for g in range(5)]
+        links = [self.models.Links.objects.create() for l in range(5)]
 
-        self.links1.related_objects = [self.project, self.task]
-
-        self.links2.related_objects = [self.project]
+        for l, p, t in zip(links, projects, tasks):
+            l.related_objects = [p] + t
 
     def test_prefetch_forward(self):
+
         with self.assertNumQueries(4):
-            # 4 queries = 2 queries to retrieve the through models +
-            # one query for each related model type (Project, Task)
-            # without prefetching it takes 6 queries
-            prefetched = [list(l.related_objects.all()) for l
+            # 4 queries:
+            # - 1 for all the Links instances
+            # - 1 for all the through model instances
+            # - 1 for all the Project instances
+            # - 1 for all the Task instances
+            prefetched = [set(l.related_objects.all()) for l
                           in self.models.Links.objects \
                                  .prefetch_related('related_objects')]
 
-        # without prefetching, we indeed have 6 queries instead of 4
-        normal = [list(l.related_objects.all())
-                        for l in self.models.Links.objects.all()]
+        with self.assertNumQueries(16):
+            # without prefetching, we have 16 queries instead of 4!
+            # - 1 for all the Links instances
+            # - 3 for each of the 5 links (1 for the through model + 1 for the
+            #   project + 1 for the tasks)
+            normal = [set(l.related_objects.all())
+                      for l in self.models.Links.objects.all()]
 
-        self.assertListEqual(prefetched, normal)
+        self.assertEqual(prefetched, normal)
 
     def test_prefetch_reverse(self):
+
         with self.assertNumQueries(2):
-            # much more efficient this way as there are no supplementary
-            # queries due to the generic foreign key
-            prefetched = [list(p.links_set.all()) for p
-                          in self.models.Project.objects \
+            # only 2 queries here:
+            # - 1 to retrieve the tasks
+            # - 1 to retrieve all the links related to the projects via the
+            #   through model
+            # Note: if the ContentType's cache is cleared beforehand, it will
+            # take 3 queries as it will retrieve the Project content type
+            prefetched = [set(t.links_set.all()) for t
+                          in self.models.Task.objects \
                                  .prefetch_related('links_set')]
 
-        normal = [list(p.links_set.all())
-                  for p in self.models.Project.objects.all()]
+        with self.assertNumQueries(26):
+            # without prefetching we have 26 queries instead of 2!!
+            # - 1 for all tasks
+            # - 1 for each of the 25 tasks (for the links)
+            normal = [set(t.links_set.all())
+                      for t in self.models.Task.objects.all()]
+
         self.assertEqual(prefetched, normal)

@@ -3,13 +3,15 @@ from django.contrib.contenttypes.models import ContentType
 
 from .compat import GenericForeignKey, get_model_name, get_fk_kwargs, \
                     get_gfk_kwargs, get_meta_kwargs, db_backends_utils, \
-                    StateApps, ModelState
+                    is_fake_model, ModelState
 
 
 SRC_ATTNAME = 'gm2m_src'
 TGT_ATTNAME = 'gm2m_tgt'
 CT_ATTNAME = 'gm2m_ct'
 FK_ATTNAME = 'gm2m_pk'
+
+THROUGH_FIELDS = (SRC_ATTNAME, TGT_ATTNAME, CT_ATTNAME, FK_ATTNAME)
 
 
 def create_gm2m_intermediary_model(field, klass):
@@ -64,7 +66,7 @@ def create_gm2m_intermediary_model(field, klass):
                      ),
     })
 
-    if StateApps and isinstance(klass._meta.apps, StateApps):
+    if is_fake_model(klass):
         # if we are building a fake model for migrations purposes, create a
         # ModelState from the model and render it (see issues #3 and #5)
         return ModelState.from_model(model).render(klass._meta.apps)
