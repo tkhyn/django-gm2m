@@ -61,6 +61,19 @@ class ReverseOperationsTest(base.TestCase):
         self.assertEqual(self.links2.related_objects.count(), 0)
 
 
+class ChainedFilterTests(base.TestCase):
+
+    def setUp(self):
+        self.links = self.models.Links.objects.create(name='Links')
+        self.project = self.models.Project.objects.create()
+        self.links.related_objects.add(self.project)
+
+    def test_reverse_chain_filter(self):
+        self.assertEqual(
+            self.models.Project.objects.filter(links__name='Links')[0],
+            self.project)
+
+
 class DeletionTests(base.TestCase):
 
     def setUp(self):
