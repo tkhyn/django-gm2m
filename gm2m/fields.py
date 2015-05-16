@@ -199,4 +199,4 @@ class GM2MField(Field):
 
     def related_query_name(self):
         return self.rel.related_query_name or self.rel.related_name \
-            or get_model_name(self.rel.through)
+            or get_model_name(self.model)
