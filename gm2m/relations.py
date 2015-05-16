@@ -5,7 +5,9 @@ from django.db.models.options import Options
 from django.utils.functional import cached_property
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
+from django.db.models.query_utils import PathInfo
 from django.utils import six
+from django.contrib.contenttypes.models import ContentType
 
 from .compat import apps, checks, GenericForeignKey, ForeignObject, \
                     ForeignObjectRel, is_swapped, add_related_field, \
@@ -381,6 +383,55 @@ class GM2MUnitRel(GM2MUnitRelBase):
                             model._meta.object_name)) == to_string:
                 return model._meta.swappable
         return None
+
+
+    def _get_path_info(self, reverse):
+        pathinfos = []
+
+        opts = self.through._meta
+
+        # this is the src <> through part of the relation, we'll use
+        # path info retrieval functions on this
+        fk_field = opts.get_field_by_name(opts._field_names['src'])[0]
+
+        if reverse:
+            pathinfos.extend(fk_field.get_reverse_path_info())
+            # through > to part of the relation is generated manually
+            opts = self.to._meta
+            pathinfos.append(PathInfo(self.through._meta, opts, (opts.pk,),
+                                      self, True, False))
+        else:
+            # to > through part of the relation is generated manually
+            opts = self.through._meta
+            pathinfos.append(PathInfo(self.to._meta, opts, (opts.pk,),
+                                      self, False, False))
+            pathinfos.extend(fk_field.get_path_info())
+        return pathinfos
+
+    def get_path_info(self):
+        return self._get_path_info(reverse=False)
+
+    def get_reverse_path_info(self):
+        return self._get_path_info(reverse=True)
+
+    def get_joining_columns(self):
+        opts = self.through._meta
+        return [(
+            self.to._meta.pk.column,
+            opts.get_field_by_name(opts._field_names['tgt_fk'])[0].column
+        )]
+
+    def get_extra_restriction(self, where_class, alias, remote_alias):
+        opts = self.through._meta
+        field = opts.get_field_by_name(opts._field_names['tgt_ct'])[0]
+
+        ct_pk = ContentType.objects.get_for_model(self.to,
+                    for_concrete_model=self.for_concrete_model).pk
+        lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
+
+        cond = where_class()
+        cond.add(lookup, 'AND')
+        return cond
 
 
 class GM2MTo(object):
