@@ -61,6 +61,8 @@ class ReverseOperationsTest(base.TestCase):
         self.assertEqual(self.links2.related_objects.count(), 0)
 
 
+@base.skipIf(django.VERSION < (1, 7),
+             'reverse query lookup is not available in django < 1.7')
 class ChainedFilterTests(base.TestCase):
 
     def setUp(self):

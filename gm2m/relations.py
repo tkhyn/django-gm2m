@@ -5,13 +5,12 @@ from django.db.models.options import Options
 from django.utils.functional import cached_property
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
-from django.db.models.query_utils import PathInfo
 from django.utils import six
 from django.contrib.contenttypes.models import ContentType
 
 from .compat import apps, checks, GenericForeignKey, ForeignObject, \
                     ForeignObjectRel, is_swapped, add_related_field, \
-                    get_model_name, is_fake_model
+                    get_model_name, is_fake_model, PathInfo
 
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
