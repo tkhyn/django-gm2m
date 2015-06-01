@@ -49,40 +49,40 @@ You can use the exposed ``GM2MField`` exactly the same way as a
 
 Suppose you have some models describing videos types::
 
-   from django.db import models
-
-   class Video(models.Model):
-      pass
-
-   class Movie(Video):
-      pass
-
-   class Documentary(Video):
-      pass
+   >>> from django.db import models
+   >>>
+   >>> class Video(models.Model):
+   >>>     pass
+   >>>
+   >>> class Movie(Video):
+   >>>     pass
+   >>>
+   >>> class Documentary(Video):
+   >>>     pass
 
 Now, if you want to have a field for the preferred videos of a User, you simply
 need to add a default ``GM2MField`` to the ``User`` model::
 
-   from gm2m import GM2MField
-
-   class User(models.Model):
-      preferred_videos = GM2MField()
+   >>> from gm2m import GM2MField
+   >>>
+   >>> class User(models.Model):
+   >>>     preferred_videos = GM2MField()
 
 Now you can add videos to the ``preferred_videos`` set::
 
-   user = User.objects.create()
-   movie = Movie.objects.create()
-
-   user.preferred_videos.add(movie)
+   >>> user = User.objects.create()
+   >>> movie = Movie.objects.create()
+   >>>
+   >>> user.preferred_videos.add(movie)
 
 or::
 
-   user.preferred_videos = [movie]
+   >>> user.preferred_videos = [movie]
 
 You can obviously mix instances from different models::
 
-   documentary = Documentary.objects.create()
-   user.preferred_videos = [movie, documentary]
+   >>> documentary = Documentary.objects.create()
+   >>> user.preferred_videos = [movie, documentary]
 
 
 Relations
@@ -90,32 +90,31 @@ Relations
 
 From a ``User`` instance, you can now fetch all the user's preferred videos::
 
-   list(user.preferred_videos)
-   >>> [<Movie object>, <Documentary object>]
-
-Note: yes, the ``>>>`` are misplaced. This is voluntary. ``>>>`` indicates an
-output value rather than a console input, for the sake of readability.
+   >>> list(user.preferred_videos)
+   [<Movie object>, <Documentary object>]
 
 The magic here is that, even without having to explicitly create reverse
 relation (e.g by providing models to the ``GM2MField`` constructor), they are
 automatically created when an instance of a yet unknown model is added. This
 means that you can do::
 
-   list(movie.user_set)
-   >>> [<User object>]
+   >>> list(movie.user_set)
+   [<User object>]
 
 However, it is important to remember that if no instance of a model as ever
 been added to the set, retrieving the ``<modelname_set>`` will raise an
 ``AttributeError``::
 
-   class Opera(Video):
-       pass
-   opera = Opera.objects.create()
-   list(opera.user_set)
-   >>> AttributeError: 'Opera' object has no attribute 'user_set'
-   user.preferred_videos.add(opera)
-   list(opera.user_set)
-   >>> [<User object>]
+   >>> class Opera(Video):
+   >>>     pass
+   >>>
+   >>> opera = Opera.objects.create()
+   >>> list(opera.user_set)
+   AttributeError: 'Opera' object has no attribute 'user_set'
+   >>>
+   >>> user.preferred_videos.add(opera)
+   >>> list(opera.user_set)
+   [<User object>]
 
 Indeed, the ``GM2MField`` has no idea what relation it is expected to create
 until you provide it with a minimum of information.
@@ -126,26 +125,26 @@ exception, it is possible to explicitly provide a list of models as arguments
 of the ``GM2MField`` constructor. You may use model names if necessary to
 avoid circular imports::
 
-   class Concert(Video):
-       pass
-
-   class User(models.Model):
-      preferred_shows = GM2MField('Opera', Concert)
+   >>> class Concert(Video):
+   >>>     pass
+   >>>
+   >>> class User(models.Model):
+   >>>     preferred_shows = GM2MField('Opera', Concert)
 
 This way, the reverse relations are created when the model class is created
 and available even if no instance has been added yet::
 
-   concert = Concert.objects.create()
-   list(concert.user_set)
-   >>> []
+   >>> concert = Concert.objects.create()
+   >>> list(concert.user_set)
+   []
 
 If you need to add relations afterwards, or if the ``GM2MField`` is defined in
 a third-party library you do not want to patch, you can still manually add
 relations afterwards::
 
-   class Theater(Video):
-      pass
-   User.preferred_shows.add_relation(Theater)
+   >>> class Theater(Video):
+   >>>     pass
+   >>> User.preferred_shows.add_relation(Theater)
 
 Note that providing models to ``GM2MField`` does not prevent you from adding
 instances from other models.You can still add instances from other models, and
@@ -157,14 +156,14 @@ Django reverse relation exposes: ``add``, ``remove`` and ``clear``.
 
 A reverse relation also enables you to use lookup chains in your queries::
 
-   class Fan(models.Model):
-      name = models.CharField(max_length=32)
-      preferred_shows = GM2MField(Opera)
+   >>> class Fan(models.Model):
+   >>>    name = models.CharField(max_length=32)
+   >>>    preferred_shows = GM2MField(Opera)
 
-   jack = Fan.objects.create(name='Jack')
-   jack.preferred_shows.add(Opera.objects.create(title='The Bartered Bride'))
-   [o.name for o in Opera.objects.filter(fan__name='Jack')]
-   >>> ['The Bartered Bride']
+   >>> jack = Fan.objects.create(name='Jack')
+   >>> jack.preferred_shows.add(Opera.objects.create(title='The Bartered Bride'))
+   >>> [o.name for o in Opera.objects.filter(fan__name='Jack')]
+   ['The Bartered Bride']
 
 
 Deletion
@@ -176,17 +175,18 @@ using Django 1.6 or later, to change this behavior by using the ``on_delete``,
 ``on_delete_src`` and ``on_delete_tgt`` keyword arguments when creating the
 ``GM2MField``::
 
-   from gm2m.deletion import DO_NOTHING
-
-   class User(models.Model):
-      preferred_videos = GM2MField(Movie, 'Documentary', on_delete=DO_NOTHING)
+   >>> from gm2m.deletion import DO_NOTHING
+   >>>
+   >>> class User(models.Model):
+   >>>     preferred_videos = GM2MField(Movie, 'Documentary',
+   >>>                                  on_delete=DO_NOTHING)
 
 If you only want this behaviour on one side of the relationship (e.g. on the
 source model side), use ``on_delete_src`` or ``on_delete_tgt``::
 
-   class User(models.Model):
-      preferred_videos = GM2MField(Movie, 'Documentary',
-                                   on_delete_src=DO_NOTHING)
+   >>> class User(models.Model):
+   >>>    preferred_videos = GM2MField(Movie, 'Documentary',
+   >>>                                 on_delete_src=DO_NOTHING)
 
 ``on_delete_src`` and ``on_delete_tgt`` override ``on_delete``.
 
@@ -241,7 +241,7 @@ Prefetching
 
 Prefetching works exactly the same way as with django ``ManyToManyField``::
 
-   user.objects.prefetch_related('preferred_videos')
+   >>> user.objects.prefetch_related('preferred_videos')
 
 will, in a minimum number of queries, prefetch all the videos in all the user's
 ``preferred_video`` lists.
@@ -258,16 +258,16 @@ classes are:
 
 For example::
 
-   class User(models.Model):
-      preferred_videos = GM2MField(through='PreferredVideos')
-
-   class PreferredVideos(models.Model):
-      user = models.ForeignKey(User)
-      video = GenericForeignKey(ct_field='video_ct', fk_field='video_fk')
-      video_ct = models.ForeignKey(ContentType)
-      video_fk = models.CharField(max_length=255)
-
-      ... any relevant field (e.g. date added)
+   >>> class User(models.Model):
+   >>>     preferred_videos = GM2MField(through='PreferredVideos')
+   >>>
+   >>> class PreferredVideos(models.Model):
+   >>>     user = models.ForeignKey(User)
+   >>>     video = GenericForeignKey(ct_field='video_ct', fk_field='video_fk')
+   >>>     video_ct = models.ForeignKey(ContentType)
+   >>>     video_fk = models.CharField(max_length=255)
+   >>>
+   >>>     ... any relevant field (e.g. date added)
 
 If there is only one ForeignKey to the source model (User in the above example)
 and only one GenericForeignKey in the target model, they will automatically be
