@@ -51,6 +51,12 @@ except ImportError:
     def is_fake_model(model):
         return False
 
+try:
+    from django.db.models.query_utils import PathInfo
+except ImportError:
+    # Django < 1.7, reverse query lookup will not be available
+    PathInfo = None
+
 
 def assert_compat_params(params):
 

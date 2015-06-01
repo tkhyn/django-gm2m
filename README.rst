@@ -155,6 +155,17 @@ reverse relations by default, nothing more.
 The reverse relations provide you with the full set of operations that normal
 Django reverse relation exposes: ``add``, ``remove`` and ``clear``.
 
+A reverse relation also enables you to use lookup chains in your queries::
+
+   class Fan(models.Model):
+      name = models.CharField(max_length=32)
+      preferred_shows = GM2MField(Opera)
+
+   jack = Fan.objects.create(name='Jack')
+   jack.preferred_shows.add(Opera.objects.create(title='The Bartered Bride'))
+   [o.name for o in Opera.objects.filter(fan__name='Jack')]
+   >>> ['The Bartered Bride']
+
 
 Deletion
 --------

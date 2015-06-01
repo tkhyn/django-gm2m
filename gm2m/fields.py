@@ -134,12 +134,6 @@ class GM2MField(Field):
         rel = self.rel.add_relation(model)
         rel._added = True
 
-    def get_reverse_path_info(self):
-        linkfield = \
-            self.through._meta.get_field_by_name(
-                self.through._meta._field_names['src'])[0]
-        return linkfield.get_reverse_path_info()
-
     def db_type(self, connection):
         """
         A GM2M field will not have a column as it defines a relation between
@@ -199,4 +193,4 @@ class GM2MField(Field):
 
     def related_query_name(self):
         return self.rel.related_query_name or self.rel.related_name \
-            or get_model_name(self.rel.through)
+            or get_model_name(self.model)

@@ -53,6 +53,10 @@ v.0.2.7 (09-05-2015)
 | \* Fixes migrations application on a migrated app (#9)
 | \* Fixes ``contenttypes.ContentType`` dependency in migrations (#10)
 
+v.0.2.8 (01-06-2015)
+....................
+| \+  Adds reverse chained lookup in queries (#11)
+
 
 v0.1 (08-10-2014)
 -----------------
