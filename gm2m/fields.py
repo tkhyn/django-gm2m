@@ -37,6 +37,9 @@ class GM2MField(Field):
             help_text=params.pop('help_text', u''),
             error_messages=params.pop('error_messages', None),
             rel=GM2MRel(self, related_models, **params),
+            # setting null to True only prevent makemigrations from asking for
+            # a default value
+            null=True,
         )
 
         assert_compat_params(params)
@@ -68,6 +71,8 @@ class GM2MField(Field):
 
     def deconstruct(self):
         name, path, args, kwargs = super(GM2MField, self).deconstruct()
+
+        kwargs.pop('null', None)
 
         # generate related models list (cannot get it from rel, as it can
         # be changed by add_relation)
