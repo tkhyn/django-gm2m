@@ -11,6 +11,10 @@ the features of the standard Django ``ManyToManyField`` and
 
 It works with Django 1.4 to 1.8 and matching Python versions (2.6 to 3.4).
 
+If you like django-gm2m and are looking for a way to thank me and/or encourage
+future development, you can send a few mBTC at this Bitcoin address:
+``1EwENyR8RV6tMc1hsLTkPURtn5wJgaBfG9``.
+
 
 Features
 --------
@@ -101,7 +105,7 @@ means that you can do::
    >>> list(movie.user_set)
    [<User object>]
 
-However, it is important to remember that if no instance of a model as ever
+However, it is important to remember that if no instance of a model has ever
 been added to the set, retrieving the ``<modelname_set>`` will raise an
 ``AttributeError``::
 
