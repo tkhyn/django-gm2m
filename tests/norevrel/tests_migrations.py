@@ -102,11 +102,10 @@ from django.db import migrations
 
 
 def call_rev_mngr(apps, schema_editor):
-    link_model = apps.get_model('norevrel', 'Links')
+    links_model = apps.get_model('norevrel', 'Links')
     project_model = apps.get_model('app', 'Project')
-    link_model.related_objects.add_relation(project_model)
 
-    link_model.objects.first().related_objects.add(
+    links_model.objects.first().related_objects.add(
         project_model.objects.first())
 
 
