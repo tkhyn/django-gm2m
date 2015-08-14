@@ -1,8 +1,12 @@
+import os
 import re
 
 import django
 
+from ..app.models import Project
 from .. import base
+
+from .models import Links
 
 
 # basic migration tests
@@ -77,4 +81,43 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
         self.makemigrations()
 
         # check that no exception is raised when calling migrate
+        self.migrate()
+
+    def test_reverse_manager_in_runpython(self):
+        """
+        Bug #14
+        """
+
+        self.makemigrations()
+        self.migrate()
+
+        Links.objects.create()
+        Project.objects.create()
+
+        mig2 = open(os.path.join(os.path.dirname(__file__), 'migrations',
+                                 '0002_runpython.py'), 'w')
+
+        mig2.write("""
+from django.db import migrations
+
+
+def call_rev_mngr(apps, schema_editor):
+    link_model = apps.get_model('norevrel', 'Links')
+    project_model = apps.get_model('app', 'Project')
+    link_model.related_objects.add_relation(project_model)
+
+    link_model.objects.first().related_objects.add(
+        project_model.objects.first())
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        ('norevrel', '0001_initial'),
+    ]
+    operations = [
+        migrations.RunPython(call_rev_mngr),
+    ]
+""")
+        mig2.close()
+
         self.migrate()
