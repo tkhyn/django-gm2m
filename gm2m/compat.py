@@ -155,6 +155,8 @@ else:
 
 class Manager(mngr_base):
 
+    use_in_migration = True
+
     if django.VERSION < (1, 6):
 
         def _mk_core_filters_norel(self, instance):
