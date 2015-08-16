@@ -83,7 +83,7 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
         # check that no exception is raised when calling migrate
         self.migrate()
 
-    def test_reverse_manager_in_runpython(self):
+    def test_add_gm2m_in_runpython(self):
         """
         Bug #14
         """
@@ -101,7 +101,7 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
 from django.db import migrations
 
 
-def call_rev_mngr(apps, schema_editor):
+def add_gm2m(apps, schema_editor):
     links_model = apps.get_model('norevrel', 'Links')
     project_model = apps.get_model('app', 'Project')
 
@@ -114,7 +114,7 @@ class Migration(migrations.Migration):
         ('norevrel', '0001_initial'),
     ]
     operations = [
-        migrations.RunPython(call_rev_mngr),
+        migrations.RunPython(add_gm2m),
     ]
 """)
         mig2.close()
