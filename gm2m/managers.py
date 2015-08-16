@@ -52,7 +52,7 @@ class GM2MBaseManager(compat.Manager):
         qn = connection.ops.quote_name
         extra = dict(select=dict(
             ('_prefetch_related_val_%s' % f.attname,
-            '%s.%s' % (qn(join_table), qn(f.column)))
+             '%s.%s' % (qn(join_table), qn(f.column)))
             for f in extra_fields))
         return queryset.using(db)._next_is_sticky().filter(q).extra(**extra)
 
@@ -128,11 +128,9 @@ class GM2MBaseSrcManager(compat.Manager):
         for obj in instances:
             q = q | Q(**{
                 '%s__%s' % (self.query_field_name,
-                            self.field_names['tgt_ct']):
-                     get_content_type(obj),
+                            self.field_names['tgt_ct']):get_content_type(obj),
                 '%s__%s' % (self.query_field_name,
-                            self.field_names['tgt_fk']):
-                     obj.pk
+                            self.field_names['tgt_fk']): obj.pk
             })
 
         # Annotating the query in order to retrieve the primary model
