@@ -177,15 +177,7 @@ class TestCase(_TestCase):
         __, __, args, kwargs = field.deconstruct()
         new_field = GM2MField(*args, **kwargs)
 
-        for attr in (''):
-            self.assertEqual(getattr(field, attr),
-                             getattr(new_field, attr))
-
-        for attr in (''):
-            self.assertEqual(getattr(field.rel, attr),
-                             getattr(new_field.rel, attr))
-
-        # just checking the stings output, as for an attr to attr comparison
+        # just checking the strings output, as for an attr to attr comparison
         # we would need to run contribute_to_class
         self.assertSetEqual(set(['%s.%s' % (r.to._meta.app_label,
                                             r.to._meta.object_name)
