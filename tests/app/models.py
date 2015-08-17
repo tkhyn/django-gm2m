@@ -14,8 +14,10 @@ class Base(models.Model):
 
 
 class Project(Base):
-    pass
+    class Meta:
+        app_label = 'app'
 
 
 class Task(Base):
-    pass
+    class Meta:
+        app_label = 'app'

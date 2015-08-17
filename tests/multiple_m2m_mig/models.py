@@ -8,9 +8,17 @@ class LocalTask(models.Model):
 
 
 class Group(models.Model):
+
+    class Meta:
+        app_label = 'multiple_m2m_mig'
+
     people = GM2MField()
 
 
 class GroupsTasks(models.Model):
+
+    class Meta:
+        app_label = 'multiple_m2m_mig'
+
     tasks = models.ManyToManyField(LocalTask)
     groups = models.ManyToManyField(Group)

@@ -16,13 +16,21 @@ else:
 
 # we establish the link with Task before declaring the Milestone
 class Links(models.Model):
+
+    class Meta:
+        app_label = 'inheritancedel'
+
     related_objects = gm2m.GM2MField(Task, **params)
 
 
 class Subtask(Task):
+
     class Meta:
         proxy = True
+        app_label = 'inheritancedel'
 
 
 class Milestone(Task):
-    pass
+
+    class Meta:
+        app_label = 'inheritancedel'

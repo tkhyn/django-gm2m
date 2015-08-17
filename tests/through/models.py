@@ -9,10 +9,16 @@ from ..app.models import Project
 
 class Links(models.Model):
 
+    class Meta:
+        app_label = 'through'
+
     related_objects = gm2m.GM2MField(Project, through='RelLinks')
 
 
 class RelLinks(models.Model):
+
+    class Meta:
+        app_label = 'through'
 
     links = models.ForeignKey(Links)
     target = GenericForeignKey(ct_field='target_ct', fk_field='target_fk')

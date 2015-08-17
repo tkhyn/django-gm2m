@@ -13,4 +13,7 @@ params = {} if django.VERSION < (1, 6) else {'on_delete': CASCADE_SIGNAL_VETO}
 
 class Links(models.Model):
 
+    class Meta:
+        app_label = 'signaldel'
+
     related_objects = gm2m.GM2MField(Project, **params)
