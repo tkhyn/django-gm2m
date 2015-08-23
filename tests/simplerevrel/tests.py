@@ -2,6 +2,8 @@ import django
 
 from .. import base
 
+from ..app.models import Task, Project
+
 
 class RelatedTests(base.TestCase):
 
@@ -61,15 +63,37 @@ class ReverseOperationsTest(base.TestCase):
         self.assertEqual(self.links2.related_objects.count(), 0)
 
 
-@base.skipIf(django.VERSION < (1, 7),
-             'reverse query lookup is not available in django < 1.7')
-class ChainedFilterTests(base.TestCase):
+class FilterTests(base.TestCase):
 
     def setUp(self):
         self.links = self.models.Links.objects.create(name='Links')
         self.project = self.models.Project.objects.create()
         self.links.related_objects.add(self.project)
 
+    def test_filter_by_model(self):
+        self.assertListEqual(
+            list(self.links.related_objects.filter(Model=Project)),
+            [self.project],
+        )
+        self.assertListEqual(
+            list(self.links.related_objects.filter(Model='app.Project')),
+            [self.project],
+        )
+        self.assertListEqual(
+            list(self.links.related_objects.filter(Model=Task)),
+            [],
+        )
+
+        task = Task.objects.create()
+        self.links.related_objects.add(task)
+
+        self.assertSetEqual(
+            set(self.links.related_objects.filter(Model__in=(Project, Task))),
+            {self.project, task},
+        )
+
+    @base.skipIf(django.VERSION < (1, 7),
+                 'reverse query lookup is not available in django < 1.7')
     def test_reverse_chain_filter(self):
         self.assertEqual(
             self.models.Project.objects.filter(links__name='Links')[0],
