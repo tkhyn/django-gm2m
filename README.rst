@@ -158,7 +158,8 @@ reverse relations by default, nothing more.
 The reverse relations provide you with the full set of operations that normal
 Django reverse relation exposes: ``add``, ``remove`` and ``clear``.
 
-A reverse relation also enables you to use lookup chains in your queries::
+A reverse relation also enables you to use lookup chains in your queries
+(Django 1.8+ only)::
 
    >>> class Fan(models.Model):
    >>>    name = models.CharField(max_length=32)
