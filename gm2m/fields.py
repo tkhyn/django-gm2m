@@ -146,6 +146,13 @@ class GM2MField(Field):
         """
         return None
 
+    def get_internal_type(self):
+        """
+        A GM2M field behaves like a ManyToManyField
+        """
+        # For Django 1.7
+        return 'ManyToManyField'
+
     def m2m_db_table(self):
         # self.db_table will be None if
         if self.rel.through is not None:
