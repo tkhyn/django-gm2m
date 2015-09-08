@@ -11,8 +11,10 @@ from django.utils import six
 
 try:
     from django.apps import apps
+    get_model = apps.get_model
 except ImportError:
     apps = None
+    from django.db.models.loading import get_model
 
 try:
     from django.core import checks
