@@ -9,7 +9,7 @@ This django application exposes a ``GM2MField`` that combines
 the features of the standard Django ``ManyToManyField`` and
 ``GenericForeighKey`` and that can be used exactly the same way.
 
-It works with Django 1.4 to 1.8 and matching Python versions (2.6 to 3.4).
+It works with Django 1.7 and 1.8 and matching Python versions (2.7 to 3.4).
 
 If you like django-gm2m and are looking for a way to thank me and/or encourage
 future development, you can send a few mBTC at this Bitcoin address:
@@ -27,7 +27,7 @@ Features
 - Automatic reverse relations_ when an instance is added
 - Related objects prefetching_
 - `Through models`_
-- Deletion_ behaviour customization using signals (Django 1.6+)
+- Deletion_ behaviour customization using signals
 - Migrations_ support
 
 
@@ -96,6 +96,13 @@ From a ``User`` instance, you can now fetch all the user's preferred videos::
 
    >>> list(user.preferred_videos)
    [<Movie object>, <Documentary object>]
+
+You may filter by model using the ``Model`` or ``Model__in`` keywords::
+
+   >>> list(user.preferred_videos.filter(Model=Movie))
+   [<Movie object>]
+   >>> list(user.preferred_videos.filter(Model__in=[Documentary]))
+   [<Documentary object>]
 
 The magic here is that, even without having to explicitly create reverse
 relation (e.g by providing models to the ``GM2MField`` constructor), they are
@@ -175,10 +182,9 @@ Deletion
 --------
 
 By default, when an instance from a source or target model is deleted, all
-relations linking this instance are deleted. It is possible, if you are
-using Django 1.6 or later, to change this behavior by using the ``on_delete``,
-``on_delete_src`` and ``on_delete_tgt`` keyword arguments when creating the
-``GM2MField``::
+relations linking this instance are deleted. It is possible to change this
+behavior by using the ``on_delete``, ``on_delete_src`` and ``on_delete_tgt``
+keyword arguments when creating the ``GM2MField``::
 
    >>> from gm2m.deletion import DO_NOTHING
    >>>

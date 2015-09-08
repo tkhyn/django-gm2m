@@ -12,6 +12,7 @@ from importlib import import_module
 from inspect import getfile
 from shutil import rmtree, copy
 import time
+from unittest import skip, skipIf
 
 import django
 from django import test
@@ -22,10 +23,10 @@ from django.db import models, connection
 from django.db.models.fields import related
 from django.contrib.contenttypes.models import ContentType
 from django.utils.six import StringIO
+from django.apps.registry import apps
 
 from gm2m import GM2MField
 
-from .compat import apps, skip, skipIf
 from .helpers import app_mod_path, del_app_models
 
 # patches the migration questioner

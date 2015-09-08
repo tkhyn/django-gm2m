@@ -1,15 +1,18 @@
 from django.db import router
-from django.db.models import Q
+from django.db.models import Q, Manager
 from django.db import connections
 from django.contrib.contenttypes.models import ContentType
 
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
 
-from . import compat
+from .compat import get_related_model
 
 
-class GM2MBaseManager(compat.Manager):
+class GM2MBaseManager(Manager):
+
+    use_in_migration = True
+
     def __init__(self, instance):
         super(GM2MBaseManager, self).__init__()
         self.model = self._model  # see create_gm2m_related_manager
@@ -108,7 +111,7 @@ class GM2MBaseManager(compat.Manager):
     clear.alters_data = True
 
 
-class GM2MBaseSrcManager(compat.Manager):
+class GM2MBaseSrcManager(Manager):
     def __init__(self, instance):
         # the manager's model is the source model
         super(GM2MBaseSrcManager, self).__init__(instance)
@@ -205,26 +208,37 @@ class GM2MBaseSrcManager(compat.Manager):
         }
 
 
-class GM2MBaseTgtManager(compat.Manager):
+class GM2MBaseTgtManager(Manager):
 
     def __init__(self, instance):
         # the manager's model is the through model
         super(GM2MBaseTgtManager, self).__init__(instance)
-        self._mk_core_filters_norel(self.instance)
+
+        source_field = self.through._meta.get_field(
+                           self.field_names['src'])
+        self.source_related_fields = source_field.related_fields
+        for __, rh_field in self.source_related_fields:
+            key = '%s__%s' % (self.query_field_name, rh_field.name)
+            self.core_filters[key] = getattr(self.instance,
+                                             rh_field.attname)
 
     def _get_queryset(self, using):
         return GM2MTgtQuerySet(self.model, using=using)
 
     def _get_prefetch_queryset_params(self, instances, queryset, db):
 
-        # we're looking for through model instances (cf. implementation
-        # in compat)
-        q = self._prefetch_qset_query_norel(instances)
+        # we're looking for through model instances
+        query = {}
+        for lh_field, rh_field in self.source_related_fields:
+            query['%s__in' % lh_field.name] = \
+                set(getattr(obj, rh_field.attname)
+                    for obj in instances)
+        q = Q(**query)
 
         # Annotating the query in order to retrieve the primary model
         # id in the same query
         fk = self.through._meta.get_field(self.field_names['src'])
-        extra_fields = compat.get_local_related_fields(fk)
+        extra_fields = fk.local_related_fields
 
         qs = self._get_extra_queryset(queryset, q, extra_fields, db)
         # marking the queryset so that the original queryset should
@@ -241,11 +255,11 @@ class GM2MBaseTgtManager(compat.Manager):
                     v = v.pop()
                 except AttributeError:  # v is not a list
                     pass
-                t.append(compat.get_related_model(f)._meta.pk.to_python(v))
+                t.append(get_related_model(f)._meta.pk.to_python(v))
             return tuple(t)
 
         # model attribute retrieval function
-        select_fields = compat.get_foreign_related_fields(fk)
+        select_fields = fk.foreign_related_fields
         instance_attr = lambda inst: tuple([getattr(inst, f.attname)
                             for f in select_fields])
 
@@ -317,4 +331,4 @@ def create_gm2m_related_manager(superclass=None, **kwargs):
     # Django's Manager constructor sets model to None, we store it under the
     # class's attribute '_model' and it is retrieved in __init__
     kwargs['_model'] = kwargs.pop('model')
-    return type(compat.Manager)('GM2MManager', tuple(bases), kwargs)
+    return type(Manager)('GM2MManager', tuple(bases), kwargs)

@@ -5,13 +5,14 @@ from .compat import is_fake_model
 
 def get_content_type(obj):
 
-    klass = obj.__class__
     try:
         # obj is a model instance, retrieve database
         db = obj._state.db
+        klass = obj.__class__
     except AttributeError:
         # obj is a model class
         db = None
+        klass = obj
 
     ct_mngr = ContentTypeManager().db_manager(db)
     if is_fake_model(klass):

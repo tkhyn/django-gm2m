@@ -5,7 +5,7 @@ Django 1.8 migration problems with combined M2M and GM2M relations
 
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
-from gm2m.compat import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 import gm2m
 

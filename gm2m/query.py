@@ -4,7 +4,6 @@ from django.db.models.query import QuerySet
 from django.contrib.contenttypes.models import ContentType
 from django.utils import six
 
-from .compat import get_model
 from .helpers import get_content_type
 
 
@@ -71,7 +70,7 @@ class GM2MTgtQuerySet(QuerySet):
         ctypes = []
         for m in models:
             if isinstance(m, six.string_types):
-                m = get_model(m)
+                m = self.model._meta.apps.get_model(m)
             ctypes.append(get_content_type(m).pk)
 
         if ctypes:

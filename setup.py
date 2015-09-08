@@ -34,7 +34,6 @@ setup(
     keywords=['django', 'generic', 'many-to-many'],
     classifiers=[
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
@@ -46,7 +45,7 @@ setup(
     ],
     packages=find_packages(exclude=('tests',)),
     install_requires=(
-      'django>=1.4',
+      'Django>=1.7',
     ),
     zip_safe=True,
 )

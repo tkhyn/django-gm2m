@@ -3,11 +3,12 @@ from django.db.models.fields import Field
 from django.db import connection
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
+from django.core import checks
+from django.db.backends import utils as db_backends_utils
 
 from .relations import GM2MRel, REL_ATTRS
 
-from .compat import checks, get_model_name, assert_compat_params, \
-                    add_field, db_backends_utils
+from .compat import add_field
 
 from . import monkeypatch
 
@@ -41,8 +42,6 @@ class GM2MField(Field):
             # a default value
             null=True,
         )
-
-        assert_compat_params(params)
 
         self.db_table = params.pop('db_table', None)
         self.pk_maxlength = params.pop('pk_maxlength', False)
@@ -205,4 +204,4 @@ class GM2MField(Field):
 
     def related_query_name(self):
         return self.rel.related_query_name or self.rel.related_name \
-            or get_model_name(self.model)
+            or self.model._meta.model_name

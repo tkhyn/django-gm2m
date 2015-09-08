@@ -1,5 +1,7 @@
 import sys
 
+from django.apps.registry import apps
+
 __test__ = False
 
 
@@ -12,10 +14,9 @@ def del_app_models(app, app_module=False):
     Unloads an app and its models module, as well as the app module
     (optionally)
     """
-    from .compat import cache_models
 
     try:
-        del cache_models[app]
+        del apps.all_models[app]
     except KeyError:
         pass
 
