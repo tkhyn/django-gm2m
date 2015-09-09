@@ -1,9 +1,10 @@
 from django.db import connection
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.db.backends import utils as db_backends_utils
+from django.db.migrations.state import ModelState
 
-from .compat import GenericForeignKey, get_model_name, get_fk_kwargs, \
-                    get_gfk_kwargs, get_meta_kwargs, db_backends_utils, \
-                    is_fake_model, ModelState
+from .compat import is_fake_model
 
 
 SRC_ATTNAME = 'gm2m_src'
@@ -24,7 +25,7 @@ def create_gm2m_intermediary_model(field, klass):
     managed = klass._meta.managed
     name = '%s_%s' % (klass._meta.object_name, field.name)
 
-    model_name = get_model_name(klass)
+    model_name = klass._meta.model_name
 
     db_table = db_backends_utils.truncate_name(
                    '%s_%s' % (klass._meta.db_table, field.name),
@@ -39,13 +40,10 @@ def create_gm2m_intermediary_model(field, klass):
         'unique_together': (SRC_ATTNAME, CT_ATTNAME, FK_ATTNAME),
         'verbose_name': '%s-generic relationship' % model_name,
         'verbose_name_plural': '%s-generic relationships' % model_name,
+        'apps': field.model._meta.apps,
     }
 
-    meta_kwargs.update(get_meta_kwargs(field))
-
     meta = type('Meta', (object,), meta_kwargs)
-
-    fk_kwargs = get_fk_kwargs(field)
 
     fk_maxlength = 16  # default value
     if field.pk_maxlength is not False:
@@ -56,13 +54,14 @@ def create_gm2m_intermediary_model(field, klass):
         '__module__': klass.__module__,
         SRC_ATTNAME: models.ForeignKey(klass,
                                        on_delete=field.rel.on_delete_src,
-                                       **fk_kwargs),
-        CT_ATTNAME: models.ForeignKey(ContentType, **fk_kwargs),
+                                       db_constraint=field.rel.db_constraint),
+        CT_ATTNAME: models.ForeignKey(ContentType,
+                                      db_constraint=field.rel.db_constraint),
         FK_ATTNAME: models.CharField(max_length=fk_maxlength),
         TGT_ATTNAME: GenericForeignKey(
                          ct_field=CT_ATTNAME,
                          fk_field=FK_ATTNAME,
-                         **get_gfk_kwargs(field)
+                         for_concrete_model=field.rel.for_concrete_model,
                      ),
     })
 

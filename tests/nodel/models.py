@@ -13,4 +13,7 @@ params = {} if django.VERSION < (1, 6) else {'on_delete': DO_NOTHING}
 
 class Links(models.Model):
 
+    class Meta:
+        app_label = 'nodel'
+
     related_objects = gm2m.GM2MField(Project, **params)

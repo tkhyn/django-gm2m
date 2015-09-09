@@ -7,4 +7,7 @@ from ..app.models import Project
 
 class Links(models.Model):
 
+    class Meta:
+        app_label = 'hiddenrel'
+
     related_objects = gm2m.GM2MField(Project, related_name='related_links+')

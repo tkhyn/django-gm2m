@@ -1,16 +1,18 @@
-from django.db.models.fields.related import add_lazy_relation
-from django.db.models.signals import pre_delete
+from django.db.models.fields.related import add_lazy_relation, \
+    ForeignObjectRel, ForeignObject
 from django.db.models.fields import FieldDoesNotExist
+from django.db.models.signals import pre_delete
 from django.db.models.options import Options
-from django.utils.functional import cached_property
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
+from django.apps import apps
+from django.core import checks
 from django.utils import six
+from django.utils.functional import cached_property
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
-from .compat import apps, checks, GenericForeignKey, ForeignObject, \
-                    ForeignObjectRel, is_swapped, add_related_field, \
-                    get_model_name, is_fake_model, PathInfo
+from .compat import PathInfo, add_related_field, is_fake_model
 
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
@@ -81,7 +83,7 @@ class GM2MRelation(ForeignObject):
 
     def get_accessor_name(self):
         return self.rel.related_name \
-            or (get_model_name(self.field.model) + '_set')
+            or (self.field.model._meta.model_name + '_set')
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
@@ -111,6 +113,8 @@ class GM2MRelation(ForeignObject):
                              CASCADE_SIGNAL_VETO):
                 results = deleting.send(sender=self.field,
                                         del_objs=objs, rel_objs=qs)
+            else:
+                results = []
 
             if on_delete in (CASCADE, CASCADE_SIGNAL) \
             or on_delete is CASCADE_SIGNAL_VETO \
@@ -339,9 +343,9 @@ class GM2MUnitRel(GM2MUnitRelBase):
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
-        if not self.is_hidden() and not is_swapped(self.field.model):
+        if not self.is_hidden() and not self.field.model._meta.swapped:
             setattr(self.to, self.related_name
-                        or (get_model_name(self.field.model._meta) + '_set'),
+                        or (self.field.model._meta.model_name + '_set'),
                     GM2MRelatedDescriptor(self.related, self))
 
     @cached_property
@@ -353,7 +357,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
             field=self.related.field,
             model=self.field.model,
             through=self.through,
-            query_field_name=get_model_name(self.through),
+            query_field_name=self.through._meta.model_name,
             field_names=self.through._meta._field_names,
             prefetch_cache_name=self.related.field.related_query_name()
         )
@@ -745,7 +749,7 @@ class GM2MRel(object):
                     raise FieldDoesNotExist(
                         'Generic foreign key "%s" does not exist in through '
                         'model "%s"' % (tf_dict['tgt'],
-                                        get_model_name(rel.through))
+                                        rel.through._meta.model_name)
                     )
                 tf_dict['tgt_ct'] = gfk.ct_field
                 tf_dict['tgt_fk'] = gfk.fk_field

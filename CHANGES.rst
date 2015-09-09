@@ -6,6 +6,17 @@ key:
 | \+ addition
 
 
+v0.3 (09-09-2015)
+-----------------
+
+| \+ Django 1.4, 1.5 and 1.6 are no longer supported
+| \+ The documentation is now on Read The Docs
+| \+ Adds ability to filter a GM2M queryset by model(s)
+| \* Fixes issue with fake content type models (#14)
+| \* Fixes default value asked by makemigrations (#12)
+| \* Fixes various minor issues with Django 1.7
+
+
 v0.2 (25-11-2014)
 -----------------
 

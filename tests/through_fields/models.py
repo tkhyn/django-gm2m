@@ -1,19 +1,25 @@
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 import gm2m
-from gm2m.compat import GenericForeignKey
 
 from ..app.models import Project
 
 
 class Links(models.Model):
 
+    class Meta:
+        app_label = 'through_fields'
+
     related_objects = gm2m.GM2MField(Project, through='RelLinks',
                                      through_fields=('links', 'target'))
 
 
 class RelLinks(models.Model):
+
+    class Meta:
+        app_label = 'through_fields'
 
     other_fk = models.ForeignKey(Links, null=True,
                                  related_name='other_rellinks')

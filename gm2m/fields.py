@@ -3,11 +3,12 @@ from django.db.models.fields import Field
 from django.db import connection
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
+from django.core import checks
+from django.db.backends import utils as db_backends_utils
 
 from .relations import GM2MRel, REL_ATTRS
 
-from .compat import checks, get_model_name, assert_compat_params, \
-                    add_field, db_backends_utils
+from .compat import add_field
 
 from . import monkeypatch
 
@@ -37,9 +38,10 @@ class GM2MField(Field):
             help_text=params.pop('help_text', u''),
             error_messages=params.pop('error_messages', None),
             rel=GM2MRel(self, related_models, **params),
+            # setting null to True only prevent makemigrations from asking for
+            # a default value
+            null=True,
         )
-
-        assert_compat_params(params)
 
         self.db_table = params.pop('db_table', None)
         self.pk_maxlength = params.pop('pk_maxlength', False)
@@ -68,6 +70,8 @@ class GM2MField(Field):
 
     def deconstruct(self):
         name, path, args, kwargs = super(GM2MField, self).deconstruct()
+
+        kwargs.pop('null', None)
 
         # generate related models list (cannot get it from rel, as it can
         # be changed by add_relation)
@@ -141,6 +145,13 @@ class GM2MField(Field):
         """
         return None
 
+    def get_internal_type(self):
+        """
+        A GM2M field behaves like a ManyToManyField
+        """
+        # For Django 1.7
+        return 'ManyToManyField'
+
     def m2m_db_table(self):
         # self.db_table will be None if
         if self.rel.through is not None:
@@ -193,4 +204,4 @@ class GM2MField(Field):
 
     def related_query_name(self):
         return self.rel.related_query_name or self.rel.related_name \
-            or get_model_name(self.model)
+            or self.model._meta.model_name

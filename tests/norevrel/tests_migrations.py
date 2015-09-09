@@ -1,8 +1,12 @@
+import os
 import re
 
 import django
 
+from ..app.models import Project
 from .. import base
+
+from .models import Links
 
 
 # basic migration tests
@@ -77,4 +81,42 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
         self.makemigrations()
 
         # check that no exception is raised when calling migrate
+        self.migrate()
+
+    def test_add_gm2m_in_runpython(self):
+        """
+        Bug #14
+        """
+
+        self.makemigrations()
+        self.migrate()
+
+        Links.objects.create()
+        Project.objects.create()
+
+        mig2 = open(os.path.join(os.path.dirname(__file__), 'migrations',
+                                 '0002_runpython.py'), 'w')
+
+        mig2.write("""
+from django.db import migrations
+
+
+def add_gm2m(apps, schema_editor):
+    links_model = apps.get_model('norevrel', 'Links')
+    project_model = apps.get_model('app', 'Project')
+
+    links_model.objects.first().related_objects.add(
+        project_model.objects.first())
+
+
+class Migration(migrations.Migration):
+    dependencies = [
+        ('norevrel', '0001_initial'),
+    ]
+    operations = [
+        migrations.RunPython(add_gm2m),
+    ]
+""")
+        mig2.close()
+
         self.migrate()
