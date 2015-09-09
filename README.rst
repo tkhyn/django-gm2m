@@ -42,4 +42,4 @@ the description of all django-gm2m's advanced features.
 .. |copyright| unicode:: 0xA9
 
 .. _django-generic-m2m: https://pypi.python.org/pypi/django-generic-m2m
-.. _readthedocs: http://django-gm2m.readthedocs.org/en/latest
+.. _readthedocs: http://django-gm2m.readthedocs.org/en/stable
