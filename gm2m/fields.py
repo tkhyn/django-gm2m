@@ -10,8 +10,6 @@ from .relations import GM2MRel, REL_ATTRS
 
 from .compat import add_field
 
-from . import monkeypatch
-
 
 class GM2MField(Field):
     """

@@ -29,8 +29,6 @@ from gm2m import GM2MField
 
 from .helpers import app_mod_path, del_app_models
 
-# patches the migration questioner
-from . import monkeypatch
 
 # no nose tests here !
 __test__ = False
