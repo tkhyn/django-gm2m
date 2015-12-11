@@ -75,7 +75,7 @@ class GM2MRelation(ForeignObject):
         })
 
         super(GM2MRelation, self).__init__(to, from_fields=[field.name],
-                                           to_fields=[], **kwargs)
+            to_fields=[], on_delete=rel.on_delete, **kwargs)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         pass
