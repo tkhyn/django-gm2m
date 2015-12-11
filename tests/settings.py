@@ -17,3 +17,5 @@ INSTALLED_APPS = (
 MIDDLEWARE_CLASSES = ()  # so that Django 1.7 does not complain
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+
+ROOT_URLCONF = 'tests.urls'
