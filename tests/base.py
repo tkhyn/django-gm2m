@@ -59,10 +59,10 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
-            if kwargs.get('syncdb', True):
-                self.syncdb()
+            if kwargs.get('migrate', True):
+                self.migrate()
 
-    def syncdb(self):
+    def migrate(self):
         for dicname in ('app_labels', 'app_store', 'handled',
                         '_get_models_cache'):
             getattr(apps, dicname, {}).clear()
@@ -72,9 +72,9 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        call_command('syncdb', verbosity=0, interactive=False)
+        call_command('migrate', verbosity=0, interactive=False)
 
-    def revert(self, syncdb=True):
+    def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
             if v == NO_SETTING:
                 delattr(settings, k)
@@ -83,8 +83,8 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
-            if syncdb:
-                self.syncdb()
+            if migrate:
+                self.migrate()
 
         self._original_settings = {}
 
@@ -286,7 +286,7 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         # reload apps so that next migration can be generated (yes, all of
         # them, it does not work if only the test one is reloaded)
         cls = self.__class__
-        cls.settings_manager.revert(syncdb=False)
+        cls.settings_manager.revert(migrate=False)
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
 
@@ -299,4 +299,4 @@ class MultiMigrationsTestCase(MigrationsTestCase):
 
         app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
         cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
-                                 + app_paths, syncdb=False)
+                                 + app_paths, migrate=False)
