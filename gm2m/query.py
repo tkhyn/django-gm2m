@@ -1,13 +1,13 @@
 from collections import defaultdict
 
-from django.db.models.query import QuerySet
+from django.db.models import query import
 from django.utils import six
 
 from .contenttypes import models as ct_models
 from .helpers import get_content_type
 
 
-class GM2MTgtQuerySet(QuerySet):
+class GM2MTgtQuerySet(query.QuerySet):
     """
     A QuerySet for GM2M models which yields actual target generic objects
     instead of GM2M objects when iterated over
@@ -19,6 +19,17 @@ class GM2MTgtQuerySet(QuerySet):
         Override to return the actual objects, not the GM2MObject
         Fetch the actual objects by content types to optimize database access
         """
+
+        try:
+            # TODO: use self._iterable_class instead from Django 1.9
+            if self._iterable_class is not query.ModelIterable:
+                for v in super(GM2MTgtQuerySet, self).iterator():
+                    yield v
+                raise StopIteration
+        except AttributeError:
+            # Django 1.8
+            pass
+
 
         try:
             del self._related_prefetching
