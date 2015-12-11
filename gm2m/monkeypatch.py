@@ -121,7 +121,7 @@ try:
                                                new_field, strict)
     DatabaseSchemaEditor._alter_many_to_many = _alter_many_to_many
 
-    from  django.db.migrations.autodetector import MigrationAutodetector
+    from django.db.migrations.autodetector import MigrationAutodetector
 
     def only_relation_agnostic_fields(self, fields):
         """

@@ -1,5 +1,4 @@
 import os
-import sys
 
 from .helpers import del_app_models
 
