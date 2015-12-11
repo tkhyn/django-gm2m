@@ -9,10 +9,9 @@ from django.apps import apps
 from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
 
 from .compat import PathInfo, add_related_field, is_fake_model
+from . import contenttypes as ct
 
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
@@ -428,7 +427,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         opts = self.through._meta
         field = opts.get_field_by_name(opts._field_names['tgt_ct'])[0]
 
-        ct_pk = ContentType.objects.get_for_model(self.to,
+        ct_pk = ct.models.ContentType.objects.get_for_model(self.to,
                     for_concrete_model=self.for_concrete_model).pk
         lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
 
@@ -562,7 +561,7 @@ class GM2MRel(object):
                     )
                 )
 
-            seen_to = sum(isinstance(field, GenericForeignKey)
+            seen_to = sum(isinstance(field, ct.fields.GenericForeignKey)
                 for field in self.through._meta.virtual_fields)
 
             if seen_to == 0:
@@ -663,7 +662,7 @@ class GM2MRel(object):
 
                 possible_field_names = []
                 for f in through._meta.virtual_fields:
-                    if isinstance(f, GenericForeignKey):
+                    if isinstance(f, ct.fields.GenericForeignKey):
                         possible_field_names.append(f.name)
                 if possible_field_names:
                     hint = "Did you mean one of the following generic " \
@@ -690,7 +689,7 @@ class GM2MRel(object):
                     )
 
                 if field:
-                    if not isinstance(field, GenericForeignKey):
+                    if not isinstance(field, ct.fields.GenericForeignKey):
                         errors.append(
                             checks.Error(
                                 "'%s.%s' is not a generic foreign key."
@@ -763,7 +762,7 @@ class GM2MRel(object):
                         tf_dict['src'] = f.name
                         break
                 for f in rel.through._meta.virtual_fields:
-                    if isinstance(f, GenericForeignKey):
+                    if isinstance(f, ct.fields.GenericForeignKey):
                         tf_dict['tgt'] = f.name
                         tf_dict['tgt_ct'] = f.ct_field
                         tf_dict['tgt_fk'] = f.fk_field

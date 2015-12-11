@@ -1,8 +1,8 @@
 from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
-from django.contrib.contenttypes.models import ContentType
 
+from . import contenttypes as ct
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
 
@@ -153,10 +153,11 @@ class GM2MBaseSrcManager(Manager):
                 try:
                     # t already contains the content type id
                     # we use get_for_id to retrieve the cached content type
-                    model = ContentType.objects.get_for_id(t[0]).model_class()
+                    model = ct.models.ContentType.objects.get_for_id(t[0]) \
+                                                         .model_class()
                 except IndexError:
                     # t is empty
-                    model = ContentType
+                    model = ct.models.ContentType
                 t.append(model._meta.pk.to_python(
                     getattr(relobj, '_prefetch_related_val_%s' % f.attname)
                 ))

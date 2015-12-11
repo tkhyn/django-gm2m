@@ -1,9 +1,8 @@
 from django.db import connection
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db.backends import utils as db_backends_utils
 from django.db.migrations.state import ModelState
 
+from . import contenttypes as ct
 from .compat import is_fake_model
 
 
@@ -55,14 +54,14 @@ def create_gm2m_intermediary_model(field, klass):
         SRC_ATTNAME: models.ForeignKey(klass,
                                        on_delete=field.rel.on_delete_src,
                                        db_constraint=field.rel.db_constraint),
-        CT_ATTNAME: models.ForeignKey(ContentType,
+        CT_ATTNAME: models.ForeignKey(ct.models.ContentType,
                                       db_constraint=field.rel.db_constraint),
         FK_ATTNAME: models.CharField(max_length=fk_maxlength),
-        TGT_ATTNAME: GenericForeignKey(
-                         ct_field=CT_ATTNAME,
-                         fk_field=FK_ATTNAME,
-                         for_concrete_model=field.rel.for_concrete_model,
-                     ),
+        TGT_ATTNAME: ct.fields.GenericForeignKey(
+            ct_field=CT_ATTNAME,
+            fk_field=FK_ATTNAME,
+            for_concrete_model=field.rel.for_concrete_model,
+        ),
     })
 
     if is_fake_model(klass):
