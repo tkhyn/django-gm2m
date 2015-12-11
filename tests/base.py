@@ -72,7 +72,7 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        call_command('migrate', verbosity=0, interactive=False)
+        call_command('migrate', verbosity=0, interactive=False, run_syncdb=True)
 
     def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
