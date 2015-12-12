@@ -1,7 +1,7 @@
 from django.utils.functional import cached_property
 
 
-class _CTModels(object):
+class _CTClasses(object):
 
     @cached_property
     def ContentType(self):
@@ -13,14 +13,10 @@ class _CTModels(object):
         from django.contrib.contenttypes.models import ContentTypeManager
         return ContentTypeManager
 
-
-class _CTFields(object):
-
     @cached_property
     def GenericForeignKey(self):
         from django.contrib.contenttypes.fields import GenericForeignKey
         return GenericForeignKey
 
 
-models = _CTModels()
-fields = _CTFields()
+ct = _CTClasses()

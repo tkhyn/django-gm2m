@@ -1,9 +1,9 @@
 from collections import defaultdict
 
-from django.db.models import query import
+from django.db.models import query
 from django.utils import six
 
-from .contenttypes import models as ct_models
+from .contenttypes import ct as ct_classes
 from .helpers import get_content_type
 
 
@@ -51,7 +51,7 @@ class GM2MTgtQuerySet(query.QuerySet):
 
         for ct, attrs in six.iteritems(ct_attrs):
             for pk, obj in six.iteritems(
-                ct_models.ContentType.objects.get_for_id(ct).model_class()
+                ct_classes.ContentType.objects.get_for_id(ct).model_class()
                                      ._default_manager.in_bulk(attrs.keys())):
 
                 # we store the through model id in case we are in the process

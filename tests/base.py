@@ -24,7 +24,7 @@ from django.db.models.fields import related
 from django.apps.registry import apps
 
 from gm2m import GM2MField
-from gm2m import contenttypes as ct
+from gm2m.contenttypes import ct
 
 from .helpers import app_mod_path, del_app_models
 
@@ -123,7 +123,7 @@ class _TestCase(test.TestCase):
         # resets ContentType's related object cache to 'forget' the links
         # created by the previous test case, they'll be regenerated
         try:
-            del ct.models.ContentType._meta._related_objects_cache
+            del ct.ContentType._meta._related_objects_cache
         except AttributeError:
             pass
 
@@ -293,7 +293,7 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         # this is required as we need to erases the cached reverse relations
         # associated to FKs to ContentType
         try:
-            del ct.models.ContentType._meta._related_objects_cache
+            del ct.ContentType._meta._related_objects_cache
         except AttributeError:
             pass
 

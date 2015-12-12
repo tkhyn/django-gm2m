@@ -1,4 +1,4 @@
-from . import contenttypes as ct
+from .contenttypes import ct
 from .compat import is_fake_model
 
 
@@ -13,7 +13,7 @@ def get_content_type(obj):
         db = None
         klass = obj
 
-    ct_mngr = ct.models.ContentTypeManager().db_manager(db)
+    ct_mngr = ct.ContentTypeManager().db_manager(db)
     if is_fake_model(klass):
         # if obj is an instance of a fake model for migrations purposes, use
         # ContentType's ModelState rather than ContentType itself (issue #14)
@@ -28,6 +28,6 @@ def get_content_type(obj):
         except KeyError:
             pass
     else:
-        ct_mngr.model = ct.models.ContentType
+        ct_mngr.model = ct.ContentType
 
     return ct_mngr.get_for_model(obj)
