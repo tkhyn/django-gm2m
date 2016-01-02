@@ -22,6 +22,7 @@ from django.utils import six
 from django.db import models
 from django.db.models.fields import related
 from django.apps.registry import apps
+from django.core.management.base import CommandError
 
 from gm2m import GM2MField
 from gm2m.contenttypes import ct
@@ -72,7 +73,13 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        call_command('migrate', verbosity=0, interactive=False, run_syncdb=True)
+        try:
+            # Django 1.8
+            call_command('syncdb', verbosity=0, interactive=False)
+        except CommandError:
+            # Django 1.9
+            call_command('migrate', verbosity=0, interactive=False,
+                         run_syncdb=True)
 
     def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
