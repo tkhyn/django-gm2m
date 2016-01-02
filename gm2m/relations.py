@@ -1,3 +1,4 @@
+import django
 from django.db.models.fields.related import add_lazy_relation, \
     ForeignObjectRel, ForeignObject
 from django.db.models.fields import FieldDoesNotExist
@@ -74,8 +75,12 @@ class GM2MRelation(ForeignObject):
             'serialize': False
         })
 
+        if django.VERSION > (1, 9):
+            # django 1.9's ForeignObject constructor expects on_delete
+            kwargs['on_delete'] = rel.on_delete
+
         super(GM2MRelation, self).__init__(to, from_fields=[field.name],
-            to_fields=[], on_delete=rel.on_delete, **kwargs)
+            to_fields=[], **kwargs)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         pass
