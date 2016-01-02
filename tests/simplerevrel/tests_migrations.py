@@ -1,9 +1,6 @@
 import os
 
 from .. import base
-from ..app.models import Project
-
-from .models import Links
 
 
 class SimpleRevRelMigrationTests(base.MultiMigrationsTestCase):
@@ -16,8 +13,8 @@ class SimpleRevRelMigrationTests(base.MultiMigrationsTestCase):
         self.makemigrations()
         self.migrate()
 
-        l = Links.objects.create()
-        p = Project.objects.create()
+        l = self.models.Links.objects.create()
+        p = self.models.Project.objects.create()
         l.related_objects.add(p)
 
         mig2 = open(os.path.join(os.path.dirname(__file__), 'migrations',

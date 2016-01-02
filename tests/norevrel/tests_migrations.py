@@ -3,10 +3,7 @@ import re
 
 import django
 
-from ..app.models import Project
 from .. import base
-
-from .models import Links
 
 
 # basic migration tests
@@ -91,8 +88,8 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
         self.makemigrations()
         self.migrate()
 
-        Links.objects.create()
-        Project.objects.create()
+        self.models.Links.objects.create()
+        self.models.Project.objects.create()
 
         mig2 = open(os.path.join(os.path.dirname(__file__), 'migrations',
                                  '0002_runpython.py'), 'w')

@@ -2,8 +2,6 @@ import django
 
 from .. import base
 
-from ..app.models import Task, Project
-
 
 class RelatedTests(base.TestCase):
 
@@ -72,7 +70,7 @@ class FilterTests(base.TestCase):
 
     def test_filter_by_model(self):
         self.assertListEqual(
-            list(self.links.related_objects.filter(Model=Project)),
+            list(self.links.related_objects.filter(Model=self.models.Project)),
             [self.project],
         )
         self.assertListEqual(
@@ -80,15 +78,16 @@ class FilterTests(base.TestCase):
             [self.project],
         )
         self.assertListEqual(
-            list(self.links.related_objects.filter(Model=Task)),
+            list(self.links.related_objects.filter(Model=self.models.Task)),
             [],
         )
 
-        task = Task.objects.create()
+        task = self.models.Task.objects.create()
         self.links.related_objects.add(task)
 
         self.assertSetEqual(
-            set(self.links.related_objects.filter(Model__in=(Project, Task))),
+            set(self.links.related_objects.filter(
+                Model__in=(self.models.Project, self.models.Task))),
             {self.project, task},
         )
 
