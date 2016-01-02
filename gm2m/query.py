@@ -21,7 +21,7 @@ class GM2MTgtQuerySet(query.QuerySet):
         """
 
         try:
-            # TODO: use self._iterable_class instead from Django 1.9
+            # Django 1.9
             if self._iterable_class is not query.ModelIterable:
                 for v in super(GM2MTgtQuerySet, self).iterator():
                     yield v
@@ -29,7 +29,6 @@ class GM2MTgtQuerySet(query.QuerySet):
         except AttributeError:
             # Django 1.8
             pass
-
 
         try:
             del self._related_prefetching

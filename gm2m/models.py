@@ -3,7 +3,7 @@ from django.db.backends import utils as db_backends_utils
 from django.db.migrations.state import ModelState
 
 from .contenttypes import ct
-from .compat import is_fake_model
+from .helpers import is_fake_model
 
 
 SRC_ATTNAME = 'gm2m_src'

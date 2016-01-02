@@ -12,9 +12,8 @@ from importlib import import_module
 from inspect import getfile
 from shutil import rmtree, copy
 import time
-from unittest import skip, skipIf
+from unittest import skip
 
-import django
 from django import test
 from django.conf import settings
 from django.core.management import call_command
@@ -22,12 +21,12 @@ from django.utils import six
 from django.db import models
 from django.db.models.fields import related
 from django.apps.registry import apps
-from django.core.management.base import CommandError
 
 from gm2m import GM2MField
 from gm2m.contenttypes import ct
 
 from .helpers import app_mod_path, del_app_models
+from .compat import syncdb
 
 
 # no nose tests here !
@@ -61,9 +60,9 @@ class TestSettingsManager(object):
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
             if kwargs.get('migrate', True):
-                self.migrate()
+                self.syncdb()
 
-    def migrate(self):
+    def syncdb(self):
         for dicname in ('app_labels', 'app_store', 'handled',
                         '_get_models_cache'):
             getattr(apps, dicname, {}).clear()
@@ -73,13 +72,7 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        try:
-            # Django 1.8
-            call_command('syncdb', verbosity=0, interactive=False)
-        except CommandError:
-            # Django 1.9
-            call_command('migrate', verbosity=0, interactive=False,
-                         run_syncdb=True)
+        syncdb(verbosity=0, interactive=False)
 
     def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
@@ -91,7 +84,7 @@ class TestSettingsManager(object):
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
             if migrate:
-                self.migrate()
+                self.syncdb()
 
         self._original_settings = {}
 
@@ -166,8 +159,6 @@ class _TestCase(test.TestCase):
 
 class TestCase(_TestCase):
 
-    @skipIf(django.VERSION < (1, 7),
-            'deconstruct method does not exist for django < 1.7')
     def test_deconstruct(self):
         # this test will run on *all* testcases having no subclasses
 
@@ -190,13 +181,10 @@ class TestCase(_TestCase):
                                  if not getattr(r, '_added', False)]),
                             set(args))
 
-    @skipIf(django.VERSION < (1, 7),
-            'system check does not exist in django < 1.7')
     def test_check(self):
         call_command('check')
 
 
-@skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
 class MigrationsTestCase(_TestCase):
     """
     Handles migration module deletion after they are generated

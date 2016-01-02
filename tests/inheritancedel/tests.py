@@ -1,13 +1,9 @@
-import django
-
 from gm2m.signals import deleting
 
 from .. import base
 from ..mock import mock_signal_receiver
 
 
-@base.skipIf(django.VERSION < (1, 6),
-             'No deletion customisation for Django < 1.6')
 class InheritanceDeletionTests(base.TestCase):
 
     def setUp(self):

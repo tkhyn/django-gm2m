@@ -1,8 +1,6 @@
 import os
 import re
 
-import django
-
 from .. import base
 
 
@@ -16,8 +14,7 @@ class MigrationTests(base.MigrationsTestCase):
                           self.get_migration_content())
         mig_ctnt = re.sub(r"([\s\(])b'", r"\1'", mig_ctnt)
 
-        if django.VERSION >= (1, 8):
-            self.assertIn("""
+        self.assertIn("""
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
     ]
@@ -29,26 +26,6 @@ class MigrationTests(base.MigrationsTestCase):
                 ('id', models.AutoField()),
                 ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
             ],
-        ),
-    ]""", mig_ctnt)
-
-        else:
-            # django < 1.7
-            self.assertIn("""
-    dependencies = [
-        ('contenttypes', '0001_initial'),
-    ]
-
-    operations = [
-        migrations.CreateModel(
-            name='Links',
-            fields=[
-                ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
-            ],
-            options={
-            },
-            bases=(models.Model,),
         ),
     ]""", mig_ctnt)
 

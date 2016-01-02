@@ -4,6 +4,7 @@ from django.db.models.fields.related import add_lazy_relation, \
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
 from django.db.models.options import Options
+from django.db.models.query_utils import PathInfo
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.apps import apps
@@ -11,8 +12,7 @@ from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
 
-from .compat import PathInfo, add_related_field, is_fake_model,\
-    resolve_related_class
+from .compat import resolve_related_class
 from .contenttypes import ct
 
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
@@ -20,7 +20,7 @@ from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .deletion import *
 from .signals import deleting
-from .helpers import get_content_type
+from .helpers import get_content_type, is_fake_model
 
 
 # default relation attributes
@@ -137,25 +137,13 @@ class GM2MRelation(ForeignObject):
         return empty_qs
 
 
-class GM2MUnitRelBase(ForeignObjectRel):
-    # this is a separate implementation from GM2M below for compatibility
-    # reasons (see compat.add_related_field)
-
-    def __init__(self, field, to):
-        super(GM2MUnitRelBase, self).__init__(field, to)
-        self.multiple = True
-
-    def get_related_field(self):
-        """
-        Returns the field in the to object to which this relationship is tied
-        (this is always the primary key on the target model).
-        """
-        return self.to._meta.pk
-
-
-class GM2MUnitRel(GM2MUnitRelBase):
+class GM2MUnitRel(ForeignObjectRel):
 
     dummy_pre_delete = lambda s, **kwargs: None
+
+    def __init__(self, field, to):
+        super(GM2MUnitRel, self).__init__(field, to)
+        self.multiple = True
 
     def check(self, **kwargs):
         errors = []
@@ -334,7 +322,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         """
 
         # this enables cascade deletion for any relation (even hidden ones)
-        add_related_field(self.to._meta, self.related)
+        self.to._meta.add_field(self.related, virtual=True)
 
         if self.on_delete in handlers_with_signal:
             # if a signal should be sent on deletion, we connect a dummy
@@ -437,6 +425,13 @@ class GM2MUnitRel(GM2MUnitRelBase):
         cond = where_class()
         cond.add(lookup, 'AND')
         return cond
+
+    def get_related_field(self):
+        """
+        Returns the field in the to object to which this relationship is tied
+        (this is always the primary key on the target model).
+        """
+        return self.to._meta.pk
 
 
 class GM2MTo(object):

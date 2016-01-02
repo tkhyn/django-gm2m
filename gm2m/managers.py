@@ -6,8 +6,6 @@ from .contenttypes import ct
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
 
-from .compat import get_related_model
-
 
 class GM2MBaseManager(Manager):
 
@@ -256,7 +254,7 @@ class GM2MBaseTgtManager(Manager):
                     v = v.pop()
                 except AttributeError:  # v is not a list
                     pass
-                t.append(get_related_model(f)._meta.pk.to_python(v))
+                t.append(f.related_model._meta.pk.to_python(v))
             return tuple(t)
 
         # model attribute retrieval function

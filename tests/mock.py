@@ -2,12 +2,7 @@ from __future__ import absolute_import
 
 import contextlib
 
-try:
-    # pyhthon 2
-    import mock
-except ImportError:
-    # python 3
-    from unittest import mock
+from .compat import mock
 
 
 @contextlib.contextmanager

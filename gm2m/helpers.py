@@ -1,5 +1,13 @@
+from django.db.migrations.state import StateApps
+
 from .contenttypes import ct
-from .compat import is_fake_model
+
+
+def is_fake_model(model):
+    """
+    Is ``model`` a 'state' model (generated for migrations)
+    """
+    return isinstance(model._meta.apps, StateApps)
 
 
 def get_content_type(obj):
