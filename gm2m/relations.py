@@ -11,7 +11,8 @@ from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
 
-from .compat import PathInfo, add_related_field, is_fake_model
+from .compat import PathInfo, add_related_field, is_fake_model,\
+    resolve_related_class
 from .contenttypes import ct
 
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
@@ -309,13 +310,6 @@ class GM2MUnitRel(GM2MUnitRelBase):
 
     def contribute_to_class(self):
         if isinstance(self.to, six.string_types) or self.to._meta.pk is None:
-            def resolve_related_class(rel, model, cls):
-                try:
-                    rel.model = model
-                except AttributeError:
-                    # "Can't set attribute" error, raised in Django < 1.9
-                    rel.to = model
-                rel.do_related_class()
             add_lazy_relation(self.field.model, self, self.to,
                               resolve_related_class)
         else:
