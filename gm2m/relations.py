@@ -305,7 +305,11 @@ class GM2MUnitRel(GM2MUnitRelBase):
     def contribute_to_class(self):
         if isinstance(self.to, six.string_types) or self.to._meta.pk is None:
             def resolve_related_class(rel, model, cls):
-                rel.to = model
+                try:
+                    rel.model = model
+                except AttributeError:
+                    # "Can't set attribute" error, raised in Django < 1.9
+                    rel.to = model
                 rel.do_related_class()
             add_lazy_relation(self.field.model, self, self.to,
                               resolve_related_class)
@@ -453,6 +457,7 @@ class GM2MTo(object):
 class GM2MRel(object):
 
     to = GM2MTo()
+    model = GM2MTo()
 
     def __init__(self, field, related_models, **params):
 
