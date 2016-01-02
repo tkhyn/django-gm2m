@@ -1,10 +1,9 @@
 import django
 
-from mock_django.signals import mock_signal_receiver
-
 from gm2m.signals import deleting
 
 from .. import base
+from ..mock import mock_signal_receiver
 
 
 @base.skipIf(django.VERSION < (1, 6),
