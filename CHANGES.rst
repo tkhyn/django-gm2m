@@ -4,6 +4,14 @@ django-gm2m - changes
 key:
 | \* bug fix
 | \+ addition
+| \- deletion
+
+
+v0.4 (03-01-2016)
+-----------------
+
+| \+ Django 1.9 support
+| \- Drops Django < 1.8 support
 
 
 v0.3 (09-09-2015)

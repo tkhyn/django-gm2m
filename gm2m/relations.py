@@ -1,25 +1,26 @@
+import django
 from django.db.models.fields.related import add_lazy_relation, \
     ForeignObjectRel, ForeignObject
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
 from django.db.models.options import Options
+from django.db.models.query_utils import PathInfo
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.apps import apps
 from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
 
-from .compat import PathInfo, add_related_field, is_fake_model
+from .compat import resolve_related_class
+from .contenttypes import ct
 
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .deletion import *
 from .signals import deleting
-from .helpers import get_content_type
+from .helpers import get_content_type, is_fake_model
 
 
 # default relation attributes
@@ -75,8 +76,12 @@ class GM2MRelation(ForeignObject):
             'serialize': False
         })
 
+        if django.VERSION > (1, 9):
+            # django 1.9's ForeignObject constructor expects on_delete
+            kwargs['on_delete'] = rel.on_delete
+
         super(GM2MRelation, self).__init__(to, from_fields=[field.name],
-                                           to_fields=[], **kwargs)
+            to_fields=[], **kwargs)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         pass
@@ -132,25 +137,13 @@ class GM2MRelation(ForeignObject):
         return empty_qs
 
 
-class GM2MUnitRelBase(ForeignObjectRel):
-    # this is a separate implementation from GM2M below for compatibility
-    # reasons (see compat.add_related_field)
-
-    def __init__(self, field, to):
-        super(GM2MUnitRelBase, self).__init__(field, to)
-        self.multiple = True
-
-    def get_related_field(self):
-        """
-        Returns the field in the to object to which this relationship is tied
-        (this is always the primary key on the target model).
-        """
-        return self.to._meta.pk
-
-
-class GM2MUnitRel(GM2MUnitRelBase):
+class GM2MUnitRel(ForeignObjectRel):
 
     dummy_pre_delete = lambda s, **kwargs: None
+
+    def __init__(self, field, to):
+        super(GM2MUnitRel, self).__init__(field, to)
+        self.multiple = True
 
     def check(self, **kwargs):
         errors = []
@@ -305,9 +298,6 @@ class GM2MUnitRel(GM2MUnitRelBase):
 
     def contribute_to_class(self):
         if isinstance(self.to, six.string_types) or self.to._meta.pk is None:
-            def resolve_related_class(rel, model, cls):
-                rel.to = model
-                rel.do_related_class()
             add_lazy_relation(self.field.model, self, self.to,
                               resolve_related_class)
         else:
@@ -332,7 +322,7 @@ class GM2MUnitRel(GM2MUnitRelBase):
         """
 
         # this enables cascade deletion for any relation (even hidden ones)
-        add_related_field(self.to._meta, self.related)
+        self.to._meta.add_field(self.related, virtual=True)
 
         if self.on_delete in handlers_with_signal:
             # if a signal should be sent on deletion, we connect a dummy
@@ -428,13 +418,20 @@ class GM2MUnitRel(GM2MUnitRelBase):
         opts = self.through._meta
         field = opts.get_field_by_name(opts._field_names['tgt_ct'])[0]
 
-        ct_pk = ContentType.objects.get_for_model(self.to,
+        ct_pk = ct.ContentType.objects.get_for_model(self.to,
                     for_concrete_model=self.for_concrete_model).pk
         lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
 
         cond = where_class()
         cond.add(lookup, 'AND')
         return cond
+
+    def get_related_field(self):
+        """
+        Returns the field in the to object to which this relationship is tied
+        (this is always the primary key on the target model).
+        """
+        return self.to._meta.pk
 
 
 class GM2MTo(object):
@@ -454,6 +451,7 @@ class GM2MTo(object):
 class GM2MRel(object):
 
     to = GM2MTo()
+    model = GM2MTo()
 
     def __init__(self, field, related_models, **params):
 
@@ -562,15 +560,15 @@ class GM2MRel(object):
                     )
                 )
 
-            seen_to = sum(isinstance(field, GenericForeignKey)
+            seen_to = sum(isinstance(field, ct.GenericForeignKey)
                 for field in self.through._meta.virtual_fields)
 
             if seen_to == 0:
                 errors.append(
                     checks.Error(
                         "The model is used as an intermediate model by "
-                         "'%s', but it does not have a a generic foreign key."
-                         % (self, from_model_name),
+                        "'%s', but it does not have a a generic foreign key."
+                        % from_model_name,
                         hint=None,
                         obj=self.through,
                         id='gm2m.E104',
@@ -663,7 +661,7 @@ class GM2MRel(object):
 
                 possible_field_names = []
                 for f in through._meta.virtual_fields:
-                    if isinstance(f, GenericForeignKey):
+                    if isinstance(f, ct.GenericForeignKey):
                         possible_field_names.append(f.name)
                 if possible_field_names:
                     hint = "Did you mean one of the following generic " \
@@ -690,7 +688,7 @@ class GM2MRel(object):
                     )
 
                 if field:
-                    if not isinstance(field, GenericForeignKey):
+                    if not isinstance(field, ct.GenericForeignKey):
                         errors.append(
                             checks.Error(
                                 "'%s.%s' is not a generic foreign key."
@@ -763,7 +761,7 @@ class GM2MRel(object):
                         tf_dict['src'] = f.name
                         break
                 for f in rel.through._meta.virtual_fields:
-                    if isinstance(f, GenericForeignKey):
+                    if isinstance(f, ct.GenericForeignKey):
                         tf_dict['tgt'] = f.name
                         tf_dict['tgt_ct'] = f.ct_field
                         tf_dict['tgt_fk'] = f.fk_field

@@ -1,12 +1,7 @@
 import os
 import re
 
-import django
-
-from ..app.models import Project
 from .. import base
-
-from .models import Links
 
 
 # basic migration tests
@@ -19,8 +14,7 @@ class MigrationTests(base.MigrationsTestCase):
                           self.get_migration_content())
         mig_ctnt = re.sub(r"([\s\(])b'", r"\1'", mig_ctnt)
 
-        if django.VERSION >= (1, 8):
-            self.assertIn("""
+        self.assertIn("""
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
     ]
@@ -32,26 +26,6 @@ class MigrationTests(base.MigrationsTestCase):
                 ('id', models.AutoField()),
                 ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
             ],
-        ),
-    ]""", mig_ctnt)
-
-        else:
-            # django < 1.7
-            self.assertIn("""
-    dependencies = [
-        ('contenttypes', '0001_initial'),
-    ]
-
-    operations = [
-        migrations.CreateModel(
-            name='Links',
-            fields=[
-                ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
-            ],
-            options={
-            },
-            bases=(models.Model,),
         ),
     ]""", mig_ctnt)
 
@@ -91,8 +65,8 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
         self.makemigrations()
         self.migrate()
 
-        Links.objects.create()
-        Project.objects.create()
+        self.models.Links.objects.create()
+        self.models.Project.objects.create()
 
         mig2 = open(os.path.join(os.path.dirname(__file__), 'migrations',
                                  '0002_runpython.py'), 'w')

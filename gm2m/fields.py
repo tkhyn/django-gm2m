@@ -8,10 +8,6 @@ from django.db.backends import utils as db_backends_utils
 
 from .relations import GM2MRel, REL_ATTRS
 
-from .compat import add_field
-
-from . import monkeypatch
-
 
 class GM2MField(Field):
     """
@@ -177,10 +173,11 @@ class GM2MField(Field):
         if virtual_only:
             opts.add_virtual_field(self)
         else:
-            # we need to use a custom function here, as calling
-            # cls._meta.add_field would only work if GM2MField derived from
-            # ManyToManyField, which, for various reasons, is not the case
-            add_field(opts, self)
+            opts.add_field(self)
+            # we need to clear the options cache here. It would automatically
+            # be done by add_field above if GM2MField derived from
+            # ManyToManyField, but for various reasons it is not the case
+            opts._expire_cache()
 
         self.model = cls
         self.opts = cls._meta

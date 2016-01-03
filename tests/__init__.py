@@ -1,13 +1,16 @@
 import os
-import sys
 
 from .helpers import del_app_models
+
+from .monkeypatch import patch_interactive_mig_questionner
 
 
 def setUp():
     """
     Unloads apps after nose's tests lookup
     """
+
+    patch_interactive_mig_questionner()
 
     ldir = os.path.dirname(__file__)
     apps_list = [d for d in os.listdir(ldir)

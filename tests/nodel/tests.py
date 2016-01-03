@@ -1,10 +1,6 @@
-import django
-
 from .. import base
 
 
-@base.skipIf(django.VERSION < (1, 6),
-             'No deletion customisation for Django < 1.6')
 class CustomDeletionTests(base.TestCase):
 
     def setUp(self):

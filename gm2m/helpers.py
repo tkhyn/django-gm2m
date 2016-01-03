@@ -1,6 +1,13 @@
-from django.contrib.contenttypes.models import ContentType, ContentTypeManager
+from django.db.migrations.state import StateApps
 
-from .compat import is_fake_model
+from .contenttypes import ct
+
+
+def is_fake_model(model):
+    """
+    Is ``model`` a 'state' model (generated for migrations)
+    """
+    return isinstance(model._meta.apps, StateApps)
 
 
 def get_content_type(obj):
@@ -14,7 +21,7 @@ def get_content_type(obj):
         db = None
         klass = obj
 
-    ct_mngr = ContentTypeManager().db_manager(db)
+    ct_mngr = ct.ContentTypeManager().db_manager(db)
     if is_fake_model(klass):
         # if obj is an instance of a fake model for migrations purposes, use
         # ContentType's ModelState rather than ContentType itself (issue #14)
@@ -29,6 +36,6 @@ def get_content_type(obj):
         except KeyError:
             pass
     else:
-        ct_mngr.model = ContentType
+        ct_mngr.model = ct.ContentType
 
     return ct_mngr.get_for_model(obj)

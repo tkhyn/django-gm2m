@@ -1,8 +1,4 @@
-import django
-
 from .. import base
-
-from ..app.models import Task, Project
 
 
 class RelatedTests(base.TestCase):
@@ -27,8 +23,6 @@ class RelatedTests(base.TestCase):
         self.assertEqual(task.links_set.count(), 1)
         self.assertIn(self.links, task.links_set.all())
 
-    @base.skipIf(django.VERSION < (1, 7),
-        'reverse relation is not added to virtual_fields in django < 1.7')
     def test_not_in_reverse_rel_option_fields(self):
         """
         Check that the reverse relation is not in the Project's options fields
@@ -72,7 +66,7 @@ class FilterTests(base.TestCase):
 
     def test_filter_by_model(self):
         self.assertListEqual(
-            list(self.links.related_objects.filter(Model=Project)),
+            list(self.links.related_objects.filter(Model=self.models.Project)),
             [self.project],
         )
         self.assertListEqual(
@@ -80,20 +74,19 @@ class FilterTests(base.TestCase):
             [self.project],
         )
         self.assertListEqual(
-            list(self.links.related_objects.filter(Model=Task)),
+            list(self.links.related_objects.filter(Model=self.models.Task)),
             [],
         )
 
-        task = Task.objects.create()
+        task = self.models.Task.objects.create()
         self.links.related_objects.add(task)
 
         self.assertSetEqual(
-            set(self.links.related_objects.filter(Model__in=(Project, Task))),
+            set(self.links.related_objects.filter(
+                Model__in=(self.models.Project, self.models.Task))),
             {self.project, task},
         )
 
-    @base.skipIf(django.VERSION < (1, 8),
-                 'reverse query lookup is not available in django < 1.8')
     def test_reverse_chain_filter(self):
         self.assertEqual(
             self.models.Project.objects.filter(links__name='Links')[0],

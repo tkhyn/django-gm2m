@@ -12,25 +12,22 @@ from importlib import import_module
 from inspect import getfile
 from shutil import rmtree, copy
 import time
-from unittest import skip, skipIf
+from unittest import skip
 
-import django
 from django import test
 from django.conf import settings
 from django.core.management import call_command
 from django.utils import six
-from django.db import models, connection
+from django.db import models
 from django.db.models.fields import related
-from django.contrib.contenttypes.models import ContentType
-from django.utils.six import StringIO
 from django.apps.registry import apps
 
 from gm2m import GM2MField
+from gm2m.contenttypes import ct
 
 from .helpers import app_mod_path, del_app_models
+from .compat import syncdb
 
-# patches the migration questioner
-from . import monkeypatch
 
 # no nose tests here !
 __test__ = False
@@ -62,7 +59,7 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
-            if kwargs.get('syncdb', True):
+            if kwargs.get('migrate', True):
                 self.syncdb()
 
     def syncdb(self):
@@ -75,9 +72,9 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        call_command('syncdb', verbosity=0, interactive=False)
+        syncdb(verbosity=0, interactive=False)
 
-    def revert(self, syncdb=True):
+    def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
             if v == NO_SETTING:
                 delattr(settings, k)
@@ -86,7 +83,7 @@ class TestSettingsManager(object):
 
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
-            if syncdb:
+            if migrate:
                 self.syncdb()
 
         self._original_settings = {}
@@ -126,7 +123,7 @@ class _TestCase(test.TestCase):
         # resets ContentType's related object cache to 'forget' the links
         # created by the previous test case, they'll be regenerated
         try:
-            del ContentType._meta._related_objects_cache
+            del ct.ContentType._meta._related_objects_cache
         except AttributeError:
             pass
 
@@ -162,8 +159,6 @@ class _TestCase(test.TestCase):
 
 class TestCase(_TestCase):
 
-    @skipIf(django.VERSION < (1, 7),
-            'deconstruct method does not exist for django < 1.7')
     def test_deconstruct(self):
         # this test will run on *all* testcases having no subclasses
 
@@ -186,13 +181,10 @@ class TestCase(_TestCase):
                                  if not getattr(r, '_added', False)]),
                             set(args))
 
-    @skipIf(django.VERSION < (1, 7),
-            'system check does not exist in django < 1.7')
     def test_check(self):
         call_command('check')
 
 
-@skipIf(django.VERSION < (1, 7), 'no migrations in django < 1.7')
 class MigrationsTestCase(_TestCase):
     """
     Handles migration module deletion after they are generated
@@ -289,17 +281,17 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         # reload apps so that next migration can be generated (yes, all of
         # them, it does not work if only the test one is reloaded)
         cls = self.__class__
-        cls.settings_manager.revert(syncdb=False)
+        cls.settings_manager.revert(migrate=False)
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
 
         # this is required as we need to erases the cached reverse relations
         # associated to FKs to ContentType
         try:
-            del ContentType._meta._related_objects_cache
+            del ct.ContentType._meta._related_objects_cache
         except AttributeError:
             pass
 
         app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
         cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
-                                 + app_paths, syncdb=False)
+                                 + app_paths, migrate=False)

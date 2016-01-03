@@ -1,12 +1,10 @@
 from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
-from django.contrib.contenttypes.models import ContentType
 
+from .contenttypes import ct
 from .query import GM2MTgtQuerySet
 from .helpers import get_content_type
-
-from .compat import get_related_model
 
 
 class GM2MBaseManager(Manager):
@@ -153,10 +151,11 @@ class GM2MBaseSrcManager(Manager):
                 try:
                     # t already contains the content type id
                     # we use get_for_id to retrieve the cached content type
-                    model = ContentType.objects.get_for_id(t[0]).model_class()
+                    model = ct.ContentType.objects.get_for_id(t[0]) \
+                                                  .model_class()
                 except IndexError:
                     # t is empty
-                    model = ContentType
+                    model = ct.ContentType
                 t.append(model._meta.pk.to_python(
                     getattr(relobj, '_prefetch_related_val_%s' % f.attname)
                 ))
@@ -255,7 +254,7 @@ class GM2MBaseTgtManager(Manager):
                     v = v.pop()
                 except AttributeError:  # v is not a list
                     pass
-                t.append(get_related_model(f)._meta.pk.to_python(v))
+                t.append(f.related_model._meta.pk.to_python(v))
             return tuple(t)
 
         # model attribute retrieval function
