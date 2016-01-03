@@ -105,8 +105,7 @@ reverse relations by default, nothing more.
 The reverse relations provide you with the full set of operations that normal
 Django reverse relation exposes: ``add``, ``remove`` and ``clear``.
 
-A reverse relation also enables you to use lookup chains in your queries
-(Django 1.8+ only)::
+A reverse relation also enables you to use lookup chains in your queries::
 
    >>> class Fan(models.Model):
    >>>    name = models.CharField(max_length=32)
@@ -274,7 +273,7 @@ pk_maxlength
 Migrations
 ----------
 
-``django-gm2m`` fully supports `Django 1.7+ migrations`_.
+``django-gm2m`` fully supports `Django migrations`_.
 
 When generating migrations for an app using ``GM2MField``, do not be surprised
 to see a ``through_fields`` keyword argument (as a list containing 4 field
@@ -360,4 +359,4 @@ Future improvements
 
 
 .. _django-generic-m2m: https://pypi.python.org/pypi/django-generic-m2m
-.. _`Django 1.7+ migrations`: https://docs.djangoproject.com/en/dev/topics/migrations/
+.. _`Django migrations`: https://docs.djangoproject.com/en/dev/topics/migrations/
