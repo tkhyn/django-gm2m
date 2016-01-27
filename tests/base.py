@@ -12,6 +12,7 @@ from importlib import import_module
 from inspect import getfile
 from shutil import rmtree, copy
 import time
+import warnings
 from unittest import skip
 
 from django import test
@@ -21,6 +22,7 @@ from django.utils import six
 from django.db import models
 from django.db.models.fields import related
 from django.apps.registry import apps
+from django.utils.deprecation import RemovedInNextVersionWarning
 
 from gm2m import GM2MField
 from gm2m.contenttypes import ct
@@ -182,7 +184,10 @@ class TestCase(_TestCase):
                             set(args))
 
     def test_check(self):
-        call_command('check')
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error',
+                                    category=RemovedInNextVersionWarning)
+            call_command('check')
 
 
 class MigrationsTestCase(_TestCase):
