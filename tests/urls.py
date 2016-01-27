@@ -1,6 +1,6 @@
-from django.conf.urls import url, patterns
+from django.conf.urls import url
 
 
-urlpatterns = patterns('',
+urlpatterns = [
     url('^$', lambda: None)
-)
+]
