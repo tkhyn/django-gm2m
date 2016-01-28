@@ -247,10 +247,8 @@ class GM2MUnitRel(ForeignObjectRel):
         # Check clashes between accessors/reverse query names of `field`
         # and any other field accessor -- i. e. Model.gm2m accessor clashes
         # with Model.foreign accessor.
-        potential_clashes = rel_opts.get_all_related_many_to_many_objects()
-        potential_clashes += rel_opts.get_all_related_objects()
-        potential_clashes = (r for r in potential_clashes
-            if r.field is not self.field)
+        potential_clashes = [r for r in rel_opts.related_objects
+                             if r.field is not self.field]
         for clash_field in potential_clashes:
             # "Model.gm2m"
             clash_name = "%s.%s" % (

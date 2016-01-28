@@ -40,7 +40,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'django-gm2m'
-copyright = u'2015, Thomas Khyn'
+copyright = u'2014-2016, Thomas Khyn'
 author = u'Thomas Khyn'
 
 # The version info for the project you're documenting, acts as replacement for

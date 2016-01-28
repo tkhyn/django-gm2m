@@ -13,6 +13,13 @@ v0.4 (03-01-2016)
 | \+ Django 1.9 support
 | \- Drops Django < 1.8 support
 
+v0.4.1 (29-01-2016)
+...................
+
+| \* Eliminates Django 1.10 deprecation warnings (#16)
+| \* Fixes the documentation regarding INSTALLED_APPS (#18)
+| \* Doc typos
+
 
 v0.3 (09-09-2015)
 -----------------

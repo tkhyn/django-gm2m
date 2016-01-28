@@ -11,11 +11,15 @@ As straightforward as it can be, using ``pip``::
 
    pip install django-gm2m
 
-You then need to make sure that Django's contenttype framework is available by
-checking that ``django.contrib.contenttypes`` is mentionned in the
-``INSTALLED_APPS`` tuple. As ``django-gm2m`` itself does not expose any model
-nor require specific initialisation, there is no need to add ``gm2m`` to the
-``INSTALLED_APPS``.
+You then need to make sure that ``django.contrib.contenttypes`` appears
+somewhere in your ``INSTALLED_APPS`` setting, and add ``gm2m`` to it::
+
+   INSTALLED_APPS = [
+      ...
+      'django.contrib.contenttypes',
+      ...
+      'gm2m',
+   ]
 
 
 First steps
@@ -66,12 +70,13 @@ From a ``User`` instance, you can fetch all the user's preferred videos::
    >>> list(user.preferred_videos)
    [<Movie object>, <Documentary object>]
 
-Which you may filter by model using the ``Model`` or ``Model__in`` keywords::
+... which you may filter by model using the ``Model`` or ``Model__in``
+keywords::
 
    >>> list(user.preferred_videos.filter(Model=Movie))
    [<Movie object>]
    >>> list(user.preferred_videos.filter(Model__in=[Documentary]))
    [<Documentary object>]
 
-That's it for a basic use of django-gm2m. You may be interested in the more
-advanced :ref:`features <features>` it offers.
+That's it regarding the basic usage of ``django-gm2m``. You'll probably want to
+have a look at the more advanced :ref:`features <features>` it offers.

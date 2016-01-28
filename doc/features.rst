@@ -13,7 +13,7 @@ django-gm2m...
   that need to be linked
 - Provides automatic `reverse relations`_ when an instance is added
 - Enables related objects prefetching_
-- Allow the use of `Through models`_
+- Allows the use of `Through models`_
 - Allows you to customize the deletion_ behaviour
 - Supports migrations_
 
@@ -42,7 +42,7 @@ Reverse relations
 
 We've seen how you could access all the ``preferred_videos`` of a given user.
 But what if you want to access all the users that have bookmarked a given
-video? django-gm2m provides that out of the box, with a bit of magic.
+video? ``django-gm2m`` provides that out of the box, with a bit of magic.
 
 Indeed, even without having to explicitly create reverse relations (e.g by
 providing models to the ``GM2MField`` constructor), they are automatically
@@ -72,9 +72,8 @@ until you provide it with a minimum of information.
 
 However, if you want some reverse relations to be created before any instance
 is added, so that retrieving the ``<modelname_set>`` attribute never raises an
-exception, it is possible to explicitly provide a list of models as arguments
-of the ``GM2MField`` constructor. You may use model names if necessary to
-avoid circular imports::
+exception, it is possible to explicitly provide some models to the ``GM2MField``
+constructor. You may use model names if necessary to avoid circular imports::
 
    >>> class Concert(Video):
    >>>     pass
@@ -90,15 +89,15 @@ and available even if no instance has been added yet::
    []
 
 If you need to add relations afterwards, or if the ``GM2MField`` is defined in
-a third-party library you do not want to patch, you can still manually add
-relations afterwards::
+a third-party library you cannot or do not want to patch, you can still manually
+add relations afterwards::
 
    >>> class Theater(Video):
    >>>     pass
    >>> User.preferred_shows.add_relation(Theater)
 
 Note that providing models to ``GM2MField`` does not prevent you from adding
-instances from other models.You can still add instances from other models, and
+instances from other models. You can still add instances from other models, and
 the relation will be created. Providing a list of models will only create
 reverse relations by default, nothing more.
 
@@ -120,10 +119,10 @@ A reverse relation also enables you to use lookup chains in your queries::
 Deletion
 --------
 
-By default, when an instance from a source or target model is deleted, all
-relations linking this instance are deleted. It is possible to change this
-behavior by using the ``on_delete``, ``on_delete_src`` and ``on_delete_tgt``
-keyword arguments when creating the ``GM2MField``::
+By default, when a source or target model instance is deleted, all relations
+linking this instance are deleted. It is possible to change this behavior with
+the ``on_delete``, ``on_delete_src`` and ``on_delete_tgt`` keyword arguments
+when creating the ``GM2MField``::
 
    >>> from gm2m.deletion import DO_NOTHING
    >>>
@@ -171,8 +170,7 @@ Signals
 The signals listed below can be imported from the ``gm2m.signals`` module.
 
 deleting
-   Sent when instances involved in the source side of a GM2M relationship
-   (= instances of the model where the ``GM2MField`` is defined) are being
+   Sent when source model (= where the ``GM2MField`` is defined) instances are
    deleted. The ``sender`` is the ``GM2MField`` instance. The receivers take
    2 keyword arguments:
 
@@ -229,11 +227,10 @@ the ``GM2MField`` constructor.
 GM2MField constructor's other parameters
 ----------------------------------------
 
-In addition to the specific ``on_delete*`` and the ``through`` /
-``through_fields`` parameters, you can use the following optional keyword
-arguments when defining a ``GM2MField``.
-Most of them have the same signification than for Django's ``ManyToManyField``
-or ``GenericForeignKey``.
+In addition to the specific ``on_delete*`` and ``through`` / ``through_fields``
+parameters, you can use the following optional keyword arguments when defining
+a ``GM2MField``. For the sake of consistency, they have the same signification
+as in Django's ``ManyToManyField`` and ``GenericForeignKey``.
 
 verbose_name
    A human-readable name for the field. Defaults to a munged version of the
@@ -259,7 +256,7 @@ related_name
 
 related_query_name
    The name to use for the reverse filter name from the target model.
-   Defaults to the value of ``related_name`` or the name of the model.
+   Defaults to the value of ``related_name`` or the model name.
 
 pk_maxlength
    This is useful when using an automatically created intermediate model, to
@@ -298,20 +295,20 @@ gm2m.E101 [fields.E331]
    installed
 
 gm2m.E102 [fields.E333]
-   The model used as an intermediate model but does not have a foreign key to
+   The model used as an intermediate model does not have a foreign key to
    the source model
 
 gm2m.E103 [fields.E334]
-   The model used as an intermediate model but has more than one foreign key to
+   The model used as an intermediate model has more than one foreign key to
    the source model, which is ambiguous (the one that is used is the first
    declared in the model).
 
 gm2m.E104 [fields.E333]
-   The model used as an intermediate model but does not have a generic foreign
+   The model used as an intermediate model does not have a generic foreign
    key
 
 gm2m.E105 [fields.E334]
-   The model used as an intermediate model but has more than one generic
+   The model used as an intermediate model has more than one generic
    foreign key, which is ambiguous (the one that is used is the first declared
    in the model).
 

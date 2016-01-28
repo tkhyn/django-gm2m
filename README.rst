@@ -1,7 +1,7 @@
 django-gm2m
 ===========
 
-|copyright| 2014-2015 Thomas Khyn
+|copyright| 2014-2016 Thomas Khyn
 
 Django generic many-to-many field implementation.
 
@@ -43,4 +43,4 @@ the description of all django-gm2m's advanced features.
 .. |copyright| unicode:: 0xA9
 
 .. _django-generic-m2m: https://pypi.python.org/pypi/django-generic-m2m
-.. _readthedocs: http://django-gm2m.readthedocs.org/en/release
+.. _readthedocs: http://django-gm2m.readthedocs.org/en/stable
