@@ -70,12 +70,13 @@ From a ``User`` instance, you can fetch all the user's preferred videos::
    >>> list(user.preferred_videos)
    [<Movie object>, <Documentary object>]
 
-Which you may filter by model using the ``Model`` or ``Model__in`` keywords::
+... which you may filter by model using the ``Model`` or ``Model__in``
+keywords::
 
    >>> list(user.preferred_videos.filter(Model=Movie))
    [<Movie object>]
    >>> list(user.preferred_videos.filter(Model__in=[Documentary]))
    [<Documentary object>]
 
-That's it for a basic use of django-gm2m. You may be interested in the more
-advanced :ref:`features <features>` it offers.
+That's it regarding the basic usage of ``django-gm2m``. You'll probably want to
+have a look at the more advanced :ref:`features <features>` it offers.
