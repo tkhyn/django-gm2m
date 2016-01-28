@@ -11,11 +11,15 @@ As straightforward as it can be, using ``pip``::
 
    pip install django-gm2m
 
-You then need to make sure that Django's contenttype framework is available by
-checking that ``django.contrib.contenttypes`` is mentionned in the
-``INSTALLED_APPS`` tuple. As ``django-gm2m`` itself does not expose any model
-nor require specific initialisation, there is no need to add ``gm2m`` to the
-``INSTALLED_APPS``.
+You then need to make sure that ``django.contrib.contenttypes`` appears
+somewhere in your ``INSTALLED_APPS`` setting, and add ``gm2m`` to it::
+
+   INSTALLED_APPS = [
+      ...
+      'django.contrib.contenttypes',
+      ...
+      'gm2m',
+   ]
 
 
 First steps
