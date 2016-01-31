@@ -383,7 +383,7 @@ class GM2MUnitRel(ForeignObjectRel):
 
         # this is the src <> through part of the relation, we'll use
         # path info retrieval functions on this
-        fk_field = opts.get_field_by_name(opts._field_names['src'])[0]
+        fk_field = opts.get_field(opts._field_names['src'])
 
         if reverse:
             pathinfos.extend(fk_field.get_reverse_path_info())
@@ -409,7 +409,7 @@ class GM2MUnitRel(ForeignObjectRel):
         opts = self.through._meta
         return [(
             self.to._meta.pk.column,
-            opts.get_field_by_name(opts._field_names['tgt_fk'])[0].column
+            opts.get_field(opts._field_names['tgt_fk']).column
         )]
 
     def get_extra_restriction(self, where_class, alias, remote_alias):
