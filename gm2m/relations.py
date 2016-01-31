@@ -63,7 +63,6 @@ class GM2MRelation(ForeignObject):
     one_to_one = False
 
     concrete = False
-    generate_reverse_relation = False  # only used in Django 1.7
     related_accessor_class = GM2MRelatedDescriptor
 
     def __init__(self, to, field, rel, **kwargs):
@@ -374,7 +373,6 @@ class GM2MUnitRel(ForeignObjectRel):
                             model._meta.object_name)) == to_string:
                 return model._meta.swappable
         return None
-
 
     def _get_path_info(self, reverse):
         pathinfos = []
