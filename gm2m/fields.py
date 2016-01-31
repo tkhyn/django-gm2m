@@ -17,7 +17,13 @@ class GM2MField(Field):
     Reverse relations can be established with models provided as arguments
     """
 
-    # field flags
+    # Field flags
+    auto_created = False
+    concrete = False
+    editable = False
+    hidden = False
+
+    is_relation = True
     many_to_many = True
     many_to_one = False
     one_to_many = False
