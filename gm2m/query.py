@@ -51,7 +51,7 @@ class GM2MTgtQuerySet(query.QuerySet):
         for ct, attrs in six.iteritems(ct_attrs):
             for pk, obj in six.iteritems(
                 ct_classes.ContentType.objects.get_for_id(ct).model_class()
-                                     ._default_manager.in_bulk(attrs.keys())):
+                                      ._default_manager.in_bulk(attrs.keys())):
 
                 # we store the through model id in case we are in the process
                 # of fetching related objects
