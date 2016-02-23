@@ -65,6 +65,8 @@ class GM2MRelation(ForeignObject):
     concrete = False
     related_accessor_class = GM2MRelatedDescriptor
 
+    hidden = False
+
     def __init__(self, to, field, rel, **kwargs):
         self.field = field
 
@@ -86,8 +88,7 @@ class GM2MRelation(ForeignObject):
         pass
 
     def get_accessor_name(self):
-        return self.rel.related_name \
-            or (self.field.model._meta.model_name + '_set')
+        return self.rel.get_accessor_name()
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
@@ -412,7 +413,7 @@ class GM2MUnitRel(ForeignObjectRel):
 
     def get_extra_restriction(self, where_class, alias, remote_alias):
         opts = self.through._meta
-        field = opts.get_field_by_name(opts._field_names['tgt_ct'])[0]
+        field = opts.get_field(opts._field_names['tgt_ct'])
 
         ct_pk = ct.ContentType.objects.get_for_model(self.to,
                     for_concrete_model=self.for_concrete_model).pk
@@ -430,6 +431,19 @@ class GM2MUnitRel(ForeignObjectRel):
         return self.to._meta.pk
 
 
+class GM2MToOptions(object):
+
+    def __init__(self):
+        #super(GM2MToOptions, self).__init__(None, 'contenttypes')
+        self.object_name = 'ContentType'
+        self.model_name = 'contenttype'
+        self.app_label = 'contenttypes'
+
+    @cached_property
+    def concrete_model(self):
+        return ct.ContentType
+
+
 class GM2MTo(object):
     """
     A 'dummy' model-like class that enables django to find out that GM2MField
@@ -439,15 +453,16 @@ class GM2MTo(object):
     """
 
     def __init__(self):
-        self._meta = Options(None, 'contenttypes')
-        self._meta.object_name = 'ContentType'
-        self._meta.model_name = 'contenttype'
+        self._meta = GM2MToOptions()
 
 
 class GM2MRel(object):
 
     to = GM2MTo()
     model = GM2MTo()
+
+    name = 'gm2mrel'
+    hidden = False
 
     def __init__(self, field, related_models, **params):
 
@@ -785,6 +800,8 @@ class GM2MRel(object):
         else:
             calc_field_names(self)
 
+        self.related_model = cls
+
         for rel in self.rels:
             rel.contribute_to_class()
 
@@ -800,3 +817,7 @@ class GM2MRel(object):
             field_names=field_names,
             prefetch_cache_name=self.field.name
         )
+
+    def get_accessor_name(self):
+        return self.related_name \
+            or (self.field.model._meta.model_name + '_set')

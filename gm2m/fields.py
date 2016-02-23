@@ -28,7 +28,9 @@ class GM2MField(Field):
     many_to_one = False
     one_to_many = False
     one_to_one = False
+
     related_model = ''
+    remote_field = None
 
     description = _('Generic many-to-many relationship')
 
