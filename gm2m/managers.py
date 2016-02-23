@@ -67,11 +67,19 @@ class GM2MBaseManager(Manager):
                 'intermediary model. Use %s.%s\'s Manager instead.'
                 % (method_name, opts.app_label, opts.object_name))
 
+    def _do_add(self, db, objs):
+        """
+        Performs items addition
+        """
+        # Add the new entries in the db table
+        self.through._default_manager.using(db).bulk_create(objs)
+
     def add(self, *objs):
         """
         Adds objects to the GM2M field
+        :param *objs: object instances to add
         """
-        # *objs - object instances to add
+        #
 
         self._check_through_model('add')
 
@@ -79,11 +87,15 @@ class GM2MBaseManager(Manager):
             return
 
         db = router.db_for_write(self.through, instance=self.instance)
+        self._do_add(db, self._to_add(objs, db))
 
-        # Add the new entries in the db table
-        self.through._default_manager.using(db).bulk_create(
-            self._to_add(objs, db))
     add.alters_data = True
+
+    def _do_remove(self, db, objs):
+        """
+        Perfoms items removal
+        """
+        self.through._default_manager.using(db).filter(objs).delete()
 
     def remove(self, *objs):
         """
@@ -97,14 +109,15 @@ class GM2MBaseManager(Manager):
             return
 
         db = router.db_for_write(self.through, instance=self.instance)
-        self.through._default_manager.using(db).filter(
-            self._to_remove(objs)).delete()
+        self._do_remove(db, self._to_remove(objs))
     remove.alters_data = True
+
+    def _do_clear(self, db, filter):
+        self.through._default_manager.using(db).filter(**filter).delete()
 
     def clear(self):
         db = router.db_for_write(self.through, instance=self.instance)
-        self.through._default_manager.using(db).filter(
-            **self._to_clear()).delete()
+        self._do_clear(db, self._to_clear())
 
     clear.alters_data = True
 
