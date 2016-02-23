@@ -57,7 +57,7 @@ class GM2MBaseManager(Manager):
             for f in extra_fields))
         return queryset.using(db)._next_is_sticky().filter(q).extra(**extra)
 
-    def check_through_model(self, method_name):
+    def _check_through_model(self, method_name):
         # If the GM2M relation has an intermediary model,
         # the add and remove methods are not available.
         if not self.through._meta.auto_created:
@@ -73,7 +73,7 @@ class GM2MBaseManager(Manager):
         """
         # *objs - object instances to add
 
-        self.check_through_model('add')
+        self._check_through_model('add')
 
         if not objs:
             return
@@ -82,7 +82,7 @@ class GM2MBaseManager(Manager):
 
         # Add the new entries in the db table
         self.through._default_manager.using(db).bulk_create(
-            self.to_add(objs, db))
+            self._to_add(objs, db))
     add.alters_data = True
 
     def remove(self, *objs):
@@ -91,25 +91,26 @@ class GM2MBaseManager(Manager):
         """
         # *objs - objects to remove
 
-        self.check_through_model('remove')
+        self._check_through_model('remove')
 
         if not objs:
             return
 
         db = router.db_for_write(self.through, instance=self.instance)
         self.through._default_manager.using(db).filter(
-            self.to_remove(objs)).delete()
+            self._to_remove(objs)).delete()
     remove.alters_data = True
 
     def clear(self):
         db = router.db_for_write(self.through, instance=self.instance)
         self.through._default_manager.using(db).filter(
-            **self.to_clear()).delete()
+            **self._to_clear()).delete()
 
     clear.alters_data = True
 
 
 class GM2MBaseSrcManager(Manager):
+    
     def __init__(self, instance):
         # the manager's model is the source model
         super(GM2MBaseSrcManager, self).__init__(instance)
@@ -167,7 +168,7 @@ class GM2MBaseSrcManager(Manager):
 
         return qs, rel_obj_attr, instance_attr
 
-    def to_add(self, objs, db):
+    def _to_add(self, objs, db):
         # we're using the reverse relation to add source model
         # instances
         inst_ct = get_content_type(self.instance)
@@ -189,7 +190,7 @@ class GM2MBaseSrcManager(Manager):
                 }))
         return to_add
 
-    def to_remove(self, objs):
+    def _to_remove(self, objs):
         # we're using the reverse relation to delete source model
         # instances
         inst_ct = get_content_type(self.instance)
@@ -200,7 +201,7 @@ class GM2MBaseSrcManager(Manager):
             self.field_names['tgt_fk']: self.pk
         })
 
-    def to_clear(self):
+    def _to_clear(self):
         return {
             self.field_names['tgt_ct']: get_content_type(self.instance),
             self.field_names['tgt_fk']: self.instance.pk
@@ -264,7 +265,7 @@ class GM2MBaseTgtManager(Manager):
 
         return qs, rel_obj_attr, instance_attr
 
-    def to_add(self, objs, db):
+    def _to_add(self, objs, db):
         models = []
         objs_set = set()
         for obj in objs:
@@ -292,7 +293,7 @@ class GM2MBaseTgtManager(Manager):
 
         return to_add
 
-    def to_remove(self, objs):
+    def _to_remove(self, objs):
         q = Q()
         for obj in objs:
             # Convert the obj to (content_type, primary_key)
@@ -304,7 +305,7 @@ class GM2MBaseTgtManager(Manager):
             '%s_id' % self.field_names['src']: self.pk
         })
 
-    def to_clear(self):
+    def _to_clear(self):
         return {
             '%s_id' % self.field_names['src']: self.pk
         }
