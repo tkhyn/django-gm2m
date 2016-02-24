@@ -21,8 +21,7 @@ class GM2MDescriptor(object):
                 'intermediary model. Use %s.%s\'s Manager instead.'
                 % (opts.app_label, opts.object_name))
         manager = self.__get__(instance)
-        manager.clear()
-        manager.add(*value)
+        manager.set(value)
 
 
 class GM2MRelatedDescriptor(GM2MDescriptor):
