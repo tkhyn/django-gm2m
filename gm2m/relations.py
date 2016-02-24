@@ -717,6 +717,10 @@ class GM2MRel(object):
         setattr(cls, self.field.attname,
                 ReverseGM2MRelatedDescriptor(self.field))
 
+        if cls._meta.abstract or cls._meta.swapped:
+            # do not do anything for abstract or swapped model classes
+            return
+
         if not self.through:
             self.through = create_gm2m_intermediary_model(self.field, cls)
             # we set through_fields to the default intermediary model's
