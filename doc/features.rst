@@ -102,7 +102,8 @@ the relation will be created. Providing a list of models will only create
 reverse relations by default, nothing more.
 
 The reverse relations provide you with the full set of operations that normal
-Django reverse relation exposes: ``add``, ``remove`` and ``clear``.
+Django reverse relation exposes: ``add``, ``remove`` and ``clear``. ``set`` is
+also available from version 0.4.2.
 
 A reverse relation also enables you to use lookup chains in your queries::
 
@@ -143,7 +144,7 @@ Several deletion functions are available:
 
 CASCADE [default]
    The relation is deleted with the instance it is related to. The database
-   remains consistent, no ``ForeignKey`` `nor ``GenericForeignKey`` can point
+   remains consistent, no ``ForeignKey`` nor ``GenericForeignKey`` can point
    to a non-existent object after the operation.
 
 DO_NOTHING
@@ -189,7 +190,7 @@ Prefetching
 
 Prefetching works exactly the same way as with django ``ManyToManyField``::
 
-   >>> user.objects.prefetch_related('preferred_videos')
+   >>> user.objects.all().prefetch_related('preferred_videos')
 
 will, in a minimum number of queries, prefetch all the videos in all the user's
 ``preferred_video`` lists.
@@ -198,8 +199,8 @@ will, in a minimum number of queries, prefetch all the videos in all the user's
 Through models
 --------------
 
-Through models are also supported. The minimum requirements for through model
-classes are:
+Custom through models are also supported. The minimum requirements for through
+model classes are:
 
    - one ``ForeignKey`` to the source model
    - one ``GenericForeignKey`` with its ``ForeignKey`` and ``CharField``
@@ -237,8 +238,8 @@ verbose_name
    model class name.
 
 db_table
-   The name of the database table to use for the model. Defaults to
-   ``'<app_label>_<model_name>'``.
+   The name of the database table to use for the automatically created through
+   model. Defaults to ``'<app_label>_<model_name>'``.
 
 db_constraint
    Controls whether or not a constraint should be created in the database for
@@ -263,8 +264,8 @@ pk_maxlength
    specify the length of the ``CharField`` used to store primary keys in the
    ``GenericForeignKey``. Indeed, the default value of 16 characters may not
    be sufficient to accomodate certain large foreign key values (e.g. UUIDs).
-   Defaults to 16. Use ``None`` if you don't want any limitation (this may
-   cause performance issues, though).
+   Use ``None`` if you don't want any limitation (this may cause performance
+   issues, though). Defaults to ``16``.
 
 
 Migrations
@@ -301,7 +302,7 @@ gm2m.E102 [fields.E333]
 gm2m.E103 [fields.E334]
    The model used as an intermediate model has more than one foreign key to
    the source model, which is ambiguous (the one that is used is the first
-   declared in the model).
+   declared in the model)
 
 gm2m.E104 [fields.E333]
    The model used as an intermediate model does not have a generic foreign
