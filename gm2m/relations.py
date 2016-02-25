@@ -1,9 +1,8 @@
 import django
 from django.db.models.fields.related import add_lazy_relation, \
-    ForeignObjectRel, ForeignObject
+    ForeignObjectRel, ForeignObject, ManyToManyRel
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
-from django.db.models.options import Options
 from django.db.models.query_utils import PathInfo
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
@@ -13,14 +12,13 @@ from django.utils import six
 from django.utils.functional import cached_property
 
 from .compat import resolve_related_class
-from .contenttypes import ct
-
+from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .deletion import *
 from .signals import deleting
-from .helpers import get_content_type, is_fake_model
+from .helpers import GM2MTo, is_fake_model
 
 
 # default relation attributes
@@ -431,32 +429,7 @@ class GM2MUnitRel(ForeignObjectRel):
         return self.to._meta.pk
 
 
-class GM2MToOptions(object):
-
-    def __init__(self):
-        #super(GM2MToOptions, self).__init__(None, 'contenttypes')
-        self.object_name = 'ContentType'
-        self.model_name = 'contenttype'
-        self.app_label = 'contenttypes'
-
-    @cached_property
-    def concrete_model(self):
-        return ct.ContentType
-
-
-class GM2MTo(object):
-    """
-    A 'dummy' model-like class that enables django to find out that GM2MField
-    depends on contenttypes
-    Indeed, unlike a GFK, GM2MField does not create any FK to ContentType on
-    the source model
-    """
-
-    def __init__(self):
-        self._meta = GM2MToOptions()
-
-
-class GM2MRel(object):
+class GM2MRel(ManyToManyRel):
 
     to = GM2MTo()
     model = GM2MTo()

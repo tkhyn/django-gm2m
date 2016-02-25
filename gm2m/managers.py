@@ -2,9 +2,8 @@ from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
 
-from .contenttypes import ct
+from .contenttypes import ct, get_content_type
 from .query import GM2MTgtQuerySet
-from .helpers import get_content_type
 
 
 class GM2MBaseManager(Manager):

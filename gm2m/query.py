@@ -3,8 +3,7 @@ from collections import defaultdict
 from django.db.models import query
 from django.utils import six
 
-from .contenttypes import ct as ct_classes
-from .helpers import get_content_type
+from .contenttypes import ct as ct_classes, get_content_type
 
 
 class GM2MTgtQuerySet(query.QuerySet):
