@@ -10,11 +10,6 @@ class _CTClasses(object):
         return ContentType
 
     @cached_property
-    def ContentTypeManager(self):
-        from django.contrib.contenttypes.models import ContentTypeManager
-        return ContentTypeManager
-
-    @cached_property
     def GenericForeignKey(self):
         from django.contrib.contenttypes.fields import GenericForeignKey
         return GenericForeignKey
@@ -34,7 +29,7 @@ def get_content_type(obj):
         db = None
         klass = obj
 
-    ct_mngr = ct.ContentTypeManager().db_manager(db)
+    ct_mngr = ct.ContentType.objects.db_manager(db)
     if isinstance(klass._meta.apps, StateApps):
         # if obj is an instance of a fake model for migrations purposes, use
         # ContentType's ModelState rather than ContentType itself (issue #14)

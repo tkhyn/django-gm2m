@@ -54,7 +54,7 @@ class GM2MToManager(Manager):
         :return:
         """
 
-        model = ct.ContentTypeManager().get_by_natural_key(*ct_key).model_class()
+        model = ct.ContentType.objects.get_by_natural_key(*ct_key).model_class()
         mngr = model._default_manager.db_manager(self.db)
 
         if hasattr(model._default_manager, 'get_by_natural_key'):

@@ -89,7 +89,7 @@ class Deserializer(xml_serializer.Deserializer):
             # extract contenttype
             ct_node = obj_node.getElementsByTagName('contenttype')[0]
 
-            model = ct.ContentTypeManager().get_by_natural_key(
+            model = ct.ContentType.objects.get_by_natural_key(
                 ct_node.getAttribute('app'), ct_node.getAttribute('model')
             ).model_class()
             mngr = model._default_manager.db_manager(self.db)
