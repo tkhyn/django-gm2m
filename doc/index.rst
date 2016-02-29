@@ -25,6 +25,7 @@ Documentation contents:
 
    quick_start
    features
+   warnings
 
 
 Indices and tables

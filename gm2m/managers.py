@@ -2,9 +2,8 @@ from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
 
-from .contenttypes import ct
+from .contenttypes import ct, get_content_type
 from .query import GM2MTgtQuerySet
-from .helpers import get_content_type
 
 
 class GM2MBaseManager(Manager):
@@ -57,7 +56,7 @@ class GM2MBaseManager(Manager):
             for f in extra_fields))
         return queryset.using(db)._next_is_sticky().filter(q).extra(**extra)
 
-    def check_through_model(self, method_name):
+    def _check_through_model(self, method_name):
         # If the GM2M relation has an intermediary model,
         # the add and remove methods are not available.
         if not self.through._meta.auto_created:
@@ -67,23 +66,35 @@ class GM2MBaseManager(Manager):
                 'intermediary model. Use %s.%s\'s Manager instead.'
                 % (method_name, opts.app_label, opts.object_name))
 
+    def _do_add(self, db, through_objs):
+        """
+        Performs items addition
+        """
+        # Add the new entries in the db table
+        self.through._default_manager.using(db).bulk_create(through_objs)
+
     def add(self, *objs):
         """
         Adds objects to the GM2M field
+        :param *objs: object instances to add
         """
-        # *objs - object instances to add
+        #
 
-        self.check_through_model('add')
+        self._check_through_model('add')
 
         if not objs:
             return
 
         db = router.db_for_write(self.through, instance=self.instance)
+        self._do_add(db, self._to_add(objs, db))
 
-        # Add the new entries in the db table
-        self.through._default_manager.using(db).bulk_create(
-            self.to_add(objs, db))
     add.alters_data = True
+
+    def _do_remove(self, db, q):
+        """
+        Perfoms items removal from a Q object
+        """
+        self.through._default_manager.using(db).filter(q).delete()
 
     def remove(self, *objs):
         """
@@ -91,25 +102,52 @@ class GM2MBaseManager(Manager):
         """
         # *objs - objects to remove
 
-        self.check_through_model('remove')
+        self._check_through_model('remove')
 
         if not objs:
             return
 
         db = router.db_for_write(self.through, instance=self.instance)
-        self.through._default_manager.using(db).filter(
-            self.to_remove(objs)).delete()
+        self._do_remove(db, self._to_remove(objs))
     remove.alters_data = True
+
+    def _do_clear(self, db, filter=None):
+        self.through._default_manager.using(db).filter(**(filter or {})) \
+            .delete()
+
+    def set(self, objs, **kwargs):
+        """
+        Sets the objs iterable as the set of related objects
+        (Added for compatibility with Django 1.9)
+        """
+
+        self._check_through_model('set')
+
+        objs = tuple(objs)
+
+        clear = kwargs.pop('clear', False)
+        db = router.db_for_write(self.through, instance=self.instance)
+
+        if clear:
+            # clears all and re-adds
+            self._do_clear(db)
+            self._do_add(db, *objs)
+        else:
+            # just removes the necessary items and adds the missing ones
+            to_add, to_remove = self._to_change(objs, db)
+            self._do_remove(db, to_remove)
+            self._do_add(db, to_add)
+    set.alters_data = True
 
     def clear(self):
         db = router.db_for_write(self.through, instance=self.instance)
-        self.through._default_manager.using(db).filter(
-            **self.to_clear()).delete()
+        self._do_clear(db, self._to_clear())
 
     clear.alters_data = True
 
 
 class GM2MBaseSrcManager(Manager):
+    
     def __init__(self, instance):
         # the manager's model is the source model
         super(GM2MBaseSrcManager, self).__init__(instance)
@@ -167,7 +205,7 @@ class GM2MBaseSrcManager(Manager):
 
         return qs, rel_obj_attr, instance_attr
 
-    def to_add(self, objs, db):
+    def _to_add(self, objs, db):
         # we're using the reverse relation to add source model
         # instances
         inst_ct = get_content_type(self.instance)
@@ -189,7 +227,7 @@ class GM2MBaseSrcManager(Manager):
                 }))
         return to_add
 
-    def to_remove(self, objs):
+    def _to_remove(self, objs):
         # we're using the reverse relation to delete source model
         # instances
         inst_ct = get_content_type(self.instance)
@@ -200,7 +238,39 @@ class GM2MBaseSrcManager(Manager):
             self.field_names['tgt_fk']: self.pk
         })
 
-    def to_clear(self):
+    def _to_change(self, objs, db):
+        """
+        Returns the sets of items to be added and a Q object for removal
+        """
+        inst_ct = get_content_type(self.instance)
+        
+        vals = list(self.through._default_manager.using(db)
+                                .values_list(self.field_names['src'], flat=True)
+                                .filter(**{
+                                    self.field_names['tgt_ct']: inst_ct,
+                                    self.field_names['tgt_fk']: self.pk
+                                }))
+        
+        to_add = set()
+        to_remove = set()
+        for obj in objs:
+            try:
+                vals.remove(obj.pk)
+            except ValueError:
+                # obj.pk is not in vals and must be added
+                to_add.add(self.through(**{
+                    '%s_id' % self.field_names['src']:
+                        obj.pk,
+                    self.field_names['tgt_ct']: inst_ct,
+                    self.field_names['tgt_fk']: self.pk
+                }))
+
+        for v in vals:
+            to_remove.add(v)
+        
+        return to_add, Q(pk__in=to_remove)
+
+    def _to_clear(self):
         return {
             self.field_names['tgt_ct']: get_content_type(self.instance),
             self.field_names['tgt_fk']: self.instance.pk
@@ -264,7 +334,7 @@ class GM2MBaseTgtManager(Manager):
 
         return qs, rel_obj_attr, instance_attr
 
-    def to_add(self, objs, db):
+    def _to_add(self, objs, db):
         models = []
         objs_set = set()
         for obj in objs:
@@ -292,7 +362,7 @@ class GM2MBaseTgtManager(Manager):
 
         return to_add
 
-    def to_remove(self, objs):
+    def _to_remove(self, objs):
         q = Q()
         for obj in objs:
             # Convert the obj to (content_type, primary_key)
@@ -304,10 +374,61 @@ class GM2MBaseTgtManager(Manager):
             '%s_id' % self.field_names['src']: self.pk
         })
 
-    def to_clear(self):
+    def _to_clear(self):
         return {
             '%s_id' % self.field_names['src']: self.pk
         }
+
+    def _to_change(self, objs, db):
+        """
+        Returns the sets of items to be added and a Q object for removal
+        """
+
+        to_add = set()
+
+        src_fname = self.field_names['src']
+        ct_fname = self.field_names['tgt_ct']
+        fk_fname = self.field_names['tgt_fk']
+
+        vals = list(self.through._default_manager.using(db)
+                        .filter(**{self.field_names['src']: self.pk})
+                        .values_list(ct_fname, fk_fname))
+
+        known_cts = set(v[0] for v in vals)
+
+        for obj in objs:
+            ct = get_content_type(obj)
+            val = (ct, obj.pk)
+            try:
+                vals.remove(val)
+            except ValueError:
+                # val is not in vals
+                # extract content type and primary key for each object
+                to_add.add((ct, obj.pk))
+
+                if ct.pk not in known_cts:
+                    # call field.add_relation for each unknown model
+                    self.field.add_relation(obj.__class__)
+                    known_cts.add(ct.pk)
+
+        rem_q = Q()
+        for val in vals:
+            # Convert the obj to (content_type, primary_key)
+            rem_q = rem_q | Q(**{
+                ct_fname: val[0],
+                fk_fname: val[1]
+            })
+
+        return [
+            self.through(**{
+                '%s_id' % src_fname: self.pk,
+                ct_fname: t[0],
+                fk_fname: t[1]
+            }) for t in to_add
+        ], \
+        rem_q & Q(**{
+            '%s_id' % src_fname: self.pk
+        })
 
 
 def create_gm2m_related_manager(superclass=None, **kwargs):

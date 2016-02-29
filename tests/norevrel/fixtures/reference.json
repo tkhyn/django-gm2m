@@ -1,0 +1,18 @@
+[
+  {
+    "model": "app.project",
+    "pk": 1,
+    "fields": {
+      "name": ""
+    }
+  },
+  {
+    "model": "norevrel.links",
+    "pk": 1,
+    "fields": {
+      "related_objects": [
+        [["app", "project"], 1]
+      ]
+    }
+  }
+]

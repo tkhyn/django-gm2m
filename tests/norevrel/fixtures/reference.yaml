@@ -1,0 +1,9 @@
+- fields: {name: ''}
+  model: app.project
+  pk: 1
+- fields:
+    related_objects:
+    - - [app, project]
+      - 1
+  model: norevrel.links
+  pk: 1

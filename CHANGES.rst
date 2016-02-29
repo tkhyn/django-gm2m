@@ -20,6 +20,14 @@ v0.4.1 (29-01-2016)
 | \* Fixes the documentation regarding INSTALLED_APPS (#18)
 | \* Doc typos
 
+v0.4.2 (29-02-2016)
+...................
+
+| \+ Django 1.10 compatibility (#19)
+| \+ Adds serialization / deserialization support (#21)
+| \* Fixes instantiation in abstract models (#22)
+| \* Fixes installation issue with newest setuptools (#23)
+
 
 v0.3 (09-09-2015)
 -----------------

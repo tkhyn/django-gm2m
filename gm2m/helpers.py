@@ -1,4 +1,7 @@
+from django.db.models import Manager
 from django.db.migrations.state import StateApps
+from django.utils.functional import cached_property
+from django.utils import six
 
 from .contenttypes import ct
 
@@ -10,32 +13,61 @@ def is_fake_model(model):
     return isinstance(model._meta.apps, StateApps)
 
 
-def get_content_type(obj):
+class GM2MTo(object):
+    """
+    A 'dummy' model-like class that enables django to find out that GM2MField
+    depends on contenttypes, and provides a specific manager for deserialization
+    (amongst other things)
 
-    try:
-        # obj is a model instance, retrieve database
-        db = obj._state.db
-        klass = obj.__class__
-    except AttributeError:
-        # obj is a model class
-        db = None
-        klass = obj
+    Indeed, unlike a GFK, GM2MField does not create any FK to ContentType on
+    the source model
+    """
 
-    ct_mngr = ct.ContentTypeManager().db_manager(db)
-    if is_fake_model(klass):
-        # if obj is an instance of a fake model for migrations purposes, use
-        # ContentType's ModelState rather than ContentType itself (issue #14)
-        # this should not raise LookupError as at this stage contenttypes must
-        # be loaded
-        ct_mngr.model = obj._meta.apps.get_model('contenttypes', 'ContentType')
-        # we erase the app cache to make sure a modelstate is returned when
-        # calling get_for_model on the manager
-        try:
-            del ct_mngr.__class__._cache[db][(klass._meta.app_label,
-                                              klass._meta.model_name)]
-        except KeyError:
-            pass
-    else:
-        ct_mngr.model = ct.ContentType
+    def __init__(self):
+        self._meta = GM2MToOptions()
+        self._default_manager = GM2MToManager()
 
-    return ct_mngr.get_for_model(obj)
+
+class GM2MToOptions(object):
+
+    def __init__(self):
+        self.object_name = 'ContentType'
+        self.model_name = 'contenttype'
+        self.app_label = 'contenttypes'
+
+    def __str__(self):
+        return 'gm2m.to'
+
+    @cached_property
+    def concrete_model(self):
+        return ct.ContentType
+
+
+class GM2MToManager(Manager):
+
+    def get_by_natural_key(self, ct_key, key):
+        """
+        Used for deserialization (this is actually a workaround to avoid
+        heavy monkey-patching)
+        :param ct_key: the content type's natural key
+        :param key: the object key (may be a natural key)
+        :return:
+        """
+
+        model = ct.ContentType.objects.get_by_natural_key(*ct_key).model_class()
+        mngr = model._default_manager.db_manager(self.db)
+
+        if hasattr(model._default_manager, 'get_by_natural_key'):
+            if hasattr(key, '__iter__') and not isinstance(key, six.text_type):
+                obj = mngr.get_by_natural_key(*key)
+            else:
+                obj = mngr.get_by_natural_key(key)
+        else:
+            obj = mngr.get(pk=key)
+
+        # django's Deserializer only cares about the pk attribute, but we
+        # need the actual instance
+        gm2mto = GM2MTo()
+        gm2mto.pk = obj
+
+        return gm2mto

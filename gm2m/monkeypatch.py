@@ -28,23 +28,23 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
         # we need to alter both fields of the GFK
         old_names = old_field.rel.through._meta._field_names
         new_names = new_field.rel.through._meta._field_names
-        gfbn_old = old_field.rel.through._meta.get_field_by_name
-        gfbn_new = new_field.rel.through._meta.get_field_by_name
+        getoldfield = old_field.rel.through._meta.get_field
+        getnewfield = new_field.rel.through._meta.get_field
         self.alter_field(
             new_field.rel.through,
-            gfbn_old(old_names['tgt_fk'])[0],
-            gfbn_new(new_names['tgt_fk'])[0],
+            getoldfield(old_names['tgt_fk']),
+            getnewfield(new_names['tgt_fk']),
         )
         self.alter_field(
             new_field.rel.through,
-            gfbn_old(old_names['tgt_ct'])[0],
-            gfbn_new(new_names['tgt_ct'])[0],
+            getoldfield(old_names['tgt_ct']),
+            getnewfield(new_names['tgt_ct']),
         )
         # now we alter the fk
         self.alter_field(
             new_field.rel.through,
-            gfbn_old(old_names['src'])[0],
-            gfbn_new(new_names['src'])[0],
+            getoldfield(old_names['src']),
+            getnewfield(new_names['src']),
         )
     else:
         return _alter_many_to_many_0(self, model, old_field, new_field,
@@ -65,9 +65,9 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
         # we need to alter both fields of the GFK
         old_names = old_field.rel.through._meta._field_names
         new_names = new_field.rel.through._meta._field_names
-        gfbn_old = old_field.rel.through._meta.get_field_by_name
-        gfbn_new = new_field.rel.through._meta.get_field_by_name
-
+        getoldfield = old_field.rel.through._meta.get_field
+        getnewfield = new_field.rel.through._meta.get_field
+        
         if old_field.rel.through._meta.db_table == \
         new_field.rel.through._meta.db_table:
             # The field name didn't change, but some options did;
@@ -79,12 +79,12 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
                 # this is m2m_reverse_field_name() (as opposed to
                 # m2m_field_name, which points to our model)
                 alter_fields=[(
-                    gfbn_old(old_names['tgt_fk'])[0],
-                    gfbn_new(new_names['tgt_fk'])[0],
+                    getoldfield(old_names['tgt_fk']),
+                    getnewfield(new_names['tgt_fk']),
                 ),
                 (
-                    gfbn_old(old_names['tgt_ct'])[0],
-                    gfbn_new(new_names['tgt_ct'])[0],
+                    getoldfield(old_names['tgt_ct']),
+                    getnewfield(new_names['tgt_ct']),
                 )],
                 override_uniques=(old_names['src'], old_names['tgt_fk'],
                                   old_names['tgt_ct']),
@@ -98,15 +98,15 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
             self.quote_name(new_field.rel.through._meta.db_table),
             ', '.join([
                 "id",
-                gfbn_new(old_names['src'])[0].column,
-                gfbn_new(old_names['tgt_fk'])[0].column,
-                gfbn_new(old_names['tgt_ct'])[0].column,
+                getnewfield(old_names['src']).column,
+                getnewfield(old_names['tgt_fk']).column,
+                getnewfield(old_names['tgt_ct']).column,
             ]),
             ', '.join([
                 "id",
-                gfbn_old(old_names['src'])[0].column,
-                gfbn_old(old_names['tgt_fk'])[0].column,
-                gfbn_old(old_names['tgt_ct'])[0].column,
+                getoldfield(old_names['src']).column,
+                getoldfield(old_names['tgt_fk']).column,
+                getoldfield(old_names['tgt_ct']).column,
             ]),
             self.quote_name(old_field.rel.through._meta.db_table),
         ))
@@ -115,6 +115,8 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
     else:
         return _alter_many_to_many_sqlite0(self, model, old_field,
                                            new_field, strict)
+
+
 DatabaseSchemaEditor._alter_many_to_many = _alter_many_to_many
 
 

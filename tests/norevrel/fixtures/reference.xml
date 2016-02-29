@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<django-objects version="1.0">
+    <object pk="1" model="app.project">
+        <field type="CharField" name="name"></field>
+    </object>
+    <object pk="1" model="norevrel.links">
+        <field to="gm2m.to" name="related_objects" rel="GM2MRel">
+            <object pk="1">
+                <contenttype app="app" model="project"></contenttype>
+            </object>
+        </field>
+    </object>
+</django-objects>

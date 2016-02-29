@@ -1,9 +1,8 @@
 import django
 from django.db.models.fields.related import add_lazy_relation, \
-    ForeignObjectRel, ForeignObject
+    ForeignObjectRel, ForeignObject, ManyToManyRel
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
-from django.db.models.options import Options
 from django.db.models.query_utils import PathInfo
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
@@ -13,14 +12,13 @@ from django.utils import six
 from django.utils.functional import cached_property
 
 from .compat import resolve_related_class
-from .contenttypes import ct
-
+from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
 from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
 from .deletion import *
 from .signals import deleting
-from .helpers import get_content_type, is_fake_model
+from .helpers import GM2MTo, is_fake_model
 
 
 # default relation attributes
@@ -63,8 +61,9 @@ class GM2MRelation(ForeignObject):
     one_to_one = False
 
     concrete = False
-    generate_reverse_relation = False  # only used in Django 1.7
     related_accessor_class = GM2MRelatedDescriptor
+
+    hidden = False
 
     def __init__(self, to, field, rel, **kwargs):
         self.field = field
@@ -87,8 +86,7 @@ class GM2MRelation(ForeignObject):
         pass
 
     def get_accessor_name(self):
-        return self.rel.related_name \
-            or (self.field.model._meta.model_name + '_set')
+        return self.rel.get_accessor_name()
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
@@ -375,7 +373,6 @@ class GM2MUnitRel(ForeignObjectRel):
                 return model._meta.swappable
         return None
 
-
     def _get_path_info(self, reverse):
         pathinfos = []
 
@@ -383,7 +380,7 @@ class GM2MUnitRel(ForeignObjectRel):
 
         # this is the src <> through part of the relation, we'll use
         # path info retrieval functions on this
-        fk_field = opts.get_field_by_name(opts._field_names['src'])[0]
+        fk_field = opts.get_field(opts._field_names['src'])
 
         if reverse:
             pathinfos.extend(fk_field.get_reverse_path_info())
@@ -409,12 +406,12 @@ class GM2MUnitRel(ForeignObjectRel):
         opts = self.through._meta
         return [(
             self.to._meta.pk.column,
-            opts.get_field_by_name(opts._field_names['tgt_fk'])[0].column
+            opts.get_field(opts._field_names['tgt_fk']).column
         )]
 
     def get_extra_restriction(self, where_class, alias, remote_alias):
         opts = self.through._meta
-        field = opts.get_field_by_name(opts._field_names['tgt_ct'])[0]
+        field = opts.get_field(opts._field_names['tgt_ct'])
 
         ct_pk = ct.ContentType.objects.get_for_model(self.to,
                     for_concrete_model=self.for_concrete_model).pk
@@ -432,24 +429,13 @@ class GM2MUnitRel(ForeignObjectRel):
         return self.to._meta.pk
 
 
-class GM2MTo(object):
-    """
-    A 'dummy' model-like class that enables django to find out that GM2MField
-    depends on contenttypes
-    Indeed, unlike a GFK, GM2MField does not create any FK to ContentType on
-    the source model
-    """
-
-    def __init__(self):
-        self._meta = Options(None, 'contenttypes')
-        self._meta.object_name = 'ContentType'
-        self._meta.model_name = 'contenttype'
-
-
-class GM2MRel(object):
+class GM2MRel(ManyToManyRel):
 
     to = GM2MTo()
     model = GM2MTo()
+
+    name = 'gm2mrel'
+    hidden = False
 
     def __init__(self, field, related_models, **params):
 
@@ -704,6 +690,10 @@ class GM2MRel(object):
         setattr(cls, self.field.attname,
                 ReverseGM2MRelatedDescriptor(self.field))
 
+        if cls._meta.abstract or cls._meta.swapped:
+            # do not do anything for abstract or swapped model classes
+            return
+
         if not self.through:
             self.through = create_gm2m_intermediary_model(self.field, cls)
             # we set through_fields to the default intermediary model's
@@ -787,6 +777,8 @@ class GM2MRel(object):
         else:
             calc_field_names(self)
 
+        self.related_model = cls
+
         for rel in self.rels:
             rel.contribute_to_class()
 
@@ -802,3 +794,7 @@ class GM2MRel(object):
             field_names=field_names,
             prefetch_cache_name=self.field.name
         )
+
+    def get_accessor_name(self):
+        return self.related_name \
+            or (self.field.model._meta.model_name + '_set')
