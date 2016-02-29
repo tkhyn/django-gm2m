@@ -16,8 +16,8 @@ to and from fixture files (JSON, XML, YAML ...) using the ``dumpdata`` and
 .............................
 
 As you probably already know, ``django-gm2m`` relies on
-``django.contrib.contenttype`` and needs to link ``ContentType`` objects. If
-you use the ``dumpdata`` command without excluding the ``contenttype`` app and
+``django.contrib.contenttypes`` and needs to link ``ContentType`` objects. If
+you use the ``dumpdata`` command without excluding the ``contenttypes`` app and
 with standard primary/foreign keys, the data will contain dumped ``ContentType``
 objects which will be referenced by their standard primary key (an integer).
 
@@ -32,7 +32,7 @@ options in a project that makes use of ``django-gm2m``:
    - ``--natural-primary --natural-foreign`` to use natural keys instead of 
      actual primary keys in the dumped data (the natural key for a contenttype 
      is, for example, ``'app_name.modelname'``)
-   - ``-e contenttype`` to exclude the ``contenttype`` objects from the dumped 
+   - ``-e contenttypes`` to exclude the ``ContentType`` objects from the dumped
      data. These objects are automatically recreated by django anyway
 
 See this `StackOverflow question and answers`_ for more details.
