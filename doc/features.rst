@@ -70,10 +70,18 @@ been added to the set, retrieving the ``<modelname_set>`` will raise an
 Indeed, the ``GM2MField`` has no idea what relation it is expected to create
 until you provide it with a minimum of information.
 
-However, if you want some reverse relations to be created before any instance
-is added, so that retrieving the ``<modelname_set>`` attribute never raises an
-exception, it is possible to explicitly provide some models to the ``GM2MField``
-constructor. You may use model names if necessary to avoid circular imports::
+.. warning::
+   In the same way, if automatic relations have been added during a session,
+   be aware that these will not be available in another session. If you restart
+   your server, for example, the automatic relations will be lost. Read on to
+   find how to tackle this issue.
+
+However, if your code relies on some of these reverse relations, they will need
+to be there even if no item has ever been added or just after a server restart.
+In this use case, it is possible to explicitly provide some models to the
+``GM2MField`` constructor so that retrieving the ``<modelname_set>``
+attribute never raises an exception. You may use model names if necessary to
+avoid circular imports::
 
    >>> class Concert(Video):
    >>>     pass
