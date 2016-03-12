@@ -3,6 +3,9 @@ from .. import base
 
 class AbstractBaseTests(base.TestCase):
 
+    def test_reverse_relation(self):
+        self.assertTrue(hasattr(self.models.Project, 'basiclinks_set'))
+
     def test_subclasses(self):
 
         project = self.models.Project.objects.create()

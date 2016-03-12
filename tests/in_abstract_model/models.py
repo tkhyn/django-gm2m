@@ -9,7 +9,7 @@ class LinksBase(models.Model):
         abstract = True
         app_label = 'in_abstract_model'
 
-    related_objects = gm2m.GM2MField()
+    related_objects = gm2m.GM2MField('app.Project')
 
 
 class BasicLinks(LinksBase):
