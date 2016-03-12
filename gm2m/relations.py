@@ -780,6 +780,11 @@ class GM2MRel(ManyToManyRel):
         self.related_model = cls
 
         for rel in self.rels:
+            # we need to make sure the GM2MUnitRel's field instance is the
+            # right one. Indeed, if cls is derived from an abstract model
+            # where the GM2MField is defined, rel.field is the field linked
+            # to the abstract model
+            rel.field = self.field
             rel.contribute_to_class()
 
     @cached_property
