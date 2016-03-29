@@ -339,7 +339,7 @@ class GM2MUnitRel(ForeignObjectRel):
         # the related manager class getter is implemented here rather than in
         # the descriptor as we may need to access it even for hidden relations
         return create_gm2m_related_manager(
-            superclass=self.to._default_manager.__class__,
+            superclass=self.field.model._default_manager.__class__,
             field=self.related.field,
             model=self.field.model,
             through=self.through,
