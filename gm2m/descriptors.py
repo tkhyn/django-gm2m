@@ -49,8 +49,11 @@ class ReverseGM2MRelatedDescriptor(GM2MDescriptor):
     available from a target model class
     """
 
-    def add_relation(self, *args, **kwargs):
-        return self.field.add_relation(*args, **kwargs)
+    def add_relation(self, model, auto=False):
+        return self.field.add_relation(model, auto)
+
+    def get_related_models(self, include_auto=False):
+        return self.field.get_related_models(include_auto)
 
     @property
     def through(self):

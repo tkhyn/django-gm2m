@@ -112,11 +112,31 @@ A reverse relation also enables you to use lookup chains in your queries::
    >>>    preferred_shows = GM2MField(Opera)
 
    >>> jack = Fan.objects.create(name='Jack')
-   >>> jack.preferred_shows.add(Opera.objects.create(title='The Bartered Bride'))
+   >>> bartered_bride = Opera.objects.create(title='The Bartered Bride')
+   >>> jack.preferred_shows.add(bartered_bride)
    >>> [o.name for o in Opera.objects.filter(fan__name='Jack')]
    ['The Bartered Bride']
 
+From version 0.4.3 onwards, you can list all the models related to a
+``GM2MField`` using the ``get_related_models`` method, that takes an
+``include_auto`` optional argument if you want to include the automatically
+created models::
 
+   >>> class Concert(Video):
+   >>>     pass
+   >>>
+   >>> class User(models.Model):
+   >>>     preferred_shows = GM2MField(Concert)
+   >>>
+   >>> User.preferred_shows.get_related_models()
+   [<class '__main__.Concert'>]
+   >>>
+   >>> user.preferred_shows.add(bartered_bride)
+   >>> User.preferred_shows.get_related_models()
+   [<class '__main__.Concert'>]
+   >>> User.preferred_shows.get_related_models(include_auto=True)
+   [<class '__main__.Concert'>, <class '__main__.Opera'>]
+   
 Deletion
 --------
 

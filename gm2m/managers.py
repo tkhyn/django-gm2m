@@ -345,7 +345,7 @@ class GM2MBaseTgtManager(Manager):
             if m not in models:
                 # call field.add_relation for each model
                 models.append(m)
-                self.field.add_relation(m)
+                self.field.add_relation(m, auto=True)
 
         vals = self.through._default_manager.using(db) \
                    .filter(**{self.field_names['src']: self.pk}) \
@@ -408,7 +408,7 @@ class GM2MBaseTgtManager(Manager):
 
                 if ct.pk not in known_cts:
                     # call field.add_relation for each unknown model
-                    self.field.add_relation(obj.__class__)
+                    self.field.add_relation(obj.__class__, auto=True)
                     known_cts.add(ct.pk)
 
         rem_q = Q()

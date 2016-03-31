@@ -138,9 +138,16 @@ class GM2MField(Field):
 
         return name, path, args, kwargs
 
-    def add_relation(self, model):
-        rel = self.rel.add_relation(model)
+    def add_relation(self, model, auto=False):
+        rel = self.rel.add_relation(model, auto=auto)
         rel._added = True
+
+    def get_related_models(self, include_auto=False):
+        models = []
+        for unitrel in self.rel.rels:
+            if not unitrel.auto or include_auto:
+                models.append(unitrel.to)
+        return models
 
     def db_type(self, connection):
         """

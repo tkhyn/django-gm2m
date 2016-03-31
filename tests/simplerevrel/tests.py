@@ -31,6 +31,25 @@ class RelatedTests(base.TestCase):
         self.assertNotIn(self.models.Project._meta.virtual_fields[0],
                          self.models.Project._meta.fields)
 
+    def test_get_gm2m_models(self):
+        self.assertListEqual(
+            self.models.Links.related_objects.get_related_models(),
+            [self.models.Project]
+        )
+
+        self.links.related_objects.add(self.models.Task.objects.create())
+
+        self.assertListEqual(
+            self.models.Links.related_objects.get_related_models(),
+            [self.models.Project]
+        )
+        self.assertListEqual(
+            self.models.Links.related_objects.get_related_models(
+                include_auto=True
+            ),
+            [self.models.Project, self.models.Task]
+        )
+
 
 class ReverseOperationsTest(base.TestCase):
 
