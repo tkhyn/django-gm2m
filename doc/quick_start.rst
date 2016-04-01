@@ -59,14 +59,14 @@ Now you can add videos to the ``preferred_videos`` set::
 
 or::
 
-   >>> user.preferred_videos = [v_for_vendetta]
+   >>> me.preferred_videos = [v_for_vendetta]
 
 You can obviously mix instances from different models::
 
    >>> citizenfour = Documentary.objects.create(title='Citizenfour')
-   >>> user.preferred_videos = [v_for_vendetta, citizenfour]
+   >>> me.preferred_videos = [v_for_vendetta, citizenfour]
 
-From a ``User`` instance, you can fetch all the user's preferred videos::
+From a ``User`` instance, you can fetch all the preferred videos::
 
    >>> [v.title for v in me.preferred_videos]
    ['V for Vendetta', 'Citizenfour']

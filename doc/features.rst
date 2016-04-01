@@ -236,9 +236,9 @@ Prefetching
 
 Prefetching works exactly the same way as with django ``ManyToManyField``::
 
-   >>> user.objects.all().prefetch_related('preferred_videos')
+   >>> User.objects.all().prefetch_related('preferred_videos')
 
-will, in a minimum number of queries, prefetch all the videos in all the user's
+will, in a minimum number of queries, prefetch all the videos in all the users'
 ``preferred_video`` lists.
 
 
