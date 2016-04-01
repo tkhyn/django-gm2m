@@ -33,7 +33,7 @@ Suppose you have some models describing videos types::
    >>> from django.db import models
    >>>
    >>> class Video(models.Model):
-   >>>     pass
+   >>>     title = models.CharField(max_length=255)
    >>>
    >>> class Movie(Video):
    >>>     pass
@@ -47,36 +47,37 @@ need to add a default ``GM2MField`` to the ``User`` model::
    >>> from gm2m import GM2MField
    >>>
    >>> class User(models.Model):
+   >>>     name = models.CharField(max_length=255)
    >>>     preferred_videos = GM2MField()
 
 Now you can add videos to the ``preferred_videos`` set::
 
-   >>> user = User.objects.create()
-   >>> movie = Movie.objects.create()
+   >>> me = User.objects.create(name='Me')
+   >>> v_for_vendetta = Movie.objects.create(title='V for Vendetta')
    >>>
-   >>> user.preferred_videos.add(movie)
+   >>> me.preferred_videos.add(v_for_vendetta)
 
 or::
 
-   >>> user.preferred_videos = [movie]
+   >>> user.preferred_videos = [v_for_vendetta]
 
 You can obviously mix instances from different models::
 
-   >>> documentary = Documentary.objects.create()
-   >>> user.preferred_videos = [movie, documentary]
+   >>> citizenfour = Documentary.objects.create(title='Citizenfour')
+   >>> user.preferred_videos = [v_for_vendetta, citizenfour]
 
 From a ``User`` instance, you can fetch all the user's preferred videos::
 
-   >>> list(user.preferred_videos)
-   [<Movie object>, <Documentary object>]
+   >>> [v.title for v in me.preferred_videos]
+   ['V for Vendetta', 'Citizenfour']
 
 ... which you may filter by model using the ``Model`` or ``Model__in``
 keywords::
 
-   >>> list(user.preferred_videos.filter(Model=Movie))
-   [<Movie object>]
-   >>> list(user.preferred_videos.filter(Model__in=[Documentary]))
-   [<Documentary object>]
+   >>> [v.title for v in me.preferred_videos.filter(Model=Movie)]
+   ['V for Vendetta']
+   >>> [v.title for v in me.preferred_videos.filter(Model__in=[Documentary])]
+   ['Citizenfour']
 
 That's it regarding the basic usage of ``django-gm2m``. You'll probably want to
 have a look at the more advanced :ref:`features <features>` it offers.

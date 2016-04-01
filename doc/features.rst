@@ -35,7 +35,14 @@ In this page, we'll make use of the models that were described in the
    >>>
    >>> class User(models.Model):
    >>>     preferred_videos = GM2MField()
-
+   >>>
+   >>>
+   >>> me = User.objects.create(name='Me')
+   >>>
+   >>> v_for_vendetta = Movie.objects.create(title='V for Vendetta')
+   >>> citizenfour = Documentary.objects.create(title='Citizenfour')
+   >>>
+   >>> me.preferred_videos = [v_for_vendetta, citizenfour]
 
 Reverse relations
 -----------------
@@ -44,13 +51,16 @@ We've seen how you could access all the ``preferred_videos`` of a given user.
 But what if you want to access all the users that have bookmarked a given
 video? ``django-gm2m`` provides that out of the box, with a bit of magic.
 
+Automatic creation
+..................
+
 Indeed, even without having to explicitly create reverse relations (e.g by
 providing models to the ``GM2MField`` constructor), they are automatically
 created when an instance of a yet unknown model is added. This means that after
 having added ``movie`` to a ``User``'s ``preferred_videos``, you can do::
 
-   >>> list(movie.user_set)
-   [<User object>]
+   >>> [u.name for u in movie.user_set]
+   ['Me']
 
 However, it is important to remember that if no instance of a model has ever
 been added to the set, retrieving the ``<modelname_set>`` will raise an
@@ -59,55 +69,68 @@ been added to the set, retrieving the ``<modelname_set>`` will raise an
    >>> class Opera(Video):
    >>>     pass
    >>>
-   >>> opera = Opera.objects.create()
-   >>> list(opera.user_set)
+   >>> bartered_bride = Opera.objects.create(title="The Bartered Bride")
+   >>> [u.name for u in bartered_bride.user_set]
    AttributeError: 'Opera' object has no attribute 'user_set'
-   >>>
-   >>> user.preferred_videos.add(opera)
-   >>> list(opera.user_set)
-   [<User object>]
 
 Indeed, the ``GM2MField`` has no idea what relation it is expected to create
 until you provide it with a minimum of information.
 
 .. warning::
-   In the same way, if automatic relations have been added during a session,
-   be aware that these will not be available in another session. If you restart
-   your server, for example, the automatic relations will be lost. Read on to
-   find how to tackle this issue.
+   If automatic relations have been added during a session, be aware that they
+   will not necessarily be available in another session. If you restart your
+   server, for example, the automatically created relations will be lost. Read
+   on to find how to tackle this issue.
 
-However, if your code relies on some of these reverse relations, they will need
-to be there even if no item has ever been added or just after a server restart.
-In this use case, it is possible to explicitly provide some models to the
-``GM2MField`` constructor so that retrieving the ``<modelname_set>``
-attribute never raises an exception. You may use model names if necessary to
-avoid circular imports::
+Manual creation
+...............
 
-   >>> class Concert(Video):
-   >>>     pass
-   >>>
+If you want some reverse relations to be created before any instance is added,
+so that retrieving the ``<modelname_set>`` attribute never raises an exception,
+it is possible to explicitly provide some models to the ``GM2MField``
+constructor. You may use model names (``'app.Model'`` or ``'Model'`` if you're
+in the same module) if necessary to avoid circular references.
+
+Let's say that instead of::
+
    >>> class User(models.Model):
-   >>>     preferred_shows = GM2MField('Opera', Concert)
+   >>>     preferred_videos = GM2MField()
 
-This way, the reverse relations are created when the model class is created
-and available even if no instance has been added yet::
+We actually write::
 
-   >>> concert = Concert.objects.create()
-   >>> list(concert.user_set)
+   >>> class User(models.Model):
+   >>>     preferred_videos = GM2MField(Movie, 'Opera')
+
+Then the reverse relations from ``Movie`` and ``Opera`` are created when the
+model classes are created and they are available even if no instance has been
+added yet::
+
+   >>> [u.name for u in bartered_bride.user_set]
    []
-
-If you need to add relations afterwards, or if the ``GM2MField`` is defined in
-a third-party library you cannot or do not want to patch, you can still manually
-add relations afterwards::
-
-   >>> class Theater(Video):
-   >>>     pass
-   >>> User.preferred_shows.add_relation(Theater)
 
 Note that providing models to ``GM2MField`` does not prevent you from adding
 instances from other models. You can still add instances from other models, and
 the relation will be created. Providing a list of models will only create
 reverse relations by default, nothing more.
+
+Manual creation on existing model
+.................................
+
+If you need to add relations afterwards, or if the ``GM2MField`` is defined in
+a third-party library you cannot or do not want to patch, you can use the
+``GM2MField``'s ``add_relation`` method.
+
+Suppose we could not amend our ``User`` class to add the reverse relations to
+``Movie`` and ``Opera`` by providing arguments to the ``GM2MField`` constructor,
+this would have exactly the same effect::
+
+   >>> User.preferred_videos.add_relation(Movie)
+   >>> User.preferred_videos.add_relation('Opera')
+
+As shown, you can also use model names (``app.Model``) with ``add_relation``.
+
+Operations and queries on reverse relations
+...........................................
 
 The reverse relations provide you with the full set of operations that normal
 Django reverse relation exposes: ``add``, ``remove`` and ``clear``. ``set`` is
@@ -115,14 +138,29 @@ also available from version 0.4.2.
 
 A reverse relation also enables you to use lookup chains in your queries::
 
-   >>> class Fan(models.Model):
-   >>>    name = models.CharField(max_length=32)
-   >>>    preferred_shows = GM2MField(Opera)
-
-   >>> jack = Fan.objects.create(name='Jack')
-   >>> jack.preferred_shows.add(Opera.objects.create(title='The Bartered Bride'))
-   >>> [o.name for o in Opera.objects.filter(fan__name='Jack')]
+   >>> jack = User.objects.create(name='Jack')
+   >>> jack.preferred_videos.add(bartered_bride)
+   >>> [o.name for o in Opera.objects.filter(user__name='Jack')]
    ['The Bartered Bride']
+
+Related models lookup
+.....................
+
+From version 0.4.3 onwards, you can access all the models related to a
+``GM2MField`` using the ``get_related_models`` method, that takes an
+``include_auto`` optional argument if you want to include the automatically
+created models::
+
+   >>> User.preferred_videos.get_related_models()
+   [<class 'Movie'>, <class 'Opera'>]
+   >>>
+   >>> User.preferred_videos.get_related_models(include_auto=True)
+   [<class 'Movie'>, <class 'Opera'>, <class 'Documentary'>]
+
+Indeed, in that example, ``Movie``, ``Opera`` and ``Theater`` have been added
+to ``preferred_videos``, while ``Documentary`` has only been automatically
+added with the addition of ``citizenfour`` to ``me``'s preferred videos (at
+the top of the page).
 
 
 Deletion

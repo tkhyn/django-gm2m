@@ -139,9 +139,11 @@ class GM2MUnitRel(ForeignObjectRel):
 
     dummy_pre_delete = lambda s, **kwargs: None
 
-    def __init__(self, field, to):
+    def __init__(self, field, to, auto):
         super(GM2MUnitRel, self).__init__(field, to)
         self.multiple = True
+        # warning: do NOT use self.auto_created as it's used by Django !!
+        self.auto = auto
 
     def check(self, **kwargs):
         errors = []
@@ -457,19 +459,19 @@ class GM2MRel(ManyToManyRel):
         for model in related_models:
             self.add_relation(model, contribute_to_class=False)
 
-    def add_relation(self, model, contribute_to_class=True):
+    def add_relation(self, model, contribute_to_class=True, auto=False):
         try:
             assert not model._meta.abstract, \
             "%s cannot define a relation with abstract class %s" \
             % (self.field.__class__.__name__, model._meta.object_name)
         except AttributeError:
-            # to._meta doesn't exist, so it must be a string
+            # model._meta doesn't exist, so it must be a string
             assert isinstance(model, six.string_types), \
             '%s(%r) is invalid. First parameter to GM2MField must ' \
             'be either a model or a model name' \
             % (self.field.__class__.__name__, model)
 
-        rel = GM2MUnitRel(self.field, model)
+        rel = GM2MUnitRel(self.field, model, auto)
         self.rels.append(rel)
         if contribute_to_class:
             rel.contribute_to_class()
