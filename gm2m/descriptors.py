@@ -24,14 +24,14 @@ class GM2MDescriptor(object):
         manager.set(value)
 
 
-class GM2MRelatedDescriptor(GM2MDescriptor):
+class RelatedGM2MDescriptor(GM2MDescriptor):
     """
-    Provides a generic many-to-many descriptor to make the related manager
-    available from the source model class
+    Provides a generic many-to-many descriptor for the related models to make
+    the source manager available from a target model class
     """
 
     def __init__(self, related, rel):
-        super(GM2MRelatedDescriptor, self).__init__(related)
+        super(RelatedGM2MDescriptor, self).__init__(related)
         self.rel = rel
 
     @property
@@ -43,10 +43,11 @@ class GM2MRelatedDescriptor(GM2MDescriptor):
         return self.rel.related_manager_cls
 
 
-class ReverseGM2MRelatedDescriptor(GM2MDescriptor):
+class SourceGM2MDescriptor(GM2MDescriptor):
     """
-    Provides a generic many-to-many descriptor to make the source manager
-    available from a target model class
+    Provides a generic many-to-many descriptor for the source model to make the
+    related manager available from the source model class, and to access field
+    management methods
     """
 
     def add_relation(self, model, auto=False):
@@ -67,4 +68,4 @@ class ReverseGM2MRelatedDescriptor(GM2MDescriptor):
         # clear() can change expected output of 'value' queryset,
         # we force evaluation of queryset before clear; django ticket #19816
         value = tuple(value)
-        super(ReverseGM2MRelatedDescriptor, self).__set__(instance, value)
+        super(SourceGM2MDescriptor, self).__set__(instance, value)

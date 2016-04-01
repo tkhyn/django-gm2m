@@ -15,7 +15,7 @@ from .compat import resolve_related_class
 from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
-from .descriptors import GM2MRelatedDescriptor, ReverseGM2MRelatedDescriptor
+from .descriptors import RelatedGM2MDescriptor, SourceGM2MDescriptor
 from .deletion import *
 from .signals import deleting
 from .helpers import GM2MTo, is_fake_model
@@ -61,7 +61,7 @@ class GM2MRelation(ForeignObject):
     one_to_one = False
 
     concrete = False
-    related_accessor_class = GM2MRelatedDescriptor
+    related_accessor_class = RelatedGM2MDescriptor
 
     hidden = False
 
@@ -334,7 +334,7 @@ class GM2MUnitRel(ForeignObjectRel):
         if not self.is_hidden() and not self.field.model._meta.swapped:
             setattr(self.to, self.related_name
                         or (self.field.model._meta.model_name + '_set'),
-                    GM2MRelatedDescriptor(self.related, self))
+                    RelatedGM2MDescriptor(self.related, self))
 
     @cached_property
     def related_manager_cls(self):
@@ -690,7 +690,7 @@ class GM2MRel(ManyToManyRel):
 
         # Connect the descriptor for this field
         setattr(cls, self.field.attname,
-                ReverseGM2MRelatedDescriptor(self.field))
+                SourceGM2MDescriptor(self.field))
 
         if cls._meta.abstract or cls._meta.swapped:
             # do not do anything for abstract or swapped model classes
