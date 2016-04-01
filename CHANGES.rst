@@ -28,6 +28,14 @@ v0.4.2 (29-02-2016)
 | \* Fixes instantiation in abstract models (#22)
 | \* Fixes installation issue with newest setuptools (#23)
 
+v0.4.3 (01-04-2016)
+...................
+
+| \+ Adds GM2MField.get_related_models method (#26)
+| \* Improves documentation (#25)
+| \* Fixes wrong reverse related manager superclass (#27)
+| \* Fixes reverse relations not created when using abstract model (#24)
+
 
 v0.3 (09-09-2015)
 -----------------
