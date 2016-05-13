@@ -119,7 +119,7 @@ the main directory::
    $ tox
 
 
-.. _nose: http://nose.readthedocs.org/en/latest/
+.. _nose: http://nose.readthedocs.io/en/latest/
 .. _django_nose: https://pypi.python.org/pypi/django-nose
 .. _zc.buildout: http://www.buildout.org/en/latest/
 .. _tox: https://testrun.org/tox/
