@@ -1,4 +1,4 @@
-from django.db.models import Manager
+from django.db import models
 from django.db.migrations.state import StateApps
 from django.utils.functional import cached_property
 from django.utils import six
@@ -13,19 +13,12 @@ def is_fake_model(model):
     return isinstance(model._meta.apps, StateApps)
 
 
-class GM2MTo(object):
-    """
-    A 'dummy' model-like class that enables django to find out that GM2MField
-    depends on contenttypes, and provides a specific manager for deserialization
-    (amongst other things)
+# Hereafter, the aim is to create a 'dummy' model class that:
+#  - enables django to find out that GM2MField depends on contenttypes
+#  - provides a specific manager for deserialization
 
-    Indeed, unlike a GFK, GM2MField does not create any FK to ContentType on
-    the source model
-    """
-
-    def __init__(self):
-        self._meta = GM2MToOptions()
-        self._default_manager = GM2MToManager()
+# Indeed, unlike a GFK, GM2MField does not create any FK to ContentType on
+# the source model, so we need to let django know about that
 
 
 class GM2MToOptions(object):
@@ -35,6 +28,9 @@ class GM2MToOptions(object):
         self.model_name = 'contenttype'
         self.app_label = 'contenttypes'
 
+        self.concrete_fields = []
+        self.pk = None
+
     def __str__(self):
         return 'gm2m.to'
 
@@ -43,7 +39,7 @@ class GM2MToOptions(object):
         return ct.ContentType
 
 
-class GM2MToManager(Manager):
+class GM2MToManager(models.Manager):
 
     def get_by_natural_key(self, ct_key, key):
         """
@@ -71,3 +67,25 @@ class GM2MToManager(Manager):
         gm2mto.pk = obj
 
         return gm2mto
+
+
+class Dummy(object):
+    """
+    We can't derive our dummy model class from models.Model explicitly, as if we
+    do it triggers all the django machinery through the metaclass. To prevent
+    this, we derive from a Dummy class and then overwrite the __bases__ (as we
+    are not allowed to replace __bases__ on a class tha derives from `object`
+    """
+
+
+class GM2MTo(Dummy):
+    """
+    We need to define pk as we're using that attribute in the GM2MToManager
+    above
+    """
+    pk = None
+
+
+GM2MTo.__bases__ = (models.Model,)
+GM2MTo._meta = GM2MToOptions()
+GM2MTo._default_manager = GM2MToManager()

@@ -433,8 +433,8 @@ class GM2MUnitRel(ForeignObjectRel):
 
 class GM2MRel(ManyToManyRel):
 
-    to = GM2MTo()
-    model = GM2MTo()
+    to = GM2MTo
+    model = GM2MTo
 
     name = 'gm2mrel'
     hidden = False

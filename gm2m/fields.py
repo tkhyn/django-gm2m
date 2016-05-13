@@ -44,7 +44,7 @@ class GM2MField(Field):
             rel=GM2MRel(self, related_models, **params),
             # setting null to True only prevent makemigrations from asking for
             # a default value
-            null=True,
+            null=True
         )
 
         self.db_table = params.pop('db_table', None)
