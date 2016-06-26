@@ -36,6 +36,11 @@ v0.4.3 (01-04-2016)
 | \* Fixes wrong reverse related manager superclass (#27)
 | \* Fixes reverse relations not created when using abstract model (#24)
 
+v0.4.4 (27-06-2016)
+-------------------
+
+| \* Fixes GM2MTo integration (#29)
+
 
 v0.3 (09-09-2015)
 -----------------
