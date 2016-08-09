@@ -68,13 +68,20 @@ class GM2MTgtQuerySet(query.QuerySet):
                     # when prefetching related objects, one must yield one
                     # object per through model instance
                     for __ in attrs[str(pk)]:
-                        objects[(ct, str(pk))] = obj
+                        if self.ordered:
+                            objects[(ct, str(pk))] = obj
+                        else:
+                            yield obj
                     continue
 
-                objects[(ct, str(pk))] = obj
+                if self.ordered:
+                    objects[(ct, str(pk))] = obj
+                else:
+                    yield obj
 
-        for ct, pk in ordered_ct_attrs:
-            yield objects[(ct, pk)]
+        if self.ordered:
+            for ct, pk in ordered_ct_attrs:
+                yield objects[(ct, pk)]
 
     def filter(self, *args, **kwargs):
         model = kwargs.pop('Model', None)
