@@ -36,6 +36,9 @@ class GM2MTgtQuerySet(query.QuerySet):
             rel_prefetching = False
 
         ct_attrs = defaultdict(lambda: defaultdict(lambda: []))
+        objects = {}
+        ordered_ct_attrs = []
+
         field_names = self.model._meta._field_names
 
         extra_select = list(self.query.extra_select)
@@ -46,6 +49,7 @@ class GM2MTgtQuerySet(query.QuerySet):
             ct = vl[0]
             pk = vl[1]
             ct_attrs[ct][pk].append(vl[2:])
+            ordered_ct_attrs.append((ct, pk))
 
         for ct, attrs in six.iteritems(ct_attrs):
             for pk, obj in six.iteritems(
@@ -64,10 +68,13 @@ class GM2MTgtQuerySet(query.QuerySet):
                     # when prefetching related objects, one must yield one
                     # object per through model instance
                     for __ in attrs[str(pk)]:
-                        yield obj
+                        objects[(ct, str(pk))] = obj
                     continue
 
-                yield obj
+                objects[(ct, str(pk))] = obj
+
+        for ct, pk in ordered_ct_attrs:
+            yield objects[(ct, pk)]
 
     def filter(self, *args, **kwargs):
         model = kwargs.pop('Model', None)
