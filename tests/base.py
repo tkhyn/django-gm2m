@@ -122,16 +122,8 @@ class _TestCase(test.TestCase):
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
 
-        # resets ContentType's related object cache to 'forget' the links
-        # created by the previous test case, they'll be regenerated
-        try:
-            del ct.ContentType._meta._related_objects_cache
-        except AttributeError:
-            pass
-
-        # finally, we need to reload the current test module as it relies upon
-        # the app's models
-        # needed to import app.test
+        # we also need to reload the current test module as it relies upon the
+        # app's models needed to import app.test
         app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
         import_module(app_mod_path(cls.inst_apps[1]))
         reload(sys.modules[cls.__module__])
@@ -290,12 +282,8 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
 
-        # this is required as we need to erases the cached reverse relations
-        # associated to FKs to ContentType
-        try:
-            del ct.ContentType._meta._related_objects_cache
-        except AttributeError:
-            pass
+        # this implies clearing the content types cache
+        ct.ContentType.objects.clear_cache()
 
         app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
         cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
