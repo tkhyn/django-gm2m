@@ -18,7 +18,7 @@ class Serializer(xml_serializer.Serializer):
             # use normal serialization from superclass
             super(Serializer, self).handle_m2m_field(obj, field)
 
-        if field.rel.through._meta.auto_created:
+        if field.remote_field.through._meta.auto_created:
             self._start_relational_field(field)
             if self.use_natural_foreign_keys:
                 def handle_gm2m(value):

@@ -30,17 +30,17 @@ class RelatedGM2MDescriptor(GM2MDescriptor):
     the source manager available from a target model class
     """
 
-    def __init__(self, related, rel):
+    def __init__(self, related, remote_field):
         super(RelatedGM2MDescriptor, self).__init__(related)
-        self.rel = rel
+        self.remote_field = remote_field
 
     @property
     def through(self):
-        return self.rel.through
+        return self.remote_field.through
 
     @property
     def related_manager_cls(self):
-        return self.rel.related_manager_cls
+        return self.remote_field.related_manager_cls
 
 
 class SourceGM2MDescriptor(GM2MDescriptor):
@@ -58,11 +58,11 @@ class SourceGM2MDescriptor(GM2MDescriptor):
 
     @property
     def through(self):
-        return self.field.rel.through
+        return self.field.remote_field.through
 
     @property
     def related_manager_cls(self):
-        return self.field.rel.related_manager_cls
+        return self.field.remote_field.related_manager_cls
 
     def __set__(self, instance, value):
         # clear() can change expected output of 'value' queryset,

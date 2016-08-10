@@ -177,9 +177,9 @@ class TestCase(_TestCase):
 
         # just checking the strings output, as for an attr to attr comparison
         # we would need to run contribute_to_class
-        self.assertSetEqual(set(['%s.%s' % (r.to._meta.app_label,
-                                            r.to._meta.object_name)
-                                 for r in field.rel.rels
+        self.assertSetEqual(set(['%s.%s' % (r.model._meta.app_label,
+                                            r.model._meta.object_name)
+                                 for r in field.remote_field.rels
                                  if not getattr(r, '_added', False)]),
                             set(args))
 

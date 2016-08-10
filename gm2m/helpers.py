@@ -21,7 +21,7 @@ def is_fake_model(model):
 # the source model, so we need to let django know about that
 
 
-class GM2MToOptions(object):
+class GM2MModelOptions(object):
 
     def __init__(self):
         self.object_name = 'ContentType'
@@ -32,14 +32,14 @@ class GM2MToOptions(object):
         self.pk = None
 
     def __str__(self):
-        return 'gm2m.to'
+        return 'gm2m.model'
 
     @cached_property
     def concrete_model(self):
         return ct.ContentType
 
 
-class GM2MToManager(models.Manager):
+class GM2MModelManager(models.Manager):
 
     def get_by_natural_key(self, ct_key, key):
         """
@@ -63,7 +63,7 @@ class GM2MToManager(models.Manager):
 
         # django's Deserializer only cares about the pk attribute, but we
         # need the actual instance
-        gm2mto = GM2MTo()
+        gm2mto = GM2MModel()
         gm2mto.pk = obj
 
         return gm2mto
@@ -78,7 +78,7 @@ class Dummy(object):
     """
 
 
-class GM2MTo(Dummy):
+class GM2MModel(Dummy):
     """
     We need to define pk as we're using that attribute in the GM2MToManager
     above
@@ -86,6 +86,6 @@ class GM2MTo(Dummy):
     pk = None
 
 
-GM2MTo.__bases__ = (models.Model,)
-GM2MTo._meta = GM2MToOptions()
-GM2MTo._default_manager = GM2MToManager()
+GM2MModel.__bases__ = (models.Model,)
+GM2MModel._meta = GM2MModelOptions()
+GM2MModel._default_manager = GM2MModelManager()
