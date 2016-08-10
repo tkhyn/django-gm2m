@@ -40,6 +40,7 @@ class GM2MTgtQuerySet(query.QuerySet):
         ordered_ct_attrs = []
 
         field_names = self.model._meta._field_names
+        fk_field = self.model._meta.get_field(field_names['tgt_fk'])
 
         extra_select = list(self.query.extra_select)
 
@@ -47,7 +48,7 @@ class GM2MTgtQuerySet(query.QuerySet):
                                    field_names['tgt_fk'],
                                    *extra_select):
             ct = vl[0]
-            pk = vl[1]
+            pk = fk_field.to_python(vl[1])
             ct_attrs[ct][pk].append(vl[2:])
             ordered_ct_attrs.append((ct, pk))
 
@@ -56,26 +57,28 @@ class GM2MTgtQuerySet(query.QuerySet):
                 ct_classes.ContentType.objects.get_for_id(ct).model_class()
                                       ._default_manager.in_bulk(attrs.keys())):
 
+                pk = fk_field.to_python(pk)
+
                 # we store the through model id in case we are in the process
                 # of fetching related objects
                 for i, k in enumerate(extra_select):
                     e_list = []
-                    for e in attrs[str(pk)]:
+                    for e in attrs[pk]:
                         e_list.append(e[i])
                     setattr(obj, k, e_list)
 
                 if rel_prefetching:
                     # when prefetching related objects, one must yield one
                     # object per through model instance
-                    for __ in attrs[str(pk)]:
+                    for __ in attrs[pk]:
                         if self.ordered:
-                            objects[(ct, str(pk))] = obj
+                            objects[(ct, pk)] = obj
                         else:
                             yield obj
                     continue
 
                 if self.ordered:
-                    objects[(ct, str(pk))] = obj
+                    objects[(ct, pk)] = obj
                 else:
                     yield obj
 
