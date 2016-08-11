@@ -437,6 +437,7 @@ class GM2MUnitRel(ForeignObjectRel):
 class GM2MRel(ManyToManyRel):
 
     model = GM2MModel
+    to = GM2MModel  # compat with django 1.8
 
     name = 'gm2mrel'
     hidden = False
