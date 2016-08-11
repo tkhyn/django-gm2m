@@ -8,7 +8,6 @@ class GM2MConfig(AppConfig):
 
     def ready(self):
 
-        from . import compat
         from . import signals
         from . import monkeypatch
 
