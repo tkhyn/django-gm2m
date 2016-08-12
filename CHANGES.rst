@@ -41,6 +41,14 @@ v0.4.4 (27-06-2016)
 
 | \* Fixes GM2MTo integration (#29)
 
+v0.4.5 (13-08-2016)
+...................
+
+| \+ Supports sorting (#30)
+| \+ Django 1.10+ compatibility (deprecation warnings)
+| \* Backport of properties renamed in Django 1.9 and 1.10
+| \* Fixes content types cache accessor for Django 1.8.10+
+
 
 v0.3 (09-09-2015)
 -----------------

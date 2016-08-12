@@ -9,7 +9,7 @@ class Serializer(python.Serializer):
 
     def handle_m2m_field(self, obj, field):
         if isinstance(field, GM2MField):
-            if field.rel.through._meta.auto_created:
+            if field.remote_field.through._meta.auto_created:
                 if self.use_natural_foreign_keys:
                     def m2m_value(value):
                         try:

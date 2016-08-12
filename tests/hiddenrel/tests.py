@@ -10,7 +10,7 @@ class ReverseRelationTests(base.TestCase):
 
     def test_reverse_access(self):
         self.assertTrue(
-            self.models.Links.related_objects.field.rel.rels[0].is_hidden())
+            self.models.Links.related_objects.field.remote_field.rels[0].is_hidden())
         with self.assertRaises(AttributeError):
             getattr(self.project, 'related_links+')
 

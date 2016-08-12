@@ -30,7 +30,6 @@ class GM2MField(Field):
     one_to_one = False
 
     related_model = ''
-    remote_field = None
 
     description = _('Generic many-to-many relationship')
 
@@ -49,7 +48,7 @@ class GM2MField(Field):
 
         self.db_table = params.pop('db_table', None)
         self.pk_maxlength = params.pop('pk_maxlength', False)
-        if self.rel.through is not None:
+        if self.remote_field.through is not None:
             assert self.db_table is None and self.pk_maxlength is False, \
                 'django-gm2m: Cannot specify a db_table nor a pk_maxlength ' \
                 'if ''an intermediary model is used.'
@@ -57,7 +56,7 @@ class GM2MField(Field):
     def check(self, **kwargs):
         errors = super(GM2MField, self).check(**kwargs)
         errors.extend(self._check_unique(**kwargs))
-        errors.extend(self.rel.check(**kwargs))
+        errors.extend(self.remote_field.check(**kwargs))
         return errors
 
     def _check_unique(self, **kwargs):
@@ -79,17 +78,17 @@ class GM2MField(Field):
 
         # generate related models list (cannot get it from rel, as it can
         # be changed by add_relation)
-        for rel in self.rel.rels:
+        for rel in self.remote_field.rels:
             if getattr(rel, '_added', False):
                 continue
 
-            if isinstance(rel.to, six.string_types):
-                args.append(rel.to)
+            if isinstance(rel.model, six.string_types):
+                args.append(rel.model)
             else:
                 # see if the related model is a swappable model
                 swappable_setting = rel.swappable_setting
                 if swappable_setting is not None:
-                    setting_name = getattr(rel.to, 'setting_name', None)
+                    setting_name = getattr(rel.model, 'setting_name', None)
                     if setting_name != swappable_setting:
                         raise ValueError(
                             'Cannot deconstruct a GM2MField pointing to a '
@@ -98,11 +97,11 @@ class GM2MField(Field):
                             % (setting_name, swappable_setting))
 
                     from django.db.migrations.writer import SettingsReference
-                    to = SettingsReference(rel.to, swappable_setting)
+                    model = SettingsReference(rel.model, swappable_setting)
                 else:
-                    to = '%s.%s' % (rel.to._meta.app_label,
-                                    rel.to._meta.object_name)
-                args.append(to)
+                    model = '%s.%s' % (rel.model._meta.app_label,
+                                    rel.model._meta.object_name)
+                args.append(model)
 
         # handle parameters
         if self.db_table:
@@ -110,7 +109,7 @@ class GM2MField(Field):
         if self.pk_maxlength is not False:
             kwargs['pk_maxlength'] = self.pk_maxlength
 
-        through = self.rel.through
+        through = self.remote_field.through
         if through:
             if isinstance(through, six.string_types):
                 kwargs['through'] = through
@@ -123,7 +122,7 @@ class GM2MField(Field):
             if k == 'through':
                 # through has been dealt with just above
                 continue
-            value = getattr(self.rel, k)
+            value = getattr(self.remote_field, k)
             if value != default:
                 if k == 'related_name':
                     value = force_text(value)
@@ -132,21 +131,21 @@ class GM2MField(Field):
         # on_delete options
         on_delete = kwargs.get('on_delete', REL_ATTRS['on_delete'])
         for param in ('on_delete_src', 'on_delete_tgt'):
-            value = getattr(self.rel, param)
+            value = getattr(self.remote_field, param)
             if value != on_delete:
                 kwargs[param] = value
 
         return name, path, args, kwargs
 
     def add_relation(self, model, auto=False):
-        rel = self.rel.add_relation(model, auto=auto)
+        rel = self.remote_field.add_relation(model, auto=auto)
         rel._added = True
 
     def get_related_models(self, include_auto=False):
         models = []
-        for unitrel in self.rel.rels:
+        for unitrel in self.remote_field.rels:
             if not unitrel.auto or include_auto:
-                models.append(unitrel.to)
+                models.append(unitrel.model)
         return models
 
     def db_type(self, connection):
@@ -165,8 +164,8 @@ class GM2MField(Field):
 
     def m2m_db_table(self):
         # self.db_table will be None if
-        if self.rel.through is not None:
-            return self.rel.through._meta.db_table
+        if self.remote_field.through is not None:
+            return self.remote_field.through._meta.db_table
         elif self.db_table:
             return self.db_table
         else:
@@ -198,7 +197,7 @@ class GM2MField(Field):
         self.opts = cls._meta
 
         # Set up related classes if relations are defined
-        self.rel.contribute_to_class(cls)
+        self.remote_field.contribute_to_class(cls)
 
     def get_attname_column(self):
         """
@@ -212,8 +211,10 @@ class GM2MField(Field):
         """
         Should the related object be hidden?
         """
-        return self.rel.related_name and self.rel.related_name[-1] == '+'
+        return self.remote_field.related_name \
+            and self.remote_field.related_name[-1] == '+'
 
     def related_query_name(self):
-        return self.rel.related_query_name or self.rel.related_name \
+        return self.remote_field.related_query_name \
+            or self.remote_field.related_name \
             or self.model._meta.model_name

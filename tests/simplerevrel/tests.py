@@ -28,7 +28,7 @@ class RelatedTests(base.TestCase):
         Check that the reverse relation is not in the Project's options fields
         """
 
-        self.assertNotIn(self.models.Project._meta.virtual_fields[0],
+        self.assertNotIn(self.models.Project._meta.private_fields[0],
                          self.models.Project._meta.fields)
 
     def test_get_gm2m_models(self):

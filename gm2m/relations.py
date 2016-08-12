@@ -11,14 +11,13 @@ from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
 
-from .compat import resolve_related_class
 from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
 from .descriptors import RelatedGM2MDescriptor, SourceGM2MDescriptor
 from .deletion import *
 from .signals import deleting
-from .helpers import GM2MTo, is_fake_model
+from .helpers import GM2MModel, is_fake_model
 
 
 # default relation attributes
@@ -65,11 +64,12 @@ class GM2MRelation(ForeignObject):
 
     hidden = False
 
-    def __init__(self, to, field, rel, **kwargs):
+    def __init__(self, model, field, rel, **kwargs):
         self.field = field
 
         kwargs.update({
             'rel': rel,
+            'name': rel.get_accessor_name() + '_relation',
             'blank': True,
             'editable': False,
             'serialize': False
@@ -79,14 +79,14 @@ class GM2MRelation(ForeignObject):
             # django 1.9's ForeignObject constructor expects on_delete
             kwargs['on_delete'] = rel.on_delete
 
-        super(GM2MRelation, self).__init__(to, from_fields=[field.name],
-            to_fields=[], **kwargs)
+        super(GM2MRelation, self).__init__(model, from_fields=[field.name],
+                                           to_fields=[], **kwargs)
 
     def contribute_to_class(self, cls, name, virtual_only=False):
         pass
 
     def get_accessor_name(self):
-        return self.rel.get_accessor_name()
+        return self.remote_field.get_accessor_name()
 
     def bulk_related_objects(self, objs, using=DEFAULT_DB_ALIAS):
         """
@@ -95,10 +95,10 @@ class GM2MRelation(ForeignObject):
         not use the deletion functions as such
         """
 
-        through = self.field.rel.through
+        through = self.field.remote_field.through
         base_mngr = through._base_manager.db_manager(using)
 
-        on_delete = self.rel.on_delete
+        on_delete = self.remote_field.on_delete
 
         if on_delete is not DO_NOTHING:
             # collect related objects
@@ -139,8 +139,8 @@ class GM2MUnitRel(ForeignObjectRel):
 
     dummy_pre_delete = lambda s, **kwargs: None
 
-    def __init__(self, field, to, auto):
-        super(GM2MUnitRel, self).__init__(field, to)
+    def __init__(self, field, model, auto):
+        super(GM2MUnitRel, self).__init__(field, model)
         self.multiple = True
         # warning: do NOT use self.auto_created as it's used by Django !!
         self.auto = auto
@@ -152,18 +152,18 @@ class GM2MUnitRel(ForeignObjectRel):
         return errors
 
     def _check_referencing_to_swapped_model(self):
-        if self.to not in apps.get_models() \
-        and not isinstance(self.to, six.string_types) \
-        and self.to._meta.swapped:
+        if self.model not in apps.get_models() \
+        and not isinstance(self.model, six.string_types) \
+        and self.model._meta.swapped:
             model = '%s.%s' % (
-                self.to._meta.app_label,
-                self.to._meta.object_name
+                self.model._meta.app_label,
+                self.model._meta.object_name
             )
             return [checks.Error(
                 ("Field defines a relation with the model '%s', "
                  "which has been swapped out.") % model,
                 hint="Update the relation to point at 'settings.%s'."
-                     % self.rel.to._meta.swappable,
+                     % self.remote_field.model._meta.swappable,
                 obj=self,
                 id='gm2m.E201',
             )]
@@ -177,9 +177,9 @@ class GM2MUnitRel(ForeignObjectRel):
         errors = []
         opts = self.field.model._meta
 
-        # `self.to` may be a string instead of a model. Skip if model name
+        # `self.model` may be a string instead of a model. Skip if model name
         # is not resolved.
-        if not isinstance(self.to, ModelBase):
+        if not isinstance(self.model, ModelBase):
             return []
 
         # If the field doesn't install backward relation on the target
@@ -204,7 +204,7 @@ class GM2MUnitRel(ForeignObjectRel):
         #         foreign = models.ForeignKey(Target)
         #         gm2m = GM2MField(Target)
 
-        rel_opts = self.to._meta
+        rel_opts = self.model._meta
         # rel_opts.object_name == "Target"
         rel_name = self.related.get_accessor_name()  # i. e. "model_set"
         rel_query_name = self.field.related_query_name()  # i. e. "model"
@@ -290,21 +290,24 @@ class GM2MUnitRel(ForeignObjectRel):
         if name in REL_ATTRS_NAMES:
             if name == 'on_delete':
                 name += '_tgt'
-            return getattr(sup('field').rel, name)
+            return getattr(sup('field').remote_field, name)
         else:
             return sup(name)
 
     def contribute_to_class(self):
-        if isinstance(self.to, six.string_types) or self.to._meta.pk is None:
-            add_lazy_relation(self.field.model, self, self.to,
+        if isinstance(self.model, six.string_types) or self.model._meta.pk is None:
+            def resolve_related_class(rel, model, cls):
+                rel.model = model
+                rel.do_related_class()
+            add_lazy_relation(self.field.model, self, self.model,
                               resolve_related_class)
         else:
             self.do_related_class()
 
     def do_related_class(self):
         # check that the relation does not already exist
-        all_rels = self.field.rel.rels
-        if self.to in [r.to for r in all_rels if r != self]:
+        all_rels = self.field.remote_field.rels
+        if self.model in [r.model for r in all_rels if r != self]:
             # if it does, it needs to be removed from the list, and no further
             # action should be taken
             all_rels.remove(self)
@@ -320,19 +323,19 @@ class GM2MUnitRel(ForeignObjectRel):
         """
 
         # this enables cascade deletion for any relation (even hidden ones)
-        self.to._meta.add_field(self.related, virtual=True)
+        self.model._meta.add_field(self.related, virtual=True)
 
         if self.on_delete in handlers_with_signal:
             # if a signal should be sent on deletion, we connect a dummy
             # receiver to pre_delete so that the model is not
             # 'fast_delete'-able
             # (see django.db.models.deletion.Collector.can_fast_delete)
-            pre_delete.connect(self.dummy_pre_delete, sender=self.to)
+            pre_delete.connect(self.dummy_pre_delete, sender=self.model)
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
         if not self.is_hidden() and not self.field.model._meta.swapped:
-            setattr(self.to, self.related_name
+            setattr(self.model, self.related_name
                         or (self.field.model._meta.model_name + '_set'),
                     RelatedGM2MDescriptor(self.related, self))
 
@@ -359,12 +362,12 @@ class GM2MUnitRel(ForeignObjectRel):
         # can only be called by Django 1.7+, the apps module will be available
 
         # Work out string form of "to"
-        if isinstance(self.to, six.string_types):
-            to_string = self.to
+        if isinstance(self.model, six.string_types):
+            to_string = self.model
         else:
             to_string = "%s.%s" % (
-                self.to._meta.app_label,
-                self.to._meta.object_name,
+                self.model._meta.app_label,
+                self.model._meta.object_name,
             )
         # See if anything swapped/swappable matches
         for model in apps.get_models(include_swapped=True):
@@ -387,13 +390,13 @@ class GM2MUnitRel(ForeignObjectRel):
         if reverse:
             pathinfos.extend(fk_field.get_reverse_path_info())
             # through > to part of the relation is generated manually
-            opts = self.to._meta
+            opts = self.model._meta
             pathinfos.append(PathInfo(self.through._meta, opts, (opts.pk,),
                                       self, True, False))
         else:
             # to > through part of the relation is generated manually
             opts = self.through._meta
-            pathinfos.append(PathInfo(self.to._meta, opts, (opts.pk,),
+            pathinfos.append(PathInfo(self.model._meta, opts, (opts.pk,),
                                       self, False, False))
             pathinfos.extend(fk_field.get_path_info())
         return pathinfos
@@ -407,7 +410,7 @@ class GM2MUnitRel(ForeignObjectRel):
     def get_joining_columns(self):
         opts = self.through._meta
         return [(
-            self.to._meta.pk.column,
+            self.model._meta.pk.column,
             opts.get_field(opts._field_names['tgt_fk']).column
         )]
 
@@ -415,7 +418,7 @@ class GM2MUnitRel(ForeignObjectRel):
         opts = self.through._meta
         field = opts.get_field(opts._field_names['tgt_ct'])
 
-        ct_pk = ct.ContentType.objects.get_for_model(self.to,
+        ct_pk = ct.ContentType.objects.get_for_model(self.model,
                     for_concrete_model=self.for_concrete_model).pk
         lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
 
@@ -428,13 +431,13 @@ class GM2MUnitRel(ForeignObjectRel):
         Returns the field in the to object to which this relationship is tied
         (this is always the primary key on the target model).
         """
-        return self.to._meta.pk
+        return self.model._meta.pk
 
 
 class GM2MRel(ManyToManyRel):
 
-    to = GM2MTo
-    model = GM2MTo
+    model = GM2MModel
+    to = GM2MModel  # compat with django 1.8
 
     name = 'gm2mrel'
     hidden = False
@@ -517,8 +520,10 @@ class GM2MRel(ManyToManyRel):
             from_model_name = from_model._meta.object_name
 
             # Count foreign keys in intermediate model
-            seen_from = sum(from_model == getattr(field.rel, 'to', None)
-                for field in self.through._meta.fields)
+            seen_from = sum(
+                from_model == getattr(field.remote_field, 'model', None)
+                for field in self.through._meta.fields
+            )
 
             if seen_from == 0:
                 errors.append(
@@ -547,7 +552,7 @@ class GM2MRel(ManyToManyRel):
                 )
 
             seen_to = sum(isinstance(field, ct.GenericForeignKey)
-                for field in self.through._meta.virtual_fields)
+                for field in self.through._meta.private_fields)
 
             if seen_to == 0:
                 errors.append(
@@ -607,8 +612,8 @@ class GM2MRel(ManyToManyRel):
 
                 possible_field_names = []
                 for f in through._meta.fields:
-                    if hasattr(f, 'rel') \
-                    and getattr(f.rel, 'to', None) == from_model:
+                    if hasattr(f, 'remote_field') \
+                    and getattr(f.remote_field, 'model', None) == from_model:
                         possible_field_names.append(f.name)
                 if possible_field_names:
                     hint = ("Did you mean one of the following foreign keys "
@@ -630,8 +635,8 @@ class GM2MRel(ManyToManyRel):
                         )
                     )
                 else:
-                    if not (hasattr(field, 'rel') and
-                            getattr(field.rel, 'to', None) == from_model):
+                    if not (getattr(field, 'remote_field', None) and
+                            getattr(field.remote_field, 'model', None) == from_model):
                         errors.append(
                             checks.Error(
                                 "'%s.%s' is not a foreign key to '%s'." % (
@@ -646,7 +651,7 @@ class GM2MRel(ManyToManyRel):
                 target_field_name = self.through_fields[1]
 
                 possible_field_names = []
-                for f in through._meta.virtual_fields:
+                for f in through._meta.private_fields:
                     if isinstance(f, ct.GenericForeignKey):
                         possible_field_names.append(f.name)
                 if possible_field_names:
@@ -657,7 +662,7 @@ class GM2MRel(ManyToManyRel):
                     hint = None
 
                 field = None
-                for f in through._meta.virtual_fields:
+                for f in through._meta.private_fields:
                     if f.name == target_field_name:
                         field = f
                         break
@@ -730,7 +735,7 @@ class GM2MRel(ManyToManyRel):
             if rel.through_fields:
                 tf_dict['src'], tf_dict['tgt'] = \
                     rel.through_fields[:2]
-                for gfk in rel.through._meta.virtual_fields:
+                for gfk in rel.through._meta.private_fields:
                     if gfk.name == tf_dict['tgt']:
                         break
                 else:
@@ -743,14 +748,14 @@ class GM2MRel(ManyToManyRel):
                 tf_dict['tgt_fk'] = gfk.fk_field
             else:
                 for f in rel.through._meta.fields:
-                    if hasattr(f, 'rel') and f.rel \
-                    and (f.rel.to == rel.field.model
-                         or f.rel.to == '%s.%s' % (
+                    if hasattr(f, 'rel') and f.remote_field \
+                    and (f.remote_field.model == rel.field.model
+                         or f.remote_field.model == '%s.%s' % (
                             rel.field.model._meta.app_label,
                             rel.field.model._meta.object_name)):
                         tf_dict['src'] = f.name
                         break
-                for f in rel.through._meta.virtual_fields:
+                for f in rel.through._meta.private_fields:
                     if isinstance(f, ct.GenericForeignKey):
                         tf_dict['tgt'] = f.name
                         tf_dict['tgt_ct'] = f.ct_field

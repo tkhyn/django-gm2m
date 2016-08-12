@@ -39,8 +39,12 @@ def get_content_type(obj):
         # we erase the app cache to make sure a modelstate is returned when
         # calling get_for_model on the manager
         try:
-            del ct_mngr.__class__._cache[db][(klass._meta.app_label,
-                                              klass._meta.model_name)]
+            cache = ct_mngr.__class__._cache
+        except AttributeError:
+            # Django >= 1.8.10
+            cache = ct_mngr._cache
+        try:
+            del cache[db][(klass._meta.app_label, klass._meta.model_name)]
         except KeyError:
             pass
     else:
