@@ -44,7 +44,7 @@ setup(
     ],
     packages=find_packages(exclude=('tests',)),
     install_requires=(
-        'Django>=1.8,<1.10',
+        'Django>=1.8',
     ),
     zip_safe=True,
 )
