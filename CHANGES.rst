@@ -49,6 +49,11 @@ v0.4.5 (13-08-2016)
 | \* Backport of properties renamed in Django 1.9 and 1.10
 | \* Fixes content types cache accessor for Django 1.8.10+
 
+v0.4.6 (21-08-2016)
+...................
+
+| \* Fix setup.py requirement excluding django 1.10 (PR #1, thanks @iblag)
+
 
 v0.3 (09-09-2015)
 -----------------
