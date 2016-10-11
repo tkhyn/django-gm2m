@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.core import checks
 from django.db.backends import utils as db_backends_utils
 
-from .relations import GM2MRel, REL_ATTRS
+from .relations import GM2MRel, REL_ATTRS, REL_ATTRS_NAMES
 
 
 class GM2MField(Field):
@@ -118,22 +118,31 @@ class GM2MField(Field):
                                                through._meta.object_name)
 
         # rel options
-        for k, default in six.iteritems(REL_ATTRS):
+        for k in REL_ATTRS_NAMES:
             if k == 'through':
                 # through has been dealt with just above
                 continue
-            value = getattr(self.remote_field, k)
+
+            # retrieve default value
+            try:
+                default = REL_ATTRS[k]
+            except KeyError:
+                if k.startswith('on_delete_'):
+                    default = kwargs.get('on_delete', REL_ATTRS['on_delete'])
+                else:
+                    # this is a fixed attribute, we don't need to care about it
+                    continue
+
+            # retrieve actual initial value, possibly from _init_attr dict
+            try:
+                value = self.remote_field._init_attrs[k]
+            except KeyError:
+                value = getattr(self.remote_field, k)
+
             if value != default:
                 if k == 'related_name':
                     value = force_text(value)
                 kwargs[k] = value
-
-        # on_delete options
-        on_delete = kwargs.get('on_delete', REL_ATTRS['on_delete'])
-        for param in ('on_delete_src', 'on_delete_tgt'):
-            value = getattr(self.remote_field, param)
-            if value != on_delete:
-                kwargs[param] = value
 
         return name, path, args, kwargs
 

@@ -52,7 +52,12 @@ v0.4.5 (13-08-2016)
 v0.4.6 (21-08-2016)
 ...................
 
-| \* Fix setup.py requirement excluding django 1.10 (PR #1, thanks @iblag)
+| \* Fixes setup.py requirement excluding django 1.10 (PR #1, thanks @iblag)
+
+v0.4.7 (11-10-2016)
+-------------------
+
+| \* Fixes deconstruction issue when relation attributes are modified externally
 
 
 v0.3 (09-09-2015)

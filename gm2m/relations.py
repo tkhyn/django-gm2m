@@ -44,7 +44,9 @@ REL_ATTRS_FIXED = {
     'limit_choices_to': {}
 }
 
-REL_ATTRS_NAMES = list(REL_ATTRS.keys()) + list(REL_ATTRS_FIXED.keys())
+REL_ATTRS_NAMES = list(REL_ATTRS.keys()) + list(REL_ATTRS_FIXED.keys()) + [
+    'on_delete_tgt', 'on_delete_src'
+]
 
 
 class GM2MRelation(ForeignObject):
@@ -445,14 +447,18 @@ class GM2MRel(ManyToManyRel):
     def __init__(self, field, related_models, **params):
 
         self.field = field
+        self._init_attrs = {}
 
         for name, default in six.iteritems(REL_ATTRS):
-            setattr(self, name, params.pop(name, default))
+            self.set_init(name, params.pop(name, default))
         for name, value in six.iteritems(REL_ATTRS_FIXED):
-            setattr(self, name, value)
+            self.set_init(name, value)
 
-        self.on_delete_src = params.pop('on_delete_src', self.on_delete)
-        self.on_delete_tgt = params.pop('on_delete_tgt', self.on_delete)
+        for on_del_param in ('src', 'tgt'):
+            on_del_param = 'on_delete_' + on_del_param
+            self.set_init(
+                on_del_param, params.pop(on_del_param, self.on_delete)
+            )
 
         if self.through and not self.db_constraint:
             raise ValueError('django-gm2m: Can\'t supply a through model '
@@ -461,6 +467,16 @@ class GM2MRel(ManyToManyRel):
         self.rels = []
         for model in related_models:
             self.add_relation(model, contribute_to_class=False)
+
+    def set_init(self, name, value):
+        super(GM2MRel, self).__setattr__(name, value)
+
+    def __setattr__(self, name, value):
+        # setting a keyword attribute afterwards should not have any influence
+        # on the deconstruction. Hence we
+        if name in REL_ATTRS_NAMES and name not in self._init_attrs:
+            self._init_attrs[name] = getattr(self, name)
+        self.set_init(name, value)
 
     def add_relation(self, model, contribute_to_class=True, auto=False):
         try:
@@ -702,18 +718,19 @@ class GM2MRel(ManyToManyRel):
             return
 
         if not self.through:
-            self.through = create_gm2m_intermediary_model(self.field, cls)
+            self.set_init('through',
+                          create_gm2m_intermediary_model(self.field, cls))
             # we set through_fields to the default intermediary model's
             # THROUGH_FIELDS as it carries fields assignments for
             # ModelState instances
-            self.through_fields = THROUGH_FIELDS
+            self.set_init('through_fields', THROUGH_FIELDS)
 
         # set related name
         if not self.field.model._meta.abstract and self.related_name:
-            self.related_name = self.related_name % {
+            self.set_init('related_name', self.related_name % {
                 'class': self.field.model.__name__.lower(),
                 'app_label': self.field.model._meta.app_label.lower()
-            }
+            })
 
         def calc_field_names(rel):
             # Extract field names from through model and stores them in
@@ -771,15 +788,16 @@ class GM2MRel(ManyToManyRel):
             # in the deconstruction. Without that there would be no way for
             # a ModelState constructed from a migration to know which fields
             # have which function, as all virtual fields are stripped
-            rel.through_fields = []
+            tf = []
             for f in ('src', 'tgt', 'tgt_ct', 'tgt_fk'):
-                self.through_fields.append(tf_dict[f])
+                tf.append(tf_dict[f])
+            rel.set_init('through_fields', tf)
 
         # resolve through model if it's provided as a string
         if isinstance(self.through, six.string_types):
-            def resolve_through_model(rel, model, cls):
-                self.through = model
-                calc_field_names(rel)
+            def resolve_through_model(r, model, c):
+                r.set_init('through', model)
+                calc_field_names(r)
             add_lazy_relation(cls, self, self.through, resolve_through_model)
         else:
             calc_field_names(self)
