@@ -41,6 +41,7 @@ class GM2MField(Field):
             help_text=params.pop('help_text', u''),
             error_messages=params.pop('error_messages', None),
             rel=GM2MRel(self, related_models, **params),
+            blank=params.pop('blank', False),
             # setting null to True only prevent makemigrations from asking for
             # a default value
             null=True
