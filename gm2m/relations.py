@@ -68,6 +68,7 @@ class GM2MRelation(ForeignObject):
 
     def __init__(self, model, field, rel, **kwargs):
         self.field = field
+        self.model = model
 
         kwargs.update({
             'rel': rel,
