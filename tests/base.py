@@ -27,7 +27,7 @@ from django.utils.deprecation import RemovedInNextVersionWarning
 from gm2m import GM2MField
 from gm2m.contenttypes import ct
 
-from .helpers import app_mod_path, del_app_models
+from .helpers import app_mod_path, del_app_models, reset_warning_registry
 from .compat import syncdb
 
 
@@ -149,6 +149,10 @@ class _TestCase(test.TestCase):
         cls.models = Models()
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
+
+    def run(self, result=None):
+        with reset_warning_registry():
+            return super(_TestCase, self).run(result)
 
 
 class TestCase(_TestCase):
