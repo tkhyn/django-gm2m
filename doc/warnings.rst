@@ -4,6 +4,17 @@ Warnings
 ========
 
 
+Form field and django admin
+---------------------------
+
+Unlike django's ``ManyToManyField``, ``GM2MField`` has no default associated
+form field. This may be added in the future, but for now a warning is raised
+when a ``ModelForm`` attempts to automatically create a field for ``GM2MField``.
+
+This warning is also raised when automatically creating an admin form for a
+model featuring a ``GM2MField``.
+
+
 (De)Serialization
 -----------------
 

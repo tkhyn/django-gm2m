@@ -59,6 +59,12 @@ v0.4.7 (11-10-2016)
 
 | \* Fixes deconstruction issue when relation attributes are modified externally
 
+v0.4.8 (08-11-2016)
+-------------------
+
+| \* Disables default form field for GM2MField (see #32)
+| \* Fixes .model attribute for relation in django 1.10 (#33)
+
 
 v0.3 (09-09-2015)
 -----------------

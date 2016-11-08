@@ -1,3 +1,5 @@
+import warnings
+
 from django.utils import six
 from django.db.models.fields import Field
 from django.db import connection
@@ -41,6 +43,7 @@ class GM2MField(Field):
             help_text=params.pop('help_text', u''),
             error_messages=params.pop('error_messages', None),
             rel=GM2MRel(self, related_models, **params),
+            blank=params.pop('blank', False),
             # setting null to True only prevent makemigrations from asking for
             # a default value
             null=True
@@ -227,3 +230,10 @@ class GM2MField(Field):
         return self.remote_field.related_query_name \
             or self.remote_field.related_name \
             or self.model._meta.model_name
+
+    def formfield(self, form_class=None, choices_form_class=None, **kwargs):
+        warnings.warn(
+            'gm2m.GM2MField values cannot be represented in a form field yet. '
+            '"%s" will be ignored' % self.name, FutureWarning
+        )
+        return None
