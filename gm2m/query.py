@@ -3,34 +3,22 @@ from collections import defaultdict
 from django.db.models import query
 from django.utils import six
 
+from .compat import ModelIterable
 from .contenttypes import ct as ct_classes, get_content_type
 
 
-class GM2MTgtQuerySet(query.QuerySet):
-    """
-    A QuerySet for GM2M models which yields actual target generic objects
-    instead of GM2M objects when iterated over
-    It can also filter the output by model (= content type)
-    """
+class GM2MTgtQuerySetIterable(ModelIterable):
 
-    def iterator(self):
+    def __iter__(self):
         """
         Override to return the actual objects, not the GM2MObject
         Fetch the actual objects by content types to optimize database access
         """
 
-        try:
-            # Django 1.9
-            if self._iterable_class is not query.ModelIterable:
-                for v in super(GM2MTgtQuerySet, self).iterator():
-                    yield v
-                raise StopIteration
-        except AttributeError:
-            # Django 1.8
-            pass
+        qs = self.queryset
 
         try:
-            del self._related_prefetching
+            del qs._related_prefetching
             rel_prefetching = True
         except AttributeError:
             rel_prefetching = False
@@ -39,14 +27,14 @@ class GM2MTgtQuerySet(query.QuerySet):
         objects = {}
         ordered_ct_attrs = []
 
-        field_names = self.model._meta._field_names
-        fk_field = self.model._meta.get_field(field_names['tgt_fk'])
+        field_names = qs.model._meta._field_names
+        fk_field = qs.model._meta.get_field(field_names['tgt_fk'])
 
-        extra_select = list(self.query.extra_select)
+        extra_select = list(qs.query.extra_select)
 
-        for vl in self.values_list(field_names['tgt_ct'],
-                                   field_names['tgt_fk'],
-                                   *extra_select):
+        for vl in qs.values_list(field_names['tgt_ct'],
+                                 field_names['tgt_fk'],
+                                 *extra_select):
             ct = vl[0]
             pk = fk_field.to_python(vl[1])
             ct_attrs[ct][pk].append(vl[2:])
@@ -71,20 +59,47 @@ class GM2MTgtQuerySet(query.QuerySet):
                     # when prefetching related objects, one must yield one
                     # object per through model instance
                     for __ in attrs[pk]:
-                        if self.ordered:
+                        if qs.ordered:
                             objects[(ct, pk)] = obj
                         else:
                             yield obj
                     continue
 
-                if self.ordered:
+                if qs.ordered:
                     objects[(ct, pk)] = obj
                 else:
                     yield obj
 
-        if self.ordered:
+        if qs.ordered:
             for ct, pk in ordered_ct_attrs:
                 yield objects[(ct, pk)]
+
+
+class GM2MTgtQuerySet(query.QuerySet):
+    """
+    A QuerySet for GM2M models which yields actual target generic objects
+    instead of GM2M objects when iterated over
+    It can also filter the output by model (= content type)
+    """
+
+    def __init__(self, model=None, query=None, using=None, hints=None):
+        super(GM2MTgtQuerySet, self).__init__(model, query, using, hints)
+
+        try:
+            # Django > 1.9
+            if self._iterable_class is not query.ModelIterable:
+                return
+        except AttributeError:
+            # Django 1.8
+            pass
+
+        self._iterable_class = GM2MTgtQuerySetIterable
+
+    def iterator(self):
+        """
+        Only needed in django < 1.11
+        """
+        return iter(self._iterable_class(self, chunked_fetch=True))
 
     def filter(self, *args, **kwargs):
         model = kwargs.pop('Model', None)
