@@ -74,23 +74,39 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
         new_field.remote_field.through._meta.db_table:
             # The field name didn't change, but some options did;
             # we have to propagate this altering.
-            self._remake_table(
-                old_field.remote_field.through,
-                # We need the field that points to the target model,
-                # so we can tell alter_field to change it -
-                # this is m2m_reverse_field_name() (as opposed to
-                # m2m_field_name, which points to our model)
-                alter_fields=[(
-                    getoldfield(old_names['tgt_fk']),
-                    getnewfield(new_names['tgt_fk']),
-                ),
-                (
-                    getoldfield(old_names['tgt_ct']),
-                    getnewfield(new_names['tgt_ct']),
-                )],
-                override_uniques=(old_names['src'], old_names['tgt_fk'],
-                                  old_names['tgt_ct']),
-            )
+            # We need the field that points to the target model,
+            # so we can tell alter_field to change it -
+            # this is m2m_reverse_field_name() (as opposed to
+            # m2m_field_name, which points to our model)
+            for f in ['tgt_fk', 'tgt_ct']:
+                try:
+                    # django > 1.11
+                    self._remake_table(
+                        old_field.remote_field.through,
+                        alter_field=(
+                            getoldfield(old_names[f]),
+                            getnewfield(new_names[f]),
+                        )
+                    )
+                except TypeError:
+                    # django < 1.11
+                    self._remake_table(
+                        old_field.remote_field.through,
+                        # We need the field that points to the target model,
+                        # so we can tell alter_field to change it -
+                        # this is m2m_reverse_field_name() (as opposed to
+                        # m2m_field_name, which points to our model)
+                        alter_fields=[(
+                            getoldfield(old_names['tgt_fk']),
+                            getnewfield(new_names['tgt_fk']),
+                        ),
+                            (
+                                getoldfield(old_names['tgt_ct']),
+                                getnewfield(new_names['tgt_ct']),
+                            )],
+                        override_uniques=(old_names['src'], old_names['tgt_fk'],
+                                          old_names['tgt_ct']),
+                    )
             return
 
         # Make a new through table
