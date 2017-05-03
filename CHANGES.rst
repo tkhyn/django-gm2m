@@ -65,6 +65,12 @@ v0.4.8 (08-11-2016)
 | \* Disables default form field for GM2MField (see #32)
 | \* Fixes .model attribute for relation in django 1.10 (#33)
 
+v0.4.9 (03-05-2017)
+-------------------
+
+| \* Django 1.11 compatibility
+| \* Drops Django 1.9 official support
+
 
 v0.3 (09-09-2015)
 -----------------

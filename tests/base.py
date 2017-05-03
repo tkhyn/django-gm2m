@@ -200,6 +200,8 @@ class MigrationsTestCase(_TestCase):
                                          + ['migrations'])
 
     def _post_teardown(self):
+        ct.ContentType.objects.clear_cache()
+
         try:
             mig_dir = self.migrations_dir
             for d in (mig_dir, mig_dir + '_bak'):
