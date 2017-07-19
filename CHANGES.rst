@@ -36,6 +36,47 @@ v0.4.3 (01-04-2016)
 | \* Fixes wrong reverse related manager superclass (#27)
 | \* Fixes reverse relations not created when using abstract model (#24)
 
+v0.4.4 (27-06-2016)
+-------------------
+
+| \* Fixes GM2MTo integration (#29)
+
+v0.4.5 (13-08-2016)
+...................
+
+| \+ Supports sorting (#30)
+| \+ Django 1.10+ compatibility (deprecation warnings)
+| \* Backport of properties renamed in Django 1.9 and 1.10
+| \* Fixes content types cache accessor for Django 1.8.10+
+
+v0.4.6 (21-08-2016)
+...................
+
+| \* Fixes setup.py requirement excluding django 1.10 (PR #1, thanks @iblag)
+
+v0.4.7 (11-10-2016)
+-------------------
+
+| \* Fixes deconstruction issue when relation attributes are modified externally
+
+v0.4.8 (08-11-2016)
+-------------------
+
+| \* Disables default form field for GM2MField (see #32)
+| \* Fixes .model attribute for relation in django 1.10 (#33)
+
+v0.4.9 (03-05-2017)
+-------------------
+
+| \* Django 1.11 compatibility
+| \* Drops Django 1.9 official support
+
+v0.4.10 (19-07-2017)
+--------------------
+
+| \* Deletion function can be different for each model on the generic side of a relation
+| \* Django 1.11 is now the officially supported version
+
 
 v0.3 (09-09-2015)
 -----------------
