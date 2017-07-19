@@ -149,8 +149,9 @@ class GM2MField(Field):
 
         return name, path, args, kwargs
 
-    def add_relation(self, model, auto=False):
-        rel = self.remote_field.add_relation(model, auto=auto)
+    def add_relation(self, model, on_delete=None, auto=False):
+        rel = self.remote_field.add_relation(model, on_delete=on_delete,
+                                             auto=auto)
         rel._added = True
 
     def get_related_models(self, include_auto=False):

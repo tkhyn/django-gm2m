@@ -142,8 +142,8 @@ class GM2MUnitRel(ForeignObjectRel):
 
     dummy_pre_delete = lambda s, **kwargs: None
 
-    def __init__(self, field, model, auto):
-        super(GM2MUnitRel, self).__init__(field, model)
+    def __init__(self, field, model, auto, on_delete=None):
+        super(GM2MUnitRel, self).__init__(field, model, on_delete=on_delete)
         self.multiple = True
         # warning: do NOT use self.auto_created as it's used by Django !!
         self.auto = auto
@@ -292,7 +292,13 @@ class GM2MUnitRel(ForeignObjectRel):
         sup = super(GM2MUnitRel, self).__getattribute__
         if name in REL_ATTRS_NAMES:
             if name == 'on_delete':
-                name += '_tgt'
+                # try and get locally defined on_delete, otherwise use the
+                # remote_field's on_delete_tgt
+                on_delete = sup(name)
+                if on_delete is None:
+                    name += '_tgt'
+                else:
+                    return on_delete
             return getattr(sup('field').remote_field, name)
         else:
             return sup(name)
@@ -479,7 +485,8 @@ class GM2MRel(ManyToManyRel):
             self._init_attrs[name] = getattr(self, name)
         self.set_init(name, value)
 
-    def add_relation(self, model, contribute_to_class=True, auto=False):
+    def add_relation(self, model, on_delete=None, auto=False,
+                     contribute_to_class=True):
         try:
             assert not model._meta.abstract, \
             "%s cannot define a relation with abstract class %s" \
@@ -491,7 +498,7 @@ class GM2MRel(ManyToManyRel):
             'be either a model or a model name' \
             % (self.field.__class__.__name__, model)
 
-        rel = GM2MUnitRel(self.field, model, auto)
+        rel = GM2MUnitRel(self.field, model, auto=auto, on_delete=on_delete)
         self.rels.append(rel)
         if contribute_to_class:
             rel.contribute_to_class()

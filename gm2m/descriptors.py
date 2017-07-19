@@ -50,8 +50,8 @@ class SourceGM2MDescriptor(GM2MDescriptor):
     management methods
     """
 
-    def add_relation(self, model, auto=False):
-        return self.field.add_relation(model, auto)
+    def add_relation(self, model, on_delete=None, auto=False):
+        return self.field.add_relation(model, on_delete=on_delete, auto=auto)
 
     def get_related_models(self, include_auto=False):
         return self.field.get_related_models(include_auto)
