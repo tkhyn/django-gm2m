@@ -1,6 +1,17 @@
 import django
-from django.db.models.fields.related import add_lazy_relation, \
+from django.db.models.fields.related import (
     ForeignObjectRel, ForeignObject, ManyToManyRel
+)
+try:
+    from django.db.models.fields.related import add_lazy_relation
+except ImportError:
+    from django.db.models.fields.related import lazy_related_operation
+
+    def add_lazy_relation(cls, field, relation, operation):
+        def function(local, related, field):
+            return operation(field, related, local)
+        lazy_related_operation(function, cls, relation, field=field)
+
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
 from django.db.models.query_utils import PathInfo
