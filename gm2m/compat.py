@@ -13,6 +13,23 @@ from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.options import Options
 from django.db.models import query
+from django.utils import six
+
+
+try:
+    from django.db.models.fields.related import lazy_related_operation
+except ImportError:
+    # Django 1.8
+    from django.db.models.fields.related import add_lazy_relation
+
+    def lazy_related_operation(function, model, *related_models, **kwargs):
+
+        field_name, field = list(six.iteritems(kwargs))[0]
+
+        def operation(field, related, local):
+            return function(local, related, **{field_name: field})
+
+        add_lazy_relation(model, field, related_models[0], operation)
 
 
 if django.VERSION < (1, 9):

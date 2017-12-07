@@ -1,17 +1,6 @@
 import django
-from django.db.models.fields.related import (
+from django.db.models.fields.related import \
     ForeignObjectRel, ForeignObject, ManyToManyRel
-)
-try:
-    from django.db.models.fields.related import add_lazy_relation
-except ImportError:
-    from django.db.models.fields.related import lazy_related_operation
-
-    def add_lazy_relation(cls, field, relation, operation):
-        def function(local, related, field):
-            return operation(field, related, local)
-        lazy_related_operation(function, cls, relation, field=field)
-
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
 from django.db.models.query_utils import PathInfo
@@ -22,6 +11,7 @@ from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
 
+from .compat import lazy_related_operation
 from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
@@ -316,11 +306,11 @@ class GM2MUnitRel(ForeignObjectRel):
 
     def contribute_to_class(self):
         if isinstance(self.model, six.string_types) or self.model._meta.pk is None:
-            def resolve_related_class(rel, model, cls):
+            def resolve_related_class(cls, model, rel):
                 rel.model = model
                 rel.do_related_class()
-            add_lazy_relation(self.field.model, self, self.model,
-                              resolve_related_class)
+            lazy_related_operation(resolve_related_class, self.field.model,
+                                   self.model, rel=self)
         else:
             self.do_related_class()
 
@@ -814,10 +804,11 @@ class GM2MRel(ManyToManyRel):
 
         # resolve through model if it's provided as a string
         if isinstance(self.through, six.string_types):
-            def resolve_through_model(r, model, c):
+            def resolve_through_model(c, model, r):
                 r.set_init('through', model)
                 calc_field_names(r)
-            add_lazy_relation(cls, self, self.through, resolve_through_model)
+            lazy_related_operation(resolve_through_model, cls, self.through,
+                                   r=self)
         else:
             calc_field_names(self)
 
