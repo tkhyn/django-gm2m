@@ -333,7 +333,7 @@ class GM2MUnitRel(ForeignObjectRel):
         """
 
         # this enables cascade deletion for any relation (even hidden ones)
-        self.model._meta.add_field(self.related, virtual=True)
+        self.model._meta.add_field(self.related, private=True)
 
         if self.on_delete in handlers_with_signal:
             # if a signal should be sent on deletion, we connect a dummy

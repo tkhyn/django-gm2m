@@ -58,6 +58,15 @@ if django.VERSION < (1, 10):
         doc='= self.virtual_fields - added by django-gm2m'
     )
 
+    _add_field_0 = Options.add_field
+    NOT_PROVIDED = object()
+
+    def add_field(self, field, virtual=False, private=NOT_PROVIDED):
+        if private is not NOT_PROVIDED:
+            virtual = private
+        return _add_field_0(self, field, virtual)
+    Options.add_field = add_field
+
     class ModelIterable(object):
         def __init__(self, queryset, chunked_fetch=False):
             self.queryset = queryset
