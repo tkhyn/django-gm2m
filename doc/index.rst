@@ -15,7 +15,7 @@ It has been tested with Django 1.8, 1.10 and 1.11 and the latest minor
 versions of Python (2.7 and 3.5 or 3.6).
 
 If you like django-gm2m and are looking for a way to thank me and/or encourage
-future development, you can send a few mBTC at this Bitcoin address:
+future development, here is my BTC or BCH donation address:
 ``1EwENyR8RV6tMc1hsLTkPURtn5wJgaBfG9``.
 
 Documentation contents:
