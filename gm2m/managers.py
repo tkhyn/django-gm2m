@@ -1,3 +1,4 @@
+import django
 from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
@@ -44,7 +45,8 @@ class GM2MBaseManager(Manager):
                 rel_obj_attr,
                 instance_attr,
                 False,
-                self.prefetch_cache_name)
+                self.prefetch_cache_name,
+                False)
 
     def _get_extra_queryset(self, queryset, q, extra_fields, db):
         join_table = self.through._meta.db_table
@@ -144,6 +146,16 @@ class GM2MBaseManager(Manager):
         self._do_clear(db, self._to_clear())
 
     clear.alters_data = True
+
+
+if django.VERSION < (2, 0):
+    # get_prefetch_queryset only returns a 5-uple for django < 2.0
+    _get_prefetch_queryset_0 = GM2MBaseManager.get_prefetch_queryset
+
+    def get_prefetch_queryset(self, instances, queryset=None):
+        return _get_prefetch_queryset_0(self, instances, queryset)[:-1]
+
+    GM2MBaseManager.get_prefetch_queryset = get_prefetch_queryset
 
 
 class GM2MBaseSrcManager(Manager):
