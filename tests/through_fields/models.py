@@ -22,17 +22,19 @@ class RelLinks(models.Model):
         app_label = 'through_fields'
 
     other_fk = models.ForeignKey(Links, null=True,
-                                 related_name='other_rellinks')
-    links = models.ForeignKey(Links)
+                                 related_name='other_rellinks',
+                                 on_delete=models.CASCADE)
+    links = models.ForeignKey(Links, on_delete=models.CASCADE)
 
     other_gfk = GenericForeignKey(ct_field='other_gfk_ct',
                                   fk_field='other_gfk_fk')
     other_gfk_ct = models.ForeignKey(ContentType, null=True,
-                                     related_name='other_rellinks')
+                                     related_name='other_rellinks',
+                                     on_delete=models.CASCADE)
     other_gfk_fk = models.CharField(max_length=255)
 
     target = GenericForeignKey(ct_field='target_ct', fk_field='target_fk')
-    target_ct = models.ForeignKey(ContentType)
+    target_ct = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     target_fk = models.CharField(max_length=255)
 
     linked_as = models.CharField(max_length=255)

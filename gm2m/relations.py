@@ -205,7 +205,7 @@ class GM2MUnitRel(ForeignObjectRel):
         #         model_set = models.IntegerField()
         #
         #     class Model(models.Model):
-        #         foreign = models.ForeignKey(Target)
+        #         foreign = models.ForeignKey(Target, on_delete=models.CASCADE)
         #         gm2m = GM2MField(Target)
 
         rel_opts = self.model._meta

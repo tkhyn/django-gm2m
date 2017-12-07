@@ -11,7 +11,7 @@ class Project(models.Model):
     class Meta:
         app_label = 'mig_add_gm2mfield'
 
-    owner = models.ForeignKey('User')
+    owner = models.ForeignKey('User', on_delete=models.CASCADE)
 
 
 class User(models.Model):

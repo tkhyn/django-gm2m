@@ -51,11 +51,16 @@ def create_gm2m_intermediary_model(field, klass):
     model = type(str(name), (models.Model,), {
         'Meta': meta,
         '__module__': klass.__module__,
-        SRC_ATTNAME: models.ForeignKey(klass, auto_created=True,
-                                       on_delete=field.remote_field.on_delete_src,
-                                       db_constraint=field.remote_field.db_constraint),
-        CT_ATTNAME: models.ForeignKey(ct.ContentType,
-                                      db_constraint=field.remote_field.db_constraint),
+        SRC_ATTNAME: models.ForeignKey(
+            klass, auto_created=True,
+            on_delete=field.remote_field.on_delete_src,
+            db_constraint=field.remote_field.db_constraint
+        ),
+        CT_ATTNAME: models.ForeignKey(
+            ct.ContentType,
+            on_delete=models.CASCADE,
+            db_constraint=field.remote_field.db_constraint
+        ),
         FK_ATTNAME: models.CharField(max_length=fk_maxlength),
         TGT_ATTNAME: ct.GenericForeignKey(
             ct_field=CT_ATTNAME,
