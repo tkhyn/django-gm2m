@@ -13,6 +13,7 @@ from django.db.models.fields import Field
 from django.db.models.fields.related import ForeignObjectRel
 from django.db.models.options import Options
 from django.db.models import query
+from django.db.models.query_utils import PathInfo
 from django.utils import six
 
 
@@ -84,3 +85,8 @@ else:
             __init__0(self, queryset)
             self.chunked_fetch = chunked_fetch
         query.BaseIterable.__init__ = __init__
+
+
+if django.VERSION < (2, 0):
+    from collections import namedtuple
+    PathInfo = namedtuple('PathInfo', PathInfo._fields + ('filtered_relation',))

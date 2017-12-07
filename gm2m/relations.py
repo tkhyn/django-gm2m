@@ -3,7 +3,6 @@ from django.db.models.fields.related import \
     ForeignObjectRel, ForeignObject, ManyToManyRel
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
-from django.db.models.query_utils import PathInfo
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.apps import apps
@@ -19,6 +18,7 @@ from .descriptors import RelatedGM2MDescriptor, SourceGM2MDescriptor
 from .deletion import *
 from .signals import deleting
 from .helpers import GM2MModel, is_fake_model
+from .compat import PathInfo
 
 
 # default relation attributes
@@ -388,7 +388,7 @@ class GM2MUnitRel(ForeignObjectRel):
                 return model._meta.swappable
         return None
 
-    def _get_path_info(self, reverse):
+    def _get_path_info(self, filtered_relation, reverse):
         pathinfos = []
 
         opts = self.through._meta
@@ -402,20 +402,20 @@ class GM2MUnitRel(ForeignObjectRel):
             # through > to part of the relation is generated manually
             opts = self.model._meta
             pathinfos.append(PathInfo(self.through._meta, opts, (opts.pk,),
-                                      self, True, False))
+                                      self, True, False, filtered_relation))
         else:
             # to > through part of the relation is generated manually
             opts = self.through._meta
             pathinfos.append(PathInfo(self.model._meta, opts, (opts.pk,),
-                                      self, False, False))
+                                      self, False, False, filtered_relation))
             pathinfos.extend(fk_field.get_path_info())
         return pathinfos
 
-    def get_path_info(self):
-        return self._get_path_info(reverse=False)
+    def get_path_info(self, filtered_relation=None):
+        return self._get_path_info(filtered_relation, reverse=False)
 
-    def get_reverse_path_info(self):
-        return self._get_path_info(reverse=True)
+    def get_reverse_path_info(self, filtered_relation=None):
+        return self._get_path_info(filtered_relation, reverse=True)
 
     def get_joining_columns(self):
         opts = self.through._meta
@@ -774,9 +774,12 @@ class GM2MRel(ManyToManyRel):
                 tf_dict['tgt_fk'] = gfk.fk_field
             else:
                 for f in rel.through._meta.fields:
-                    if hasattr(f, 'rel') and f.remote_field \
-                    and (f.remote_field.model == rel.field.model
-                         or f.remote_field.model == '%s.%s' % (
+                    try:
+                        remote_field = f.remote_field
+                    except AttributeError:
+                        continue
+                    if remote_field and (remote_field.model == rel.field.model
+                        or remote_field.model == '%s.%s' % (
                             rel.field.model._meta.app_label,
                             rel.field.model._meta.object_name)):
                         tf_dict['src'] = f.name
