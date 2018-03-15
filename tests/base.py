@@ -8,10 +8,9 @@ It takes care of resetting the models and databases for each Testcase
 import sys
 import os
 from imp import reload
-from importlib import import_module
+import importlib
 from inspect import getfile
 from shutil import rmtree, copy
-import time
 import warnings
 from unittest import skip
 
@@ -111,6 +110,18 @@ class _TestCase(test.TestCase):
         return cls.__module__.split('.')[1]
 
     @classmethod
+    def invalidate_caches(cls):
+        """
+        Invalidate import finders caches
+        https://docs.python.org/3/library/importlib.html#importlib.invalidate_caches
+        """
+        try:
+            # python 3
+            importlib.invalidate_caches()
+        except AttributeError:
+            pass
+
+    @classmethod
     def setUpClass(cls):
 
         cls.settings_manager = TestSettingsManager()
@@ -122,10 +133,12 @@ class _TestCase(test.TestCase):
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
 
+        cls.invalidate_caches()
+
         # we also need to reload the current test module as it relies upon the
         # app's models needed to import app.test
         app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
-        import_module(app_mod_path(cls.inst_apps[1]))
+        importlib.import_module(app_mod_path(cls.inst_apps[1]))
         reload(sys.modules[cls.__module__])
 
         cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
@@ -134,7 +147,7 @@ class _TestCase(test.TestCase):
         # import the needed models
         cls.models = Models()
         for app_path in app_paths:
-            module = import_module(app_path + '.models')
+            module = importlib.import_module(app_path + '.models')
             for mod_name in dir(module):
                 model = getattr(module, mod_name)
                 if isinstance(model, models.base.ModelBase) \
@@ -202,20 +215,31 @@ class MigrationsTestCase(_TestCase):
     def _post_teardown(self):
         ct.ContentType.objects.clear_cache()
 
+        mig_modules = [self.migrations_module]
+        mig_dir = self.migrations_dir
+
         try:
-            mig_dir = self.migrations_dir
+            try:
+                mig_modules += [
+                    self.migrations_module + '.' + os.path.splitext(m)[0]
+                    for m in os.listdir(mig_dir) if m != '__init__.py'
+                ]
+            except OSError:
+                pass
+
+            for m in mig_modules:
+                try:
+                    del sys.modules[m]
+                except KeyError:
+                    pass
+
             for d in (mig_dir, mig_dir + '_bak'):
                 try:
                     rmtree(d)
                 except OSError:
                     pass
         finally:
-            try:
-                del sys.modules[self.migrations_module]
-            except KeyError:
-                pass
-            finally:
-                super(MigrationsTestCase, self)._post_teardown()
+            super(MigrationsTestCase, self)._post_teardown()
 
     def get_migration_content(self, module='0001_initial'):
         f = open(os.path.join(self.migrations_dir, module + '.py'))
@@ -225,6 +249,8 @@ class MigrationsTestCase(_TestCase):
 
     def makemigrations(self):
         call_command('makemigrations', self.app_name())
+        # new modules have been created, sys.meta_path caches must be cleared
+        self.invalidate_caches()
 
     def migrate(self, all=False):
         app_name = self.app_name()
@@ -264,13 +290,8 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         # restores the backup copy
         os.remove(self.models_path)
         os.rename(self.backup_path, self.models_path)
-
-    def makemigrations(self):
-        super(MultiMigrationsTestCase, self).makemigrations()
-        # the delay guarantees there is a 1s gap between migrations, a
-        # migration with the same second-resolution timestamp than the previous
-        # one seems to be ignored
-        time.sleep(1)
+        # reloading all apps as models have been changed a final time
+        self.reload_apps()
 
     def replace(self, old_str, new_str):
         """
@@ -280,7 +301,9 @@ class MultiMigrationsTestCase(MigrationsTestCase):
             code = fh.read()
         with open(self.models_path, 'w') as fh:
             fh.write(code.replace(old_str, new_str))
+        self.reload_apps()
 
+    def reload_apps(self):
         # reload apps so that next migration can be generated (yes, all of
         # them, it does not work if only the test one is reloaded)
         cls = self.__class__
