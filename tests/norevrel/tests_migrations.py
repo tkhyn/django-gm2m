@@ -54,6 +54,19 @@ class MultiMigrationTests(base.MultiMigrationsTestCase):
         self.replace('related_objects', 'projects_and_tasks')
         self.makemigrations()
 
+        # add atomic = False to last migration, otherwise it raises an error
+        # with sqlite
+        for mig_name in os.listdir(self.migrations_dir):
+            if mig_name.startswith('0003'):
+                break
+        mig_path = os.path.join(self.migrations_dir, mig_name)
+        with open(mig_path, 'rt') as fh:
+            code = fh.read()
+        with open(mig_path, 'w') as fh:
+            fh.write(code.replace('    dependencies',
+                                  '    atomic = False\n\n    dependencies'))
+        self.invalidate_caches()
+
         # check that no exception is raised when calling migrate
         self.migrate()
 

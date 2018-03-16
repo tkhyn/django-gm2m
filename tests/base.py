@@ -94,16 +94,18 @@ class Models(object):
     pass
 
 
-class _TestCase(test.TestCase):
+class _TestCase(object):
     """
-    A subclass of the Django TestCase with a settings_manager
+    A mixin for Django (Transaction)TestCase subclasses, with a settings_manager
     attribute which is an instance of TestSettingsManager.
 
     Comes with a tearDown() method that calls
     self.settings_manager.revert().
     """
 
+    inst_apps = ()
     other_apps = ()
+    settings_manager = None
 
     @classmethod
     def app_name(cls):
@@ -147,9 +149,9 @@ class _TestCase(test.TestCase):
         # import the needed models
         cls.models = Models()
         for app_path in app_paths:
-            module = importlib.import_module(app_path + '.models')
-            for mod_name in dir(module):
-                model = getattr(module, mod_name)
+            m = importlib.import_module(app_path + '.models')
+            for mod_name in dir(m):
+                model = getattr(m, mod_name)
                 if isinstance(model, models.base.ModelBase) \
                 and not model._meta.abstract:
                     setattr(cls.models, mod_name, model)
@@ -168,7 +170,7 @@ class _TestCase(test.TestCase):
             return super(_TestCase, self).run(result)
 
 
-class TestCase(_TestCase):
+class TestCase(_TestCase, test.TestCase):
 
     def test_deconstruct(self):
         # this test will run on *all* testcases having no subclasses
@@ -199,7 +201,7 @@ class TestCase(_TestCase):
             call_command('check')
 
 
-class MigrationsTestCase(_TestCase):
+class MigrationsTestCase(_TestCase, test.TransactionTestCase):
     """
     Handles migration module deletion after they are generated
     """
