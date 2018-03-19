@@ -1,6 +1,5 @@
-import django
 from django.db.models.fields.related import \
-    ForeignObjectRel, ForeignObject, ManyToManyRel
+    ForeignObjectRel, ForeignObject, ManyToManyRel, lazy_related_operation
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.signals import pre_delete
 from django.db.utils import DEFAULT_DB_ALIAS
@@ -10,7 +9,6 @@ from django.core import checks
 from django.utils import six
 from django.utils.functional import cached_property
 
-from .compat import lazy_related_operation
 from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
 from .managers import create_gm2m_related_manager
@@ -76,12 +74,9 @@ class GM2MRelation(ForeignObject):
             'name': rel.get_accessor_name() + '_relation',
             'blank': True,
             'editable': False,
-            'serialize': False
+            'serialize': False,
+            'on_delete': rel.on_delete
         })
-
-        if django.VERSION > (1, 9):
-            # django 1.9's ForeignObject constructor expects on_delete
-            kwargs['on_delete'] = rel.on_delete
 
         super(GM2MRelation, self).__init__(model, from_fields=[field.name],
                                            to_fields=[], **kwargs)
@@ -447,7 +442,6 @@ class GM2MUnitRel(ForeignObjectRel):
 class GM2MRel(ManyToManyRel):
 
     model = GM2MModel
-    to = GM2MModel  # compat with django 1.8
 
     name = 'gm2mrel'
     hidden = False

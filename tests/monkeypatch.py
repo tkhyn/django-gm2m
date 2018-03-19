@@ -1,8 +1,9 @@
 
 def patch_interactive_mig_questionner():
     """
-    Prevents user input when invoking makemigrations, without requiring
-    --noinput (which is not available before Django 1.9 anyway)
+    Prevents user input when invoking makemigrations
+    Indeed, using interactive=False does not prevent Django from asking
+    confirmation to rename a field or model
     """
 
     from django.db.migrations.questioner import InteractiveMigrationQuestioner

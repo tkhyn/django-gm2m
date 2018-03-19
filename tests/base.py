@@ -27,7 +27,6 @@ from gm2m import GM2MField
 from gm2m.contenttypes import ct
 
 from .helpers import app_mod_path, del_app_models, reset_warning_registry
-from .compat import syncdb
 
 
 # no nose tests here !
@@ -61,9 +60,9 @@ class TestSettingsManager(object):
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
             if kwargs.get('migrate', True):
-                self.syncdb()
+                self.migrate()
 
-    def syncdb(self):
+    def migrate(self):
         for dicname in ('app_labels', 'app_store', 'handled',
                         '_get_models_cache'):
             getattr(apps, dicname, {}).clear()
@@ -73,7 +72,8 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        syncdb(verbosity=0, interactive=False)
+        call_command('migrate', run_syncdb=True,
+                     verbosity=0, interactive=False)
 
     def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
@@ -85,7 +85,7 @@ class TestSettingsManager(object):
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
             if migrate:
-                self.syncdb()
+                self.migrate()
 
         self._original_settings = {}
 

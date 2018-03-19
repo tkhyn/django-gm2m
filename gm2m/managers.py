@@ -119,8 +119,7 @@ class GM2MBaseManager(Manager):
 
     def set(self, objs, **kwargs):
         """
-        Sets the objs iterable as the set of related objects
-        (Added for compatibility with Django 1.9)
+        Replaces the set of related objects by the items in the objs iterable
         """
 
         self._check_through_model('set')

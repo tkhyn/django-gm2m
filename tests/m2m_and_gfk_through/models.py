@@ -1,6 +1,6 @@
 """
 Test case for issue #5
-Django 1.8 migration problems with combined M2M and GM2M relations
+Migration problems with combined M2M and GM2M relations
 """
 
 from django.db import models

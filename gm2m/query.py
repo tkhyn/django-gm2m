@@ -1,9 +1,8 @@
 from collections import defaultdict
 
-from django.db.models import query
+from django.db.models.query import ModelIterable, QuerySet
 from django.utils import six
 
-from .compat import ModelIterable
 from .contenttypes import ct as ct_classes, get_content_type
 
 
@@ -75,7 +74,7 @@ class GM2MTgtQuerySetIterable(ModelIterable):
                 yield objects[(ct, pk)]
 
 
-class GM2MTgtQuerySet(query.QuerySet):
+class GM2MTgtQuerySet(QuerySet):
     """
     A QuerySet for GM2M models which yields actual target generic objects
     instead of GM2M objects when iterated over
@@ -85,21 +84,8 @@ class GM2MTgtQuerySet(query.QuerySet):
     def __init__(self, model=None, query=None, using=None, hints=None):
         super(GM2MTgtQuerySet, self).__init__(model, query, using, hints)
 
-        try:
-            # Django > 1.9
-            if self._iterable_class is not query.ModelIterable:
-                return
-        except AttributeError:
-            # Django 1.8
-            pass
-
-        self._iterable_class = GM2MTgtQuerySetIterable
-
-    def iterator(self):
-        """
-        Only needed in django < 1.11
-        """
-        return iter(self._iterable_class(self, chunked_fetch=True))
+        if self._iterable_class is ModelIterable:
+            self._iterable_class = GM2MTgtQuerySetIterable
 
     def filter(self, *args, **kwargs):
         model = kwargs.pop('Model', None)
