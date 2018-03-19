@@ -215,6 +215,10 @@ class MigrationsTestCase(_TestCase, test.TransactionTestCase):
                                          + ['migrations'])
 
     def _post_teardown(self):
+        # revert migrations, if any
+        if os.path.exists(self.migrations_dir):
+            self.migrate(to='0001_initial')
+
         ct.ContentType.objects.clear_cache()
 
         mig_modules = [self.migrations_module]
@@ -254,12 +258,14 @@ class MigrationsTestCase(_TestCase, test.TransactionTestCase):
         # new modules have been created, sys.meta_path caches must be cleared
         self.invalidate_caches()
 
-    def migrate(self, all=False):
+    def migrate(self, all=False, to=None):
         app_name = self.app_name()
         if all:
             args = []
         else:
             args = [app_name]
+            if to is not None:
+                args.append(to)
 
         # we need to use fake_initial as the database has already been
         # initialized and is in the state of the initial migration
@@ -283,12 +289,14 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         except OSError:
             pass
 
-    def setUp(self):
+    def _pre_setup(self):
         # creates a backup copy of the models module
         os.rename(self.models_path, self.backup_path)
         copy(self.backup_path, self.models_path)
+        super(MultiMigrationsTestCase, self)._pre_setup()
 
-    def tearDown(self):
+    def _post_teardown(self):
+        super(MultiMigrationsTestCase, self)._post_teardown()
         # restores the backup copy
         os.remove(self.models_path)
         os.rename(self.backup_path, self.models_path)

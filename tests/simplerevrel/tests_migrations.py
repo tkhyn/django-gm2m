@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
         ('simplerevrel', '0001_initial'),
     ]
     operations = [
-        migrations.RunPython(call_rev_mngr),
+        migrations.RunPython(call_rev_mngr, call_rev_mngr),
     ]
 """)
         mig2.close()

@@ -95,13 +95,19 @@ def add_gm2m(apps, schema_editor):
     links_model.objects.first().related_objects.add(
         project_model.objects.first())
 
+def rem_gm2m(apps, schema_editor):
+    links_model = apps.get_model('norevrel', 'Links')
+    project_model = apps.get_model('app', 'Project')
+
+    links_model.objects.first().related_objects.remove(
+        project_model.objects.first())
 
 class Migration(migrations.Migration):
     dependencies = [
         ('norevrel', '0001_initial'),
     ]
     operations = [
-        migrations.RunPython(add_gm2m),
+        migrations.RunPython(add_gm2m, rem_gm2m),
     ]
 """)
         mig2.close()

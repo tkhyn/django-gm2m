@@ -379,7 +379,7 @@ class GM2MBaseTgtManager(Manager):
         for obj in objs:
             # Convert the obj to (content_type, primary_key)
             q = q | Q(**{
-                self.field_names['tgt_ct']: get_content_type(obj),
+                self.field_names['tgt_ct']: get_content_type(obj).pk,
                 self.field_names['tgt_fk']: obj.pk
             })
         return q & Q(**{
