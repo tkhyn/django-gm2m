@@ -7,6 +7,12 @@ key:
 | \- deletion
 
 
+v0.6 (19-03-2018)
+-----------------
+
+| \- Fixes migration issues (including #37)
+
+
 v0.5 (07-12-2017)
 -----------------
 
