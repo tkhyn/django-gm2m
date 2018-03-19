@@ -7,6 +7,7 @@ GFK (content type + primary key)
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.sqlite3.schema import DatabaseSchemaEditor
 from django.db.migrations.autodetector import MigrationAutodetector
+from django.db.migrations.operations.models import RenameModel
 
 from .compat import FIELD_MODEL_ATTR
 
@@ -153,3 +154,22 @@ def only_relation_agnostic_fields(self, fields):
 
 MigrationAutodetector.only_relation_agnostic_fields = \
     only_relation_agnostic_fields
+
+
+database_forwards0 = RenameModel.database_forwards
+
+def database_forwards(self, app_label, schema_editor, from_state, to_state):
+    """
+    Filter out auto created related objects from Options.related_objects
+    """
+
+    old_model = from_state.apps.get_model(app_label, self.old_name)
+    related_objects_bck = old_model._meta.related_objects
+    old_model._meta.related_objects = [o for o in related_objects_bck
+                                       if not o.auto_created]
+
+    database_forwards0(self, app_label, schema_editor, from_state, to_state)
+
+    old_model._meta.related_objects = related_objects_bck
+
+RenameModel.database_forwards = database_forwards

@@ -113,3 +113,35 @@ class Migration(migrations.Migration):
         mig2.close()
 
         self.migrate()
+
+    def test_rename_model(self):
+        """
+        Issue #37
+        We have to create a custom migration as the auto created one deletes and
+        recreates the model
+        """
+
+        # create initial migration
+        self.makemigrations()
+
+        mig2 = open(os.path.join(os.path.dirname(__file__), 'migrations',
+                                 '0002_rename_model.py'), 'w')
+
+        mig2.write("""
+from django.db import migrations
+
+
+class Migration(migrations.Migration):
+    atomic = False
+    dependencies = [
+        ('norevrel', '0001_initial'),
+    ]
+    operations = [
+        migrations.RenameModel('Links', 'LinksRenamed'),
+    ]
+""")
+        mig2.close()
+
+        self.replace('Links', 'LinksRenamed')
+
+        self.migrate()
