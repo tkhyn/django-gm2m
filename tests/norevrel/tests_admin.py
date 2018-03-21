@@ -23,11 +23,14 @@ class AdminTests(base.TestCase):
             self.model_admin.get_form(MockRequest(), self.links)()
 
     def test_admin(self):
-        form = self.model_admin.get_form(MockRequest(), self.links)(
-            instance=self.links, data={
-                'related_objects': ''
-            }
-        )
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            form = self.model_admin.get_form(MockRequest(), self.links)(
+                instance=self.links, data={
+                    'related_objects': ''
+                }
+            )
         self.assertTrue(form.is_valid())
 
     def test_submit_form(self):
@@ -36,11 +39,13 @@ class AdminTests(base.TestCase):
             self.models.Task.objects.create()
         ]
 
-        form = self.model_admin.get_form(MockRequest(), self.links)(
-            instance=self.links, data={
-                'related_objects': ''
-            }
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            form = self.model_admin.get_form(MockRequest(), self.links)(
+                instance=self.links, data={
+                    'related_objects': ''
+                }
+            )
         form.save()
 
         self.assertEqual(self.links.related_objects.all().count(), 2)
