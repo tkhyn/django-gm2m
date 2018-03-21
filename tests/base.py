@@ -8,10 +8,9 @@ It takes care of resetting the models and databases for each Testcase
 import sys
 import os
 from imp import reload
-from importlib import import_module
+import importlib
 from inspect import getfile
 from shutil import rmtree, copy
-import time
 import warnings
 from unittest import skip
 
@@ -28,7 +27,6 @@ from gm2m import GM2MField
 from gm2m.contenttypes import ct
 
 from .helpers import app_mod_path, del_app_models, reset_warning_registry
-from .compat import syncdb
 
 
 # no nose tests here !
@@ -62,9 +60,9 @@ class TestSettingsManager(object):
         if 'INSTALLED_APPS' in kwargs:
             apps.set_installed_apps(kwargs['INSTALLED_APPS'])
             if kwargs.get('migrate', True):
-                self.syncdb()
+                self.migrate()
 
-    def syncdb(self):
+    def migrate(self):
         for dicname in ('app_labels', 'app_store', 'handled',
                         '_get_models_cache'):
             getattr(apps, dicname, {}).clear()
@@ -74,7 +72,8 @@ class TestSettingsManager(object):
         apps.nesting_level = 0
         apps.available_apps = None
 
-        syncdb(verbosity=0, interactive=False)
+        call_command('migrate', run_syncdb=True,
+                     verbosity=0, interactive=False)
 
     def revert(self, migrate=True):
         for k, v in six.iteritems(self._original_settings):
@@ -86,7 +85,7 @@ class TestSettingsManager(object):
         if 'INSTALLED_APPS' in self._original_settings:
             apps.unset_installed_apps()
             if migrate:
-                self.syncdb()
+                self.migrate()
 
         self._original_settings = {}
 
@@ -95,20 +94,34 @@ class Models(object):
     pass
 
 
-class _TestCase(test.TestCase):
+class _TestCase(object):
     """
-    A subclass of the Django TestCase with a settings_manager
+    A mixin for Django (Transaction)TestCase subclasses, with a settings_manager
     attribute which is an instance of TestSettingsManager.
 
     Comes with a tearDown() method that calls
     self.settings_manager.revert().
     """
 
+    inst_apps = ()
     other_apps = ()
+    settings_manager = None
 
     @classmethod
     def app_name(cls):
         return cls.__module__.split('.')[1]
+
+    @classmethod
+    def invalidate_caches(cls):
+        """
+        Invalidate import finders caches
+        https://docs.python.org/3/library/importlib.html#importlib.invalidate_caches
+        """
+        try:
+            # python 3
+            importlib.invalidate_caches()
+        except AttributeError:
+            pass
 
     @classmethod
     def setUpClass(cls):
@@ -122,10 +135,12 @@ class _TestCase(test.TestCase):
         for app in cls.inst_apps:
             del_app_models(app, app_module=True)
 
+        cls.invalidate_caches()
+
         # we also need to reload the current test module as it relies upon the
         # app's models needed to import app.test
         app_paths = tuple([app_mod_path(app) for app in cls.inst_apps])
-        import_module(app_mod_path(cls.inst_apps[1]))
+        importlib.import_module(app_mod_path(cls.inst_apps[1]))
         reload(sys.modules[cls.__module__])
 
         cls.settings_manager.set(INSTALLED_APPS=settings.INSTALLED_APPS
@@ -134,9 +149,9 @@ class _TestCase(test.TestCase):
         # import the needed models
         cls.models = Models()
         for app_path in app_paths:
-            module = import_module(app_path + '.models')
-            for mod_name in dir(module):
-                model = getattr(module, mod_name)
+            m = importlib.import_module(app_path + '.models')
+            for mod_name in dir(m):
+                model = getattr(m, mod_name)
                 if isinstance(model, models.base.ModelBase) \
                 and not model._meta.abstract:
                     setattr(cls.models, mod_name, model)
@@ -155,7 +170,7 @@ class _TestCase(test.TestCase):
             return super(_TestCase, self).run(result)
 
 
-class TestCase(_TestCase):
+class TestCase(_TestCase, test.TestCase):
 
     def test_deconstruct(self):
         # this test will run on *all* testcases having no subclasses
@@ -186,7 +201,7 @@ class TestCase(_TestCase):
             call_command('check')
 
 
-class MigrationsTestCase(_TestCase):
+class MigrationsTestCase(_TestCase, test.TransactionTestCase):
     """
     Handles migration module deletion after they are generated
     """
@@ -200,22 +215,37 @@ class MigrationsTestCase(_TestCase):
                                          + ['migrations'])
 
     def _post_teardown(self):
+        # revert migrations, if any
+        if os.path.exists(self.migrations_dir):
+            self.migrate(to='0001_initial')
+
         ct.ContentType.objects.clear_cache()
 
+        mig_modules = [self.migrations_module]
+        mig_dir = self.migrations_dir
+
         try:
-            mig_dir = self.migrations_dir
+            try:
+                mig_modules += [
+                    self.migrations_module + '.' + os.path.splitext(m)[0]
+                    for m in os.listdir(mig_dir) if m != '__init__.py'
+                ]
+            except OSError:
+                pass
+
+            for m in mig_modules:
+                try:
+                    del sys.modules[m]
+                except KeyError:
+                    pass
+
             for d in (mig_dir, mig_dir + '_bak'):
                 try:
                     rmtree(d)
                 except OSError:
                     pass
         finally:
-            try:
-                del sys.modules[self.migrations_module]
-            except KeyError:
-                pass
-            finally:
-                super(MigrationsTestCase, self)._post_teardown()
+            super(MigrationsTestCase, self)._post_teardown()
 
     def get_migration_content(self, module='0001_initial'):
         f = open(os.path.join(self.migrations_dir, module + '.py'))
@@ -225,13 +255,17 @@ class MigrationsTestCase(_TestCase):
 
     def makemigrations(self):
         call_command('makemigrations', self.app_name())
+        # new modules have been created, sys.meta_path caches must be cleared
+        self.invalidate_caches()
 
-    def migrate(self, all=False):
+    def migrate(self, all=False, to=None):
         app_name = self.app_name()
         if all:
             args = []
         else:
             args = [app_name]
+            if to is not None:
+                args.append(to)
 
         # we need to use fake_initial as the database has already been
         # initialized and is in the state of the initial migration
@@ -255,22 +289,19 @@ class MultiMigrationsTestCase(MigrationsTestCase):
         except OSError:
             pass
 
-    def setUp(self):
+    def _pre_setup(self):
         # creates a backup copy of the models module
         os.rename(self.models_path, self.backup_path)
         copy(self.backup_path, self.models_path)
+        super(MultiMigrationsTestCase, self)._pre_setup()
 
-    def tearDown(self):
+    def _post_teardown(self):
+        super(MultiMigrationsTestCase, self)._post_teardown()
         # restores the backup copy
         os.remove(self.models_path)
         os.rename(self.backup_path, self.models_path)
-
-    def makemigrations(self):
-        super(MultiMigrationsTestCase, self).makemigrations()
-        # the delay guarantees there is a 1s gap between migrations, a
-        # migration with the same second-resolution timestamp than the previous
-        # one seems to be ignored
-        time.sleep(1)
+        # reloading all apps as models have been changed a final time
+        self.reload_apps()
 
     def replace(self, old_str, new_str):
         """
@@ -280,7 +311,9 @@ class MultiMigrationsTestCase(MigrationsTestCase):
             code = fh.read()
         with open(self.models_path, 'w') as fh:
             fh.write(code.replace(old_str, new_str))
+        self.reload_apps()
 
+    def reload_apps(self):
         # reload apps so that next migration can be generated (yes, all of
         # them, it does not work if only the test one is reloaded)
         cls = self.__class__

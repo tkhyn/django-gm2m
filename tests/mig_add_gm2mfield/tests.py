@@ -34,5 +34,5 @@ class GM2MFieldAdditionTests(base.MultiMigrationsTestCase):
 
         self.replace('# mig2: ', '')
         self.makemigrations()
-        # this is where it failed with django 1.10
+        # this is where it failed
         self.migrate()

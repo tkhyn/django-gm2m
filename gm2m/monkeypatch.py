@@ -7,8 +7,7 @@ GFK (content type + primary key)
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.sqlite3.schema import DatabaseSchemaEditor
 from django.db.migrations.autodetector import MigrationAutodetector
-
-from .compat import FIELD_MODEL_ATTR
+from django.db.migrations.operations.models import RenameModel
 
 
 # ALL BACKENDS EXCEPT SQLITE
@@ -79,34 +78,13 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
             # this is m2m_reverse_field_name() (as opposed to
             # m2m_field_name, which points to our model)
             for f in ['tgt_fk', 'tgt_ct']:
-                try:
-                    # django > 1.11
-                    self._remake_table(
-                        old_field.remote_field.through,
-                        alter_field=(
-                            getoldfield(old_names[f]),
-                            getnewfield(new_names[f]),
-                        )
+                self._remake_table(
+                    old_field.remote_field.through,
+                    alter_field=(
+                        getoldfield(old_names[f]),
+                        getnewfield(new_names[f]),
                     )
-                except TypeError:
-                    # django < 1.11
-                    self._remake_table(
-                        old_field.remote_field.through,
-                        # We need the field that points to the target model,
-                        # so we can tell alter_field to change it -
-                        # this is m2m_reverse_field_name() (as opposed to
-                        # m2m_field_name, which points to our model)
-                        alter_fields=[(
-                            getoldfield(old_names['tgt_fk']),
-                            getnewfield(new_names['tgt_fk']),
-                        ),
-                            (
-                                getoldfield(old_names['tgt_ct']),
-                                getnewfield(new_names['tgt_ct']),
-                            )],
-                        override_uniques=(old_names['src'], old_names['tgt_fk'],
-                                          old_names['tgt_ct']),
-                    )
+                )
             return
 
         # Make a new through table
@@ -147,9 +125,28 @@ def only_relation_agnostic_fields(self, fields):
     for __, field in fields:
         deconstruction = self.deep_deconstruct(field)
         if field.remote_field and field.remote_field.model:
-            deconstruction[2].pop(FIELD_MODEL_ATTR, None)
+            deconstruction[2].pop('model', None)
         fields_def.append(deconstruction)
     return fields_def
 
 MigrationAutodetector.only_relation_agnostic_fields = \
     only_relation_agnostic_fields
+
+
+database_forwards0 = RenameModel.database_forwards
+
+def database_forwards(self, app_label, schema_editor, from_state, to_state):
+    """
+    Filter out auto created related objects from Options.related_objects
+    """
+
+    old_model = from_state.apps.get_model(app_label, self.old_name)
+    related_objects_bck = old_model._meta.related_objects
+    old_model._meta.related_objects = [o for o in related_objects_bck
+                                       if not o.auto_created]
+
+    database_forwards0(self, app_label, schema_editor, from_state, to_state)
+
+    old_model._meta.related_objects = related_objects_bck
+
+RenameModel.database_forwards = database_forwards

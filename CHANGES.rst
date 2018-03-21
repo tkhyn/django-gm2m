@@ -7,6 +7,13 @@ key:
 | \- deletion
 
 
+v0.6 (22-03-2018)
+-----------------
+
+| \* Fixes migration issues (including #37)
+| \- Drops support for Django 1.8 and anything older than Django 1.11
+
+
 v0.5 (07-12-2017)
 -----------------
 

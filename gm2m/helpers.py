@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.fields.related import RECURSIVE_RELATIONSHIP_CONSTANT
 from django.db.migrations.state import StateApps
 from django.utils.functional import cached_property
 from django.utils import six
@@ -78,7 +79,25 @@ class Dummy(object):
     """
 
 
-class GM2MModel(Dummy):
+class GM2MModelMetaclass(type):
+    # the following methods are necessary for migration
+    # RenameModel._get_model_tuple
+    # See issue #37
+    def __str__(cls):
+        return RECURSIVE_RELATIONSHIP_CONSTANT
+
+    def __iter__(cls):
+        yield None
+
+    def __eq__(cls, other):
+        return other is cls \
+               or other == RECURSIVE_RELATIONSHIP_CONSTANT
+
+    def lower(cls):
+        return str(cls)
+
+
+class GM2MModel(six.with_metaclass(GM2MModelMetaclass, Dummy)):
     """
     We need to define pk as we're using that attribute in the GM2MToManager
     above

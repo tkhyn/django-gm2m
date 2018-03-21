@@ -119,8 +119,7 @@ class GM2MBaseManager(Manager):
 
     def set(self, objs, **kwargs):
         """
-        Sets the objs iterable as the set of related objects
-        (Added for compatibility with Django 1.9)
+        Replaces the set of related objects by the items in the objs iterable
         """
 
         self._check_through_model('set')
@@ -379,7 +378,7 @@ class GM2MBaseTgtManager(Manager):
         for obj in objs:
             # Convert the obj to (content_type, primary_key)
             q = q | Q(**{
-                self.field_names['tgt_ct']: get_content_type(obj),
+                self.field_names['tgt_ct']: get_content_type(obj).pk,
                 self.field_names['tgt_fk']: obj.pk
             })
         return q & Q(**{

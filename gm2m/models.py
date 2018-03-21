@@ -1,6 +1,8 @@
 from django.db import connection
 from django.db.backends import utils as db_backends_utils
 from django.db.migrations.state import ModelState
+from django.db.models import options
+from django.core.exceptions import FieldDoesNotExist
 
 from .contenttypes import ct
 from .helpers import is_fake_model
@@ -12,6 +14,22 @@ CT_ATTNAME = 'gm2m_ct'
 FK_ATTNAME = 'gm2m_pk'
 
 THROUGH_FIELDS = (SRC_ATTNAME, TGT_ATTNAME, CT_ATTNAME, FK_ATTNAME)
+
+
+class Options(options.Options):
+
+    def get_field(self, field_name):
+        """
+        This override is needed in migrations.RenameModel.database_forwards
+        See issue #37
+        """
+        try:
+            return super(Options, self).get_field(field_name)
+        except FieldDoesNotExist as e:
+            if field_name == self._forward_fields_map[SRC_ATTNAME]. \
+                                  related_model._meta.model_name:
+                return super(Options, self).get_field(SRC_ATTNAME)
+            raise e
 
 
 def create_gm2m_intermediary_model(field, klass):
@@ -72,6 +90,10 @@ def create_gm2m_intermediary_model(field, klass):
     if is_fake_model(klass):
         # if we are building a fake model for migrations purposes, create a
         # ModelState from the model and render it (see issues #3 and #5)
-        return ModelState.from_model(model).render(klass._meta.apps)
+        model = ModelState.from_model(model).render(klass._meta.apps)
+
+    # changing the options' class to override get_field for RenameModel
+    # migrations' database_forwards
+    model._meta.__class__ = Options
 
     return model
