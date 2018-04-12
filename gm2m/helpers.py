@@ -69,6 +69,8 @@ class GM2MModelManager(models.Manager):
 
         return gm2mto
 
+    def all(self):
+        return []
 
 class Dummy(object):
     """
