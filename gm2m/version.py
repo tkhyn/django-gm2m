@@ -17,14 +17,14 @@ def get_version(version=__version_info__):
         return version_str
 
     if version[3:] == ('alpha', 0):
-        return '%s.dev0+%s' % (version_str, get_hg_chgset())
+        return '%s.dev0+%s' % (version_str, get_git_chgset())
     else:
         return ''.join((version_str, dev_st[version[3]], str(version[4])))
 
 
-def get_hg_chgset():
+def get_git_chgset():
     try:
-        return subprocess.check_output(['hg', 'id', '-i'],
+        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
                                        universal_newlines=True).strip()[:-1]
     except:
         return '?'
