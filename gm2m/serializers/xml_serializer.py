@@ -1,6 +1,5 @@
 from django.core.serializers import xml_serializer
 from django.utils.encoding import smart_text
-from django.utils import six
 
 from ..fields import GM2MField
 from ..contenttypes import ct, get_content_type
@@ -104,7 +103,7 @@ class Deserializer(xml_serializer.Deserializer):
 
             if hasattr(model._default_manager, 'get_by_natural_key'):
                 if hasattr(key, '__iter__') \
-                and not isinstance(key, six.text_type):
+                and not isinstance(key, str):
                     obj = mngr.get_by_natural_key(*key)
                 else:
                     obj = mngr.get_by_natural_key(key)

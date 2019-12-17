@@ -1,6 +1,5 @@
 
 from django.db.models.deletion import CASCADE, DO_NOTHING
-from django.utils import six
 
 from .signals import deleting
 
@@ -10,7 +9,7 @@ __all__ = ['CASCADE', 'DO_NOTHING', 'CASCADE_SIGNAL', 'CASCADE_SIGNAL_VETO',
 
 
 def collector_data_iterator(data):
-    for __, instances in six.iteritems(data):
+    for __, instances in data.items():
         for instance in instances:
             yield instance
 
