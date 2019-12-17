@@ -34,7 +34,6 @@ setup(
     keywords=['django', 'generic', 'many-to-many'],
     classifiers=[
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
@@ -44,7 +43,7 @@ setup(
     ],
     packages=find_packages(exclude=('tests',)),
     install_requires=(
-        'Django>=1.11',
+        'Django>=2.0',
     ),
     zip_safe=True,
 )

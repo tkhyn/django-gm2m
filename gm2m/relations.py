@@ -6,7 +6,6 @@ from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
 from django.apps import apps
 from django.core import checks
-from django.utils import six
 from django.utils.functional import cached_property
 
 from .contenttypes import ct, get_content_type
@@ -152,7 +151,7 @@ class GM2MUnitRel(ForeignObjectRel):
 
     def _check_referencing_to_swapped_model(self):
         if self.model not in apps.get_models() \
-        and not isinstance(self.model, six.string_types) \
+        and not isinstance(self.model, str) \
         and self.model._meta.swapped:
             model = '%s.%s' % (
                 self.model._meta.app_label,
@@ -300,7 +299,7 @@ class GM2MUnitRel(ForeignObjectRel):
             return sup(name)
 
     def contribute_to_class(self):
-        if isinstance(self.model, six.string_types) or self.model._meta.pk is None:
+        if isinstance(self.model, str) or self.model._meta.pk is None:
             def resolve_related_class(cls, model, rel):
                 rel.model = model
                 rel.do_related_class()
@@ -367,7 +366,7 @@ class GM2MUnitRel(ForeignObjectRel):
         # can only be called by Django 1.7+, the apps module will be available
 
         # Work out string form of "to"
-        if isinstance(self.model, six.string_types):
+        if isinstance(self.model, str):
             to_string = self.model
         else:
             to_string = "%s.%s" % (
@@ -451,9 +450,9 @@ class GM2MRel(ManyToManyRel):
         self.field = field
         self._init_attrs = {}
 
-        for name, default in six.iteritems(REL_ATTRS):
+        for name, default in REL_ATTRS.items():
             self.set_init(name, params.pop(name, default))
-        for name, value in six.iteritems(REL_ATTRS_FIXED):
+        for name, value in REL_ATTRS_FIXED.items():
             self.set_init(name, value)
 
         for on_del_param in ('src', 'tgt'):
@@ -488,7 +487,7 @@ class GM2MRel(ManyToManyRel):
             % (self.field.__class__.__name__, model._meta.object_name)
         except AttributeError:
             # model._meta doesn't exist, so it must be a string
-            assert isinstance(model, six.string_types), \
+            assert isinstance(model, str), \
             '%s(%r) is invalid. First parameter to GM2MField must ' \
             'be either a model or a model name' \
             % (self.field.__class__.__name__, model)
@@ -800,7 +799,7 @@ class GM2MRel(ManyToManyRel):
             rel.set_init('through_fields', tf)
 
         # resolve through model if it's provided as a string
-        if isinstance(self.through, six.string_types):
+        if isinstance(self.through, str):
             def resolve_through_model(c, model, r):
                 r.set_init('through', model)
                 calc_field_names(r)

@@ -2,7 +2,6 @@ from django.db import models
 from django.db.models.fields.related import RECURSIVE_RELATIONSHIP_CONSTANT
 from django.db.migrations.state import StateApps
 from django.utils.functional import cached_property
-from django.utils import six
 
 from .contenttypes import ct
 
@@ -55,7 +54,7 @@ class GM2MModelManager(models.Manager):
         mngr = model._default_manager.db_manager(self.db)
 
         if hasattr(model._default_manager, 'get_by_natural_key'):
-            if hasattr(key, '__iter__') and not isinstance(key, six.text_type):
+            if hasattr(key, '__iter__') and not isinstance(key, (str, bytes)):
                 obj = mngr.get_by_natural_key(*key)
             else:
                 obj = mngr.get_by_natural_key(key)
@@ -71,6 +70,7 @@ class GM2MModelManager(models.Manager):
 
     def all(self):
         return []
+
 
 class Dummy(object):
     """
@@ -99,7 +99,7 @@ class GM2MModelMetaclass(type):
         return str(cls)
 
 
-class GM2MModel(six.with_metaclass(GM2MModelMetaclass, Dummy)):
+class GM2MModel(Dummy, metaclass=GM2MModelMetaclass):
     """
     We need to define pk as we're using that attribute in the GM2MToManager
     above
