@@ -443,6 +443,7 @@ class GM2MRel(ManyToManyRel):
     model = GM2MModel
 
     name = 'gm2mrel'
+    is_relation = False
     hidden = False
 
     def __init__(self, field, related_models, **params):
