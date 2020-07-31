@@ -1,6 +1,6 @@
 import subprocess
 
-__version_info__ = (1, 0, 0, 'final', 0)
+__version_info__ = (1, 1, 0, 'alpha', 0)
 
 
 def get_version(version=__version_info__):
