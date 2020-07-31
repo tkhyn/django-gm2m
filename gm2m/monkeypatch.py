@@ -4,6 +4,7 @@ case there is no other solution to make it alter *both* fields needed by the
 GFK (content type + primary key)
 """
 
+import django
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.sqlite3.schema import DatabaseSchemaEditor
 from django.db.migrations.autodetector import MigrationAutodetector
@@ -122,7 +123,14 @@ def only_relation_agnostic_fields(self, fields):
     (as GM2MField.deconstruct does not return a 'model' kwarg)
     """
     fields_def = []
-    for __, field in fields:
+
+    fields_items = None
+    if django.VERSION >= (3, 1):
+        fields_items = sorted(fields.items())
+    else:
+        fields_items = sorted(fields)
+
+    for __, field in fields_items:
         deconstruction = self.deep_deconstruct(field)
         if field.remote_field and field.remote_field.model:
             deconstruction[2].pop('model', None)
