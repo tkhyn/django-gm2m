@@ -7,6 +7,13 @@ key:
 | \- deletion
 
 
+dev
+---
+
+| \+ Add support for Django 3.0
+| \- Drops support for Django < 2.2
+
+
 v0.6 (22-03-2018)
 -----------------
 
