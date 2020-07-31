@@ -1,6 +1,6 @@
 from django.db.models.fields.related import \
     ForeignObjectRel, ForeignObject, ManyToManyRel, lazy_related_operation
-from django.db.models.fields import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models.signals import pre_delete
 from django.db.utils import DEFAULT_DB_ALIAS
 from django.db.models import Q
