@@ -147,16 +147,6 @@ class GM2MBaseManager(Manager):
     clear.alters_data = True
 
 
-if django.VERSION < (2, 0):
-    # get_prefetch_queryset only returns a 5-uple for django < 2.0
-    _get_prefetch_queryset_0 = GM2MBaseManager.get_prefetch_queryset
-
-    def get_prefetch_queryset(self, instances, queryset=None):
-        return _get_prefetch_queryset_0(self, instances, queryset)[:-1]
-
-    GM2MBaseManager.get_prefetch_queryset = get_prefetch_queryset
-
-
 class GM2MBaseSrcManager(Manager):
     
     def __init__(self, instance):

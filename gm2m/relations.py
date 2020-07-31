@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.apps import apps
 from django.core import checks
 from django.utils.functional import cached_property
+from django.db.models.query_utils import PathInfo
 
 from .contenttypes import ct, get_content_type
 from .models import create_gm2m_intermediary_model, THROUGH_FIELDS
@@ -15,7 +16,6 @@ from .descriptors import RelatedGM2MDescriptor, SourceGM2MDescriptor
 from .deletion import *
 from .signals import deleting
 from .helpers import GM2MModel, is_fake_model
-from .compat import PathInfo
 
 
 # default relation attributes
