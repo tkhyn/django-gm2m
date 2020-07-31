@@ -3,7 +3,7 @@
 django-gm2m
 ===========
 
-|copyright| 2014-2018 Thomas Khyn
+|copyright| 2014-2020 Thomas Khyn
 
 Django generic many-to-many field implementation.
 

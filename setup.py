@@ -1,7 +1,7 @@
 """
 django-gm2m
 Django generic many-to-many field
-(c) 2014 Thomas Khyn
+(c) 2014-2020 Thomas Khyn
 MIT License (see LICENSE.txt)
 """
 
