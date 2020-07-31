@@ -15,6 +15,9 @@ class CustomDeletionTests(base.TestCase):
         self.assertEqual(self.models.Links.objects.count(), 0)
         # but the through model instances have not been deleted
         self.assertEqual(self.project1.links_set.through.objects.count(), 2)
+        # clean up to avoid integrity error on teardown
+        self.links.related_objects.through.objects.all().delete()
+
 
     def test_delete_tgt(self):
         self.links.related_objects = [self.project1, self.project2]
