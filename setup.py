@@ -43,7 +43,7 @@ setup(
     ],
     packages=find_packages(exclude=('tests',)),
     install_requires=(
-        'Django>=2.0',
+        'Django>=2.2',
     ),
     zip_safe=True,
 )
