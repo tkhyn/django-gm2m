@@ -7,6 +7,13 @@ key:
 | \- deletion
 
 
+v1.0 (31-07-2020)
+-----------------
+
+| \+ Add support for Django 3.0
+| \- Drops support for Django < 2.2
+
+
 v0.6 (22-03-2018)
 -----------------
 

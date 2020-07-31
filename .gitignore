@@ -1,0 +1,21 @@
+# buildout files and folders
+bin
+.installed.cfg
+.mr.developer.cfg
+
+# distutils generated files and folders
+build
+dist
+MANIFEST
+*.egg-info
+
+# test related files and folders
+.tox
+.coverage
+
+# doc build folder
+doc/_build
+
+# python binary files
+*.pyc
+__pycache__

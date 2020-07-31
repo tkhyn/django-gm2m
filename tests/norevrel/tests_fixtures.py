@@ -14,7 +14,7 @@ class FixtureTests(base.TestCase):
     def fixture_file(self, name):
         return os.path.join(os.path.dirname(__file__), 'fixtures', name)
 
-    def dump(self, fmt, to_data):
+    def dump(self, fmt, to_data, **kwargs):
         dump = self.fixture_file('dump.' + fmt)
         ref = self.fixture_file('reference.' + fmt)
 
@@ -26,8 +26,8 @@ class FixtureTests(base.TestCase):
             call_command('dumpdata', 'app', 'norevrel',
                          format=fmt, output=dump)
 
-            dumpdata = to_data(open(dump, 'r'))
-            refdata = to_data(open(ref, 'r'))
+            dumpdata = to_data(open(dump, 'r'), **kwargs)
+            refdata = to_data(open(ref, 'r'), **kwargs)
 
             self.assertEqual(dumpdata, refdata)
 
@@ -57,7 +57,7 @@ class FixtureTests(base.TestCase):
         self.load('xml')
 
     def test_dump_yaml(self):
-        self.dump('yaml', yaml.load)
+        self.dump('yaml', yaml.load, Loader=yaml.FullLoader)
 
     def test_load_yaml(self):
         self.load('yaml')

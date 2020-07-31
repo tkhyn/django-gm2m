@@ -17,7 +17,6 @@ from unittest import skip
 from django import test
 from django.conf import settings
 from django.core.management import call_command
-from django.utils import six
 from django.db import models
 from django.db.models.fields import related
 from django.apps.registry import apps
@@ -52,7 +51,7 @@ class TestSettingsManager(object):
         if not apps.app_configs:
             apps.populate(settings.INSTALLED_APPS)
 
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             self._original_settings.setdefault(k, getattr(settings,
                                                           k, NO_SETTING))
             setattr(settings, k, v)
@@ -76,7 +75,7 @@ class TestSettingsManager(object):
                      verbosity=0, interactive=False)
 
     def revert(self, migrate=True):
-        for k, v in six.iteritems(self._original_settings):
+        for k, v in self._original_settings.items():
             if v == NO_SETTING:
                 delattr(settings, k)
             else:

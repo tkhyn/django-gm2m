@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from django.db.models.query import ModelIterable, QuerySet
-from django.utils import six
 
 from .contenttypes import ct as ct_classes, get_content_type
 
@@ -39,10 +38,10 @@ class GM2MTgtQuerySetIterable(ModelIterable):
             ct_attrs[ct][pk].append(vl[2:])
             ordered_ct_attrs.append((ct, pk))
 
-        for ct, attrs in six.iteritems(ct_attrs):
-            for pk, obj in six.iteritems(
-                ct_classes.ContentType.objects.get_for_id(ct).model_class()
-                                      ._default_manager.in_bulk(attrs.keys())):
+        for ct, attrs in ct_attrs.items():
+            for pk, obj in ct_classes.ContentType.objects.get_for_id(ct).\
+                    model_class()._default_manager.in_bulk(attrs.keys()).\
+                    items():
 
                 pk = fk_field.to_python(pk)
 
@@ -96,7 +95,7 @@ class GM2MTgtQuerySet(QuerySet):
 
         ctypes = []
         for m in models:
-            if isinstance(m, six.string_types):
+            if isinstance(m, str):
                 m = self.model._meta.apps.get_model(m)
             ctypes.append(get_content_type(m).pk)
 

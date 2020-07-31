@@ -1,7 +1,7 @@
 """
 django-gm2m
 Django generic many-to-many field
-(c) 2014 Thomas Khyn
+(c) 2014-2020 Thomas Khyn
 MIT License (see LICENSE.txt)
 """
 
@@ -30,11 +30,10 @@ setup(
     long_description=open(os.path.join('README.rst')).read(),
     author='Thomas Khyn',
     author_email='thomas@ksytek.com',
-    url='https://bitbucket.org/tkhyn/django-gm2m',
+    url='https://github.com/tkhyn/django-gm2m',
     keywords=['django', 'generic', 'many-to-many'],
     classifiers=[
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
@@ -44,7 +43,7 @@ setup(
     ],
     packages=find_packages(exclude=('tests',)),
     install_requires=(
-        'Django>=1.11',
+        'Django>=2.2',
     ),
     zip_safe=True,
 )
