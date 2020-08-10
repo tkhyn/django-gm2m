@@ -88,6 +88,9 @@ class GM2MModelMetaclass(type):
     def __str__(cls):
         return RECURSIVE_RELATIONSHIP_CONSTANT
 
+    def __hash__(cls):
+        return hash(RECURSIVE_RELATIONSHIP_CONSTANT)
+
     def __iter__(cls):
         yield None
 
