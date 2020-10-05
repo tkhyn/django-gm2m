@@ -7,6 +7,12 @@ key:
 | \- deletion
 
 
+v1.1.1 (05-10-2020)
+-------------------
+
+| \* Make GM2MModelMetaclass hashable for migrations
+
+
 v1.1 (05-10-2020)
 -----------------
 
