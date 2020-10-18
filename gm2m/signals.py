@@ -1,3 +1,6 @@
 from django.core.signals import Signal
 
-deleting = Signal(providing_args=['del_objs', 'rel_objs'])
+# providing args:
+# - ``del_objs``, objects being deleted in the first place
+# - ``rel_objs``, related object for cascade deletion
+deleting = Signal()
