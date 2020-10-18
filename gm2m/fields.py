@@ -3,7 +3,7 @@ import warnings
 from django.db.models.fields import Field
 from django.db import connection
 from django.utils.encoding import force_text
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.core import checks
 from django.db.backends import utils as db_backends_utils
 
