@@ -11,9 +11,9 @@ especially if you're not familiar with zc.buildout and/or tox.
 The tests
 ---------
 
-django-gm2m uses nose_ and django_nose_ for testing. All the test modules are
+django-gm2m uses pytest_django_ for testing. All the test modules are
 contained in individual dummy Django apps in the ``tests`` directory. The test
-modules are named ``tests*.py`` so that nose can discover them, and the test
+modules are named ``tests*.py`` so that pytest can discover them, and the test
 classes are subclasses of ``tests._TestCase`` so that when running
 tests in an app, the app is automatically enabled and the associated models
 defined in ``models.py`` are created. After the tests for that app have
@@ -97,7 +97,7 @@ tests from within an IDE, for example). To do this:
 
 And simply use::
 
-   $ nosetests [options]
+   $ pytest [options]
 
 
 Running the tox suite
@@ -119,7 +119,6 @@ the main directory::
    $ tox
 
 
-.. _nose: http://nose.readthedocs.io/en/latest/
-.. _django_nose: https://pypi.python.org/pypi/django-nose
+.. _pytest_django: https://pytest-django.readthedocs.io/en/latest/
 .. _zc.buildout: http://www.buildout.org/en/latest/
 .. _tox: https://testrun.org/tox/
