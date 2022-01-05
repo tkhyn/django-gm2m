@@ -1,6 +1,6 @@
-from django.conf.urls import url
+from .compat import re_path
 
 
 urlpatterns = [
-    url('^$', lambda: None)
+    re_path('^$', lambda: None)
 ]

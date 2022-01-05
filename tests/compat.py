@@ -8,3 +8,11 @@ try:
 except ImportError:
     # Python 2
     import mock
+
+
+try:
+    # Django 3+
+    from django.urls import re_path
+except ImportError:
+    # Django 2
+    from django.conf.urls import url as re_path
