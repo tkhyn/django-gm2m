@@ -1,5 +1,5 @@
 from django.core.serializers import python
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from ..fields import GM2MField
 from ..contenttypes import get_content_type
@@ -15,7 +15,7 @@ class Serializer(python.Serializer):
                         try:
                             natural = value.natural_key()
                         except AttributeError:
-                            natural = force_text(value._get_pk_val(),
+                            natural = force_str(value._get_pk_val(),
                                              strings_only=True)
                         return (
                             get_content_type(value).natural_key(),
@@ -25,7 +25,7 @@ class Serializer(python.Serializer):
                     def m2m_value(value):
                         return (
                             get_content_type(value).natural_key(),
-                            force_text(value._get_pk_val(), strings_only=True)
+                            force_str(value._get_pk_val(), strings_only=True)
                         )
                 self._current[field.name] = [m2m_value(related)
                     for related in getattr(obj, field.name).iterator()]
