@@ -2,7 +2,7 @@ import warnings
 
 from django.db.models.fields import Field
 from django.db import connection
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 from django.core import checks
 from django.db.backends import utils as db_backends_utils
@@ -143,7 +143,7 @@ class GM2MField(Field):
 
             if value != default:
                 if k == 'related_name':
-                    value = force_text(value)
+                    value = force_str(value)
                 kwargs[k] = value
 
         return name, path, args, kwargs
