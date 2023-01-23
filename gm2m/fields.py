@@ -217,7 +217,8 @@ class GM2MField(Field):
         tables
         """
         attname = self.get_attname()
-        return attname, None
+        # return attname, None
+        return attname, ''
 
     def is_hidden(self):
         """

@@ -1,3 +1,4 @@
+import django
 from django.db.models.fields.related import \
     ForeignObjectRel, ForeignObject, ManyToManyRel, lazy_related_operation
 from django.core.exceptions import FieldDoesNotExist
@@ -7,6 +8,7 @@ from django.db.models import Q
 from django.apps import apps
 from django.core import checks
 from django.utils.functional import cached_property
+from django.utils.hashable import make_hashable
 from django.db.models.query_utils import PathInfo
 from django.db.models.sql import AND
 from django.db.models.sql.where import WhereNode
@@ -144,6 +146,11 @@ class GM2MUnitRel(ForeignObjectRel):
         self.multiple = True
         # warning: do NOT use self.auto_created as it's used by Django !!
         self.auto = auto
+
+    if django.VERSION >= (3,2):
+        @property
+        def identity(self):
+            return make_hashable(self.__dict__.items())
 
     def check(self, **kwargs):
         errors = []
@@ -420,14 +427,27 @@ class GM2MUnitRel(ForeignObjectRel):
             opts.get_field(opts._field_names['tgt_fk']).column
         )]
 
-    def get_extra_restriction(self, alias, remote_alias):
-        opts = self.through._meta
-        field = opts.get_field(opts._field_names['tgt_ct'])
+    if django.VERSION >= (4, 0):
+        def get_extra_restriction(self, alias, remote_alias):
+            opts = self.through._meta
+            field = opts.get_field(opts._field_names['tgt_ct'])
 
-        ct_pk = ct.ContentType.objects.get_for_model(self.model, for_concrete_model=self.for_concrete_model).pk
-        lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
+            ct_pk = ct.ContentType.objects.get_for_model(self.model, for_concrete_model=self.for_concrete_model).pk
+            lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
 
-        return WhereNode([lookup], connector=AND)
+            return WhereNode([lookup], connector=AND)
+    else:
+        def get_extra_restriction(self, where_class, alias, remote_alias):
+            opts = self.through._meta
+            field = opts.get_field(opts._field_names['tgt_ct'])
+
+            ct_pk = ct.ContentType.objects.get_for_model(self.model,
+                                                         for_concrete_model=self.for_concrete_model).pk
+            lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
+
+            cond = where_class()
+            cond.add(lookup, 'AND')
+            return cond
 
     def get_related_field(self):
         """

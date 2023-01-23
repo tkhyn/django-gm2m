@@ -24,7 +24,7 @@ class MigrationTests(base.MigrationsTestCase):
             name='Links',
             fields=[
                 ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField(through_fields=('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'))),
+                ('related_objects', gm2m.fields.GM2MField(through_fields=['gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'])),
             ],
         ),
     ]""", mig_ctnt)
