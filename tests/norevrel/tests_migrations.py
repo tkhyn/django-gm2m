@@ -1,5 +1,6 @@
 import os
 import re
+import django
 
 from .. import base
 
@@ -24,10 +25,10 @@ class MigrationTests(base.MigrationsTestCase):
             name='Links',
             fields=[
                 ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField(through_fields=['gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk'])),
+                ('related_objects', gm2m.fields.GM2MField(through_fields={})),
             ],
         ),
-    ]""", mig_ctnt)
+    ]""".format("['gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk']" if django.VERSION >= (4, 0) else "('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk')"), mig_ctnt)
 
     def test_migrate_app(self):
         # just check that no exception is raised when calling migrate after
