@@ -150,7 +150,15 @@ class GM2MUnitRel(ForeignObjectRel):
     if django.VERSION >= (3,2):
         @property
         def identity(self):
-            return make_hashable(self.__dict__.items())
+            return (
+                *super().identity,
+                self.auto,
+                self.related_model if hasattr(self, 'related_model') else None,
+                self.related if hasattr(self, 'related') else None,
+                self.name if hasattr(self, 'name') else None,
+                self.hidden if hasattr(self, 'hidden') else None,
+                # self.path_infos if hasattr(self, 'path_infos') else None,
+            )
 
     def check(self, **kwargs):
         errors = []
