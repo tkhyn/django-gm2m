@@ -27,6 +27,7 @@ class GM2MModelOptions(object):
         self.object_name = 'ContentType'
         self.model_name = 'contenttype'
         self.app_label = 'contenttypes'
+        self.abstract = False
 
         self.concrete_fields = []
         self.pk = None

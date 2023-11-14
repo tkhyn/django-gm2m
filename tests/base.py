@@ -7,7 +7,7 @@ It takes care of resetting the models and databases for each Testcase
 
 import sys
 import os
-from imp import reload
+from importlib import reload
 import importlib
 from inspect import getfile
 from shutil import rmtree, copy
