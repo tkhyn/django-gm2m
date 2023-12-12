@@ -76,30 +76,30 @@ try:
 except ImportError:
     from urllib2 import urlopen
 
-ez = {}
-exec(urlopen('https://bootstrap.pypa.io/ez_setup.py').read(), ez)
-
-if not options.allow_site_packages:
-    # ez_setup imports site, which adds site packages
-    # this will remove them from the path to ensure that incompatible versions
-    # of setuptools are not in the path
-    import site
-    # inside a virtualenv, there is no 'getsitepackages'.
-    # We can't remove these reliably
-    if hasattr(site, 'getsitepackages'):
-        for sitepackage_path in site.getsitepackages():
-            # Strip all site-packages directories from sys.path that
-            # are not sys.prefix; this is because on Windows
-            # sys.prefix is a site-package directory.
-            if sitepackage_path != sys.prefix:
-                sys.path[:] = [x for x in sys.path if sitepackage_path not in x]
-
-setup_args = dict(to_dir=tmpeggs, download_delay=0)
-
-if options.setuptools_version is not None:
-    setup_args['version'] = options.setuptools_version
-
-ez['use_setuptools'](**setup_args)
+# ez = {}
+# exec(urlopen('https://bootstrap.pypa.io/ez_setup.py').read(), ez)
+#
+# if not options.allow_site_packages:
+#     # ez_setup imports site, which adds site packages
+#     # this will remove them from the path to ensure that incompatible versions
+#     # of setuptools are not in the path
+#     import site
+#     # inside a virtualenv, there is no 'getsitepackages'.
+#     # We can't remove these reliably
+#     if hasattr(site, 'getsitepackages'):
+#         for sitepackage_path in site.getsitepackages():
+#             # Strip all site-packages directories from sys.path that
+#             # are not sys.prefix; this is because on Windows
+#             # sys.prefix is a site-package directory.
+#             if sitepackage_path != sys.prefix:
+#                 sys.path[:] = [x for x in sys.path if sitepackage_path not in x]
+#
+# setup_args = dict(to_dir=tmpeggs, download_delay=0)
+#
+# if options.setuptools_version is not None:
+#     setup_args['version'] = options.setuptools_version
+#
+# ez['use_setuptools'](**setup_args)
 import setuptools
 import pkg_resources
 
@@ -115,7 +115,7 @@ for path in sys.path:
 ws = pkg_resources.working_set
 
 cmd = [sys.executable, '-c',
-       'from setuptools.command.easy_install import main; main()',
+       'from setuptools.command.easy_install import easy_install; easy_install',
        '-mZqNxd', tmpeggs]
 
 find_links = os.environ.get(

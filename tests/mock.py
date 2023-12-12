@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 import contextlib
-
-from .compat import mock
+from unittest import mock
 
 
 @contextlib.contextmanager

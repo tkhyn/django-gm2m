@@ -1,5 +1,5 @@
 from django.core.serializers import xml_serializer
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 
 from ..fields import GM2MField
 from ..contenttypes import ct, get_content_type
@@ -25,12 +25,12 @@ class Serializer(xml_serializer.Serializer):
                         natural = value.natural_key()
                         use_natural_key = True
                     except AttributeError:
-                        natural = smart_text(value._get_pk_val())
+                        natural = smart_str(value._get_pk_val())
                         use_natural_key = False
 
                     # Iterable natural keys are rolled out as subelements
                     if use_natural_key:
-                        attrs = {'pk': smart_text(value._get_pk_val())}
+                        attrs = {'pk': smart_str(value._get_pk_val())}
                     else:
                         attrs = {}
 
@@ -46,14 +46,14 @@ class Serializer(xml_serializer.Serializer):
                     if use_natural_key:
                         for key_value in natural:
                             self.xml.startElement("natural", {})
-                            self.xml.characters(smart_text(key_value))
+                            self.xml.characters(smart_str(key_value))
                             self.xml.endElement("natural")
 
                     self.xml.endElement("object")
             else:
                 def handle_gm2m(value):
                     self.xml.startElement('object', {
-                        'pk': smart_text(value._get_pk_val())
+                        'pk': smart_str(value._get_pk_val())
                     })
 
                     # add content type information

@@ -7,7 +7,7 @@ It takes care of resetting the models and databases for each Testcase
 
 import sys
 import os
-from imp import reload
+from importlib import reload
 import importlib
 from inspect import getfile
 from shutil import rmtree, copy
@@ -28,7 +28,7 @@ from gm2m.contenttypes import ct
 from .helpers import app_mod_path, del_app_models, reset_warning_registry
 
 
-# no nose tests here !
+# no unit tests here !
 __test__ = False
 __unittest = True
 

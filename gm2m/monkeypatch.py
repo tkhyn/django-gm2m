@@ -79,13 +79,22 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
             # this is m2m_reverse_field_name() (as opposed to
             # m2m_field_name, which points to our model)
             for f in ['tgt_fk', 'tgt_ct']:
-                self._remake_table(
-                    old_field.remote_field.through,
-                    alter_field=(
-                        getoldfield(old_names[f]),
-                        getnewfield(new_names[f]),
+                if django.VERSION >= (4, 2):
+                    self._remake_table(
+                        old_field.remote_field.through,
+                        alter_fields=[(
+                            getoldfield(old_names[f]),
+                            getnewfield(new_names[f]),
+                        )]
                     )
-                )
+                else:
+                    self._remake_table(
+                        old_field.remote_field.through,
+                        alter_field=(
+                            getoldfield(old_names[f]),
+                            getnewfield(new_names[f]),
+                        )
+                    )
             return
 
         # Make a new through table
