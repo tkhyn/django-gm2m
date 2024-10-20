@@ -67,6 +67,7 @@ class GM2MRelation(ForeignObject):
     related_accessor_class = RelatedGM2MDescriptor
 
     hidden = False
+    attname = None
 
     def __init__(self, model, field, rel, **kwargs):
         self.field = field
@@ -428,12 +429,20 @@ class GM2MUnitRel(ForeignObjectRel):
     def get_reverse_path_info(self, filtered_relation=None):
         return self._get_path_info(filtered_relation, reverse=True)
 
-    def get_joining_columns(self):
-        opts = self.through._meta
-        return [(
-            self.model._meta.pk.column,
-            opts.get_field(opts._field_names['tgt_fk']).column
-        )]
+    if django.VERSION >= (5, 0):
+        def get_joining_fields(self, reverse_join=False):
+            opts = self.through._meta
+            return [(
+                self.model._meta.pk,
+                opts.get_field(opts._field_names['tgt_fk'])
+            )]
+    else:
+        def get_joining_columns(self):
+            opts = self.through._meta
+            return [(
+                self.model._meta.pk.column,
+                opts.get_field(opts._field_names['tgt_fk']).column
+            )]
 
     if django.VERSION >= (4, 0):
         def get_extra_restriction(self, alias, remote_alias):
