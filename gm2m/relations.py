@@ -198,9 +198,9 @@ class GM2MUnitRel(ForeignObjectRel):
             return []
 
         # If the field doesn't install backward relation on the target
-        # model (so `is_hidden` returns True), then there are no clashes to
+        # model (so `hidden` returns True), then there are no clashes to
         # check and we can skip these fields.
-        if self.is_hidden():
+        if self.hidden:
             return []
 
         try:
@@ -355,7 +355,7 @@ class GM2MUnitRel(ForeignObjectRel):
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
-        if not self.is_hidden() and not self.field.model._meta.swapped:
+        if not self.hidden and not self.field.model._meta.swapped:
             setattr(self.model, self.related_name
                         or (self.field.model._meta.model_name + '_set'),
                     RelatedGM2MDescriptor(self.related, self))
