@@ -31,7 +31,7 @@ class GM2MBaseManager(Manager):
     def _get_queryset(self, using):
         return super(GM2MBaseManager, self).get_queryset().using(using)
 
-    def get_prefetch_queryset(self, instances, queryset=None):
+    def _get_prefetch_querysets(self, instances, queryset=None):
         db = self._db or router.db_for_read(self.model,
                                             instance=instances[0])
 
@@ -47,6 +47,24 @@ class GM2MBaseManager(Manager):
                 False,
                 self.prefetch_cache_name,
                 False)
+
+    if django.VERSION < (5, 0):
+        # get_prefetch_queryset() deprecated in favor of
+        # get_prefetch_querysets() in Django 5.0, dropped in 6.0
+        def get_prefetch_queryset(self, instances, queryset=None):
+            return self._get_prefetch_querysets(instances, queryset)
+    else:
+        def get_prefetch_querysets(self, instances, querysets=None):
+            if querysets and len(querysets) != 1:
+                # Django's M2M don't support passing multiple querysets
+                # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L817  # noqa
+                # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L1199  # noqa
+                raise ValueError(
+                    'querysets argument of get_prefetch_querysets() should '
+                    'have a length of 1.'
+                )
+            queryset = querysets[0] if querysets else None
+            return self._get_prefetch_querysets(instances, queryset)
 
     def _get_extra_queryset(self, queryset, q, extra_fields, db):
         join_table = self.through._meta.db_table

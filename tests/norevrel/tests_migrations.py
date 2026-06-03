@@ -11,7 +11,10 @@ class MigrationTests(base.MigrationsTestCase):
     def test_makemigrations(self):
         self.makemigrations()
 
-        mig_ctnt = re.sub(r'models\.AutoField\(.+?\)', 'models.AutoField()',
+        # DEFAULT_AUTO_FIELD changed to BigAutoField in Django 6.0, normalize it
+        field = 'BigAutoField' if django.VERSION >= (6, 0) else 'AutoField'
+
+        mig_ctnt = re.sub(rf'models\.{field}\(.+?\)', 'models.AutoField()',
                           self.get_migration_content())
         mig_ctnt = re.sub(r"([\s\(])b'", r"\1'", mig_ctnt)
 

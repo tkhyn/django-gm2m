@@ -7,6 +7,13 @@ key:
 | \- deletion
 
 
+v1.4 (TBD)
+-----------------
+
+| \+ Add support for Django 6.0
+| \+ Add support for Python 3.14
+
+
 v1.3 (11-11-2025)
 -----------------
 
