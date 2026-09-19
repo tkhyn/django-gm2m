@@ -27,7 +27,7 @@ def get_git_chgset():
         return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
                                        universal_newlines=True).strip()[:-1]
     except:
-        return '?'
+        return 'unknown'
 
 
 __version__ = get_version()
