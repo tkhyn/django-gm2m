@@ -1,4 +1,3 @@
-import django
 from django.db.models.fields.related import \
     ForeignObjectRel, ForeignObject, ManyToManyRel, lazy_related_operation
 from django.core.exceptions import FieldDoesNotExist
@@ -148,18 +147,17 @@ class GM2MUnitRel(ForeignObjectRel):
         # warning: do NOT use self.auto_created as it's used by Django !!
         self.auto = auto
 
-    if django.VERSION >= (3,2):
-        @property
-        def identity(self):
-            return (
-                *super().identity,
-                self.auto,
-                self.related_model if hasattr(self, 'related_model') else None,
-                self.related if hasattr(self, 'related') else None,
-                self.name if hasattr(self, 'name') else None,
-                self.hidden if hasattr(self, 'hidden') else None,
-                # self.path_infos if hasattr(self, 'path_infos') else None,
-            )
+    @property
+    def identity(self):
+        return (
+            *super().identity,
+            self.auto,
+            self.related_model if hasattr(self, 'related_model') else None,
+            self.related if hasattr(self, 'related') else None,
+            self.name if hasattr(self, 'name') else None,
+            self.hidden if hasattr(self, 'hidden') else None,
+            # self.path_infos if hasattr(self, 'path_infos') else None,
+        )
 
     def check(self, **kwargs):
         errors = []
@@ -429,42 +427,21 @@ class GM2MUnitRel(ForeignObjectRel):
     def get_reverse_path_info(self, filtered_relation=None):
         return self._get_path_info(filtered_relation, reverse=True)
 
-    if django.VERSION >= (5, 0):
-        def get_joining_fields(self, reverse_join=False):
-            opts = self.through._meta
-            return [(
-                self.model._meta.pk,
-                opts.get_field(opts._field_names['tgt_fk'])
-            )]
-    else:
-        def get_joining_columns(self):
-            opts = self.through._meta
-            return [(
-                self.model._meta.pk.column,
-                opts.get_field(opts._field_names['tgt_fk']).column
-            )]
+    def get_joining_fields(self, reverse_join=False):
+        opts = self.through._meta
+        return [(
+            self.model._meta.pk,
+            opts.get_field(opts._field_names['tgt_fk'])
+        )]
 
-    if django.VERSION >= (4, 0):
-        def get_extra_restriction(self, alias, remote_alias):
-            opts = self.through._meta
-            field = opts.get_field(opts._field_names['tgt_ct'])
+    def get_extra_restriction(self, alias, remote_alias):
+        opts = self.through._meta
+        field = opts.get_field(opts._field_names['tgt_ct'])
 
-            ct_pk = ct.ContentType.objects.get_for_model(self.model, for_concrete_model=self.for_concrete_model).pk
-            lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
+        ct_pk = ct.ContentType.objects.get_for_model(self.model, for_concrete_model=self.for_concrete_model).pk
+        lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
 
-            return WhereNode([lookup], connector=AND)
-    else:
-        def get_extra_restriction(self, where_class, alias, remote_alias):
-            opts = self.through._meta
-            field = opts.get_field(opts._field_names['tgt_ct'])
-
-            ct_pk = ct.ContentType.objects.get_for_model(self.model,
-                                                         for_concrete_model=self.for_concrete_model).pk
-            lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
-
-            cond = where_class()
-            cond.add(lookup, 'AND')
-            return cond
+        return WhereNode([lookup], connector=AND)
 
     def get_related_field(self):
         """

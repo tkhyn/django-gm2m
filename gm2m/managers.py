@@ -47,23 +47,17 @@ class GM2MBaseManager(Manager):
                 self.prefetch_cache_name,
                 False)
 
-    if django.VERSION < (5, 0):
-        # get_prefetch_queryset() deprecated in favor of
-        # get_prefetch_querysets() in Django 5.0, dropped in 6.0
-        def get_prefetch_queryset(self, instances, queryset=None):
-            return self._get_prefetch_querysets(instances, queryset)
-    else:
-        def get_prefetch_querysets(self, instances, querysets=None):
-            if querysets and len(querysets) != 1:
-                # Django's M2M don't support passing multiple querysets
-                # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L817  # noqa
-                # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L1199  # noqa
-                raise ValueError(
-                    'querysets argument of get_prefetch_querysets() should '
-                    'have a length of 1.'
-                )
-            queryset = querysets[0] if querysets else None
-            return self._get_prefetch_querysets(instances, queryset)
+    def get_prefetch_querysets(self, instances, querysets=None):
+        if querysets and len(querysets) != 1:
+            # Django's M2M don't support passing multiple querysets
+            # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L817  # noqa
+            # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L1199  # noqa
+            raise ValueError(
+                'querysets argument of get_prefetch_querysets() should '
+                'have a length of 1.'
+            )
+        queryset = querysets[0] if querysets else None
+        return self._get_prefetch_querysets(instances, queryset)
 
     def _get_extra_queryset(self, queryset, q, extra_fields, db):
         join_table = self.through._meta.db_table
@@ -169,7 +163,7 @@ class GM2MBaseManager(Manager):
 
 
 class GM2MBaseSrcManager(Manager):
-    
+
     def __init__(self, instance):
         # the manager's model is the source model
         super(GM2MBaseSrcManager, self).__init__(instance)
@@ -265,14 +259,14 @@ class GM2MBaseSrcManager(Manager):
         Returns the sets of items to be added and a Q object for removal
         """
         inst_ct = get_content_type(self.instance)
-        
+
         vals = list(self.through._default_manager.using(db)
                                 .values_list(self.field_names['src'], flat=True)
                                 .filter(**{
                                     self.field_names['tgt_ct']: inst_ct,
                                     self.field_names['tgt_fk']: self.pk
                                 }))
-        
+
         to_add = set()
         to_remove = set()
         for obj in objs:
@@ -289,7 +283,7 @@ class GM2MBaseSrcManager(Manager):
 
         for v in vals:
             to_remove.add(v)
-        
+
         return to_add, Q(pk__in=to_remove)
 
     def _to_clear(self):
