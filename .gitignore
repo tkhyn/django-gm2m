@@ -19,3 +19,6 @@ doc/_build
 # python binary files
 *.pyc
 __pycache__
+
+# IDEs
+.idea

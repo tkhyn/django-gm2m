@@ -11,9 +11,16 @@ class MigrationTests(base.MigrationsTestCase):
     def test_makemigrations(self):
         self.makemigrations()
 
-        mig_ctnt = re.sub(r'models\.AutoField\(.+?\)', 'models.AutoField()',
+        # DEFAULT_AUTO_FIELD changed to BigAutoField in Django 6.0, normalize it
+        field = 'BigAutoField' if django.VERSION >= (6, 0) else 'AutoField'
+
+        mig_ctnt = re.sub(rf'models\.{field}\(.+?\)', 'models.AutoField()',
                           self.get_migration_content())
         mig_ctnt = re.sub(r"([\s\(])b'", r"\1'", mig_ctnt)
+
+        # Since Django 6.1, a 'to' kwarg needs to be reported for m2m fields
+        # see https://github.com/django/django/commit/33a0a6f033b9243e0cc98e76bd494de73cf144eb
+        to_kwarg = ', to=None' if django.VERSION >= (6, 1) else ''
 
         self.assertIn("""
     dependencies = [
@@ -25,10 +32,10 @@ class MigrationTests(base.MigrationsTestCase):
             name='Links',
             fields=[
                 ('id', models.AutoField()),
-                ('related_objects', gm2m.fields.GM2MField(through_fields={})),
+                ('related_objects', gm2m.fields.GM2MField(through_fields=['gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk']{})),
             ],
         ),
-    ]""".format("['gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk']" if django.VERSION >= (4, 0) else "('gm2m_src', 'gm2m_tgt', 'gm2m_ct', 'gm2m_pk')"), mig_ctnt)
+    ]""".format(to_kwarg), mig_ctnt)
 
     def test_migrate_app(self):
         # just check that no exception is raised when calling migrate after
