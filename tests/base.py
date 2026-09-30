@@ -175,7 +175,7 @@ class TestCase(_TestCase, test.TestCase):
         # this test will run on *all* testcases having no subclasses
 
         if self.__class__.__subclasses__():
-            return skip('not an end test class')
+            skip('not an end test class')
 
         try:
             field = self.links.__class__._meta.get_field('related_objects')
@@ -183,7 +183,7 @@ class TestCase(_TestCase, test.TestCase):
             return
 
         __, __, args, kwargs = field.deconstruct()
-        new_field = GM2MField(*args, **kwargs)
+        GM2MField(*args, **kwargs)
 
         # just checking the strings output, as for an attr to attr comparison
         # we would need to run contribute_to_class

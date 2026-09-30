@@ -1,4 +1,3 @@
-import django
 from django.db import router
 from django.db.models import Q, Manager
 from django.db import connections
@@ -31,7 +30,7 @@ class GM2MBaseManager(Manager):
     def _get_queryset(self, using):
         return super(GM2MBaseManager, self).get_queryset().using(using)
 
-    def get_prefetch_queryset(self, instances, queryset=None):
+    def _get_prefetch_querysets(self, instances, queryset=None):
         db = self._db or router.db_for_read(self.model,
                                             instance=instances[0])
 
@@ -47,6 +46,18 @@ class GM2MBaseManager(Manager):
                 False,
                 self.prefetch_cache_name,
                 False)
+
+    def get_prefetch_querysets(self, instances, querysets=None):
+        if querysets and len(querysets) != 1:
+            # Django's M2M don't support passing multiple querysets
+            # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L817  # noqa
+            # https://github.com/django/django/blob/b7e5bc37eec7d5c33bc0d32d4b0fdf46a68661aa/django/db/models/fields/related_descriptors.py#L1199  # noqa
+            raise ValueError(
+                'querysets argument of get_prefetch_querysets() should '
+                'have a length of 1.'
+            )
+        queryset = querysets[0] if querysets else None
+        return self._get_prefetch_querysets(instances, queryset)
 
     def _get_extra_queryset(self, queryset, q, extra_fields, db):
         join_table = self.through._meta.db_table
@@ -117,16 +128,16 @@ class GM2MBaseManager(Manager):
         self.through._default_manager.using(db).filter(**(filter or {})) \
             .delete()
 
-    def set(self, objs, **kwargs):
+    def set_base(self, objs, clear=False, raw=False, **kwargs):
+        # Introduced in Django 6.1
+        # https://github.com/django/django/commit/12d574407c466c7929e455cfcfef4c0ff564e465
         """
         Replaces the set of related objects by the items in the objs iterable
         """
-
         self._check_through_model('set')
 
         objs = tuple(objs)
 
-        clear = kwargs.pop('clear', False)
         db = router.db_for_write(self.through, instance=self.instance)
 
         if clear:
@@ -138,6 +149,10 @@ class GM2MBaseManager(Manager):
             to_add, to_remove = self._to_change(objs, db)
             self._do_remove(db, to_remove)
             self._do_add(db, to_add)
+    set_base.alters_data = True
+
+    def set(self, objs, **kwargs):
+        self.set_base(objs, **kwargs)
     set.alters_data = True
 
     def clear(self):
@@ -148,7 +163,7 @@ class GM2MBaseManager(Manager):
 
 
 class GM2MBaseSrcManager(Manager):
-    
+
     def __init__(self, instance):
         # the manager's model is the source model
         super(GM2MBaseSrcManager, self).__init__(instance)
@@ -244,14 +259,14 @@ class GM2MBaseSrcManager(Manager):
         Returns the sets of items to be added and a Q object for removal
         """
         inst_ct = get_content_type(self.instance)
-        
+
         vals = list(self.through._default_manager.using(db)
                                 .values_list(self.field_names['src'], flat=True)
                                 .filter(**{
                                     self.field_names['tgt_ct']: inst_ct,
                                     self.field_names['tgt_fk']: self.pk
                                 }))
-        
+
         to_add = set()
         to_remove = set()
         for obj in objs:
@@ -268,7 +283,7 @@ class GM2MBaseSrcManager(Manager):
 
         for v in vals:
             to_remove.add(v)
-        
+
         return to_add, Q(pk__in=to_remove)
 
     def _to_clear(self):

@@ -4,7 +4,6 @@ case there is no other solution to make it alter *both* fields needed by the
 GFK (content type + primary key)
 """
 
-import django
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.sqlite3.schema import DatabaseSchemaEditor
 from django.db.migrations.autodetector import MigrationAutodetector
@@ -69,7 +68,7 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
         new_names = new_field.remote_field.through._meta._field_names
         getoldfield = old_field.remote_field.through._meta.get_field
         getnewfield = new_field.remote_field.through._meta.get_field
-        
+
         if old_field.remote_field.through._meta.db_table == \
         new_field.remote_field.through._meta.db_table:
             # The field name didn't change, but some options did;
@@ -79,22 +78,13 @@ def _alter_many_to_many(self, model, old_field, new_field, strict):
             # this is m2m_reverse_field_name() (as opposed to
             # m2m_field_name, which points to our model)
             for f in ['tgt_fk', 'tgt_ct']:
-                if django.VERSION >= (4, 2):
-                    self._remake_table(
-                        old_field.remote_field.through,
-                        alter_fields=[(
-                            getoldfield(old_names[f]),
-                            getnewfield(new_names[f]),
-                        )]
-                    )
-                else:
-                    self._remake_table(
-                        old_field.remote_field.through,
-                        alter_field=(
-                            getoldfield(old_names[f]),
-                            getnewfield(new_names[f]),
-                        )
-                    )
+                self._remake_table(
+                    old_field.remote_field.through,
+                    alter_fields=[(
+                        getoldfield(old_names[f]),
+                        getnewfield(new_names[f]),
+                    )]
+                )
             return
 
         # Make a new through table
@@ -133,13 +123,7 @@ def only_relation_agnostic_fields(self, fields):
     """
     fields_def = []
 
-    fields_items = None
-    if django.VERSION >= (3, 1):
-        fields_items = sorted(fields.items())
-    else:
-        fields_items = sorted(fields)
-
-    for __, field in fields_items:
+    for __, field in sorted(fields.items()):
         deconstruction = self.deep_deconstruct(field)
         if field.remote_field and field.remote_field.model:
             deconstruction[2].pop('model', None)

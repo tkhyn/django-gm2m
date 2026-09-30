@@ -1,6 +1,6 @@
 import subprocess
 
-__version_info__ = (1, 2, 0, 'final', 0)
+__version_info__ = (1, 4, 0, 'final', 0)
 
 
 def get_version(version=__version_info__):
@@ -27,7 +27,7 @@ def get_git_chgset():
         return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'],
                                        universal_newlines=True).strip()[:-1]
     except:
-        return '?'
+        return 'unknown'
 
 
 __version__ = get_version()

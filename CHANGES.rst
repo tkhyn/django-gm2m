@@ -7,6 +7,32 @@ key:
 | \- deletion
 
 
+v1.4 (30-09-2026)
+-----------------
+
+| \+ Add support for Django 6.0
+| \+ Add support for Django 6.1
+| \+ Add support for Python 3.14
+| \+ Drop support for Django < 5.2
+| \+ Drop support for Python < 3.10
+
+
+v1.3 (11-11-2025)
+-----------------
+
+| \+ Add support for Django 5.0
+| \+ Add support for Django 5.1
+| \+ Add support for Python 3.13
+
+
+v1.2 (12-12-2023)
+-----------------
+
+| \+ Add support for Django 4.0
+| \+ Add support for Django 4.1
+| \+ Add support for Django 4.2
+
+
 v1.1.1 (05-10-2020)
 -------------------
 

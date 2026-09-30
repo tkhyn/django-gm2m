@@ -1,4 +1,3 @@
-import django
 from django.db.models.fields.related import \
     ForeignObjectRel, ForeignObject, ManyToManyRel, lazy_related_operation
 from django.core.exceptions import FieldDoesNotExist
@@ -67,6 +66,7 @@ class GM2MRelation(ForeignObject):
     related_accessor_class = RelatedGM2MDescriptor
 
     hidden = False
+    attname = None
 
     def __init__(self, model, field, rel, **kwargs):
         self.field = field
@@ -147,18 +147,17 @@ class GM2MUnitRel(ForeignObjectRel):
         # warning: do NOT use self.auto_created as it's used by Django !!
         self.auto = auto
 
-    if django.VERSION >= (3,2):
-        @property
-        def identity(self):
-            return (
-                *super().identity,
-                self.auto,
-                self.related_model if hasattr(self, 'related_model') else None,
-                self.related if hasattr(self, 'related') else None,
-                self.name if hasattr(self, 'name') else None,
-                self.hidden if hasattr(self, 'hidden') else None,
-                # self.path_infos if hasattr(self, 'path_infos') else None,
-            )
+    @property
+    def identity(self):
+        return (
+            *super().identity,
+            self.auto,
+            self.related_model if hasattr(self, 'related_model') else None,
+            self.related if hasattr(self, 'related') else None,
+            self.name if hasattr(self, 'name') else None,
+            self.hidden if hasattr(self, 'hidden') else None,
+            # self.path_infos if hasattr(self, 'path_infos') else None,
+        )
 
     def check(self, **kwargs):
         errors = []
@@ -198,9 +197,9 @@ class GM2MUnitRel(ForeignObjectRel):
             return []
 
         # If the field doesn't install backward relation on the target
-        # model (so `is_hidden` returns True), then there are no clashes to
+        # model (so `hidden` returns True), then there are no clashes to
         # check and we can skip these fields.
-        if self.is_hidden():
+        if self.hidden:
             return []
 
         try:
@@ -355,7 +354,7 @@ class GM2MUnitRel(ForeignObjectRel):
 
         # Internal M2Ms (i.e., those with a related name ending with '+')
         # and swapped models don't get a related descriptor.
-        if not self.is_hidden() and not self.field.model._meta.swapped:
+        if not self.hidden and not self.field.model._meta.swapped:
             setattr(self.model, self.related_name
                         or (self.field.model._meta.model_name + '_set'),
                     RelatedGM2MDescriptor(self.related, self))
@@ -428,34 +427,21 @@ class GM2MUnitRel(ForeignObjectRel):
     def get_reverse_path_info(self, filtered_relation=None):
         return self._get_path_info(filtered_relation, reverse=True)
 
-    def get_joining_columns(self):
+    def get_joining_fields(self, reverse_join=False):
         opts = self.through._meta
         return [(
-            self.model._meta.pk.column,
-            opts.get_field(opts._field_names['tgt_fk']).column
+            self.model._meta.pk,
+            opts.get_field(opts._field_names['tgt_fk'])
         )]
 
-    if django.VERSION >= (4, 0):
-        def get_extra_restriction(self, alias, remote_alias):
-            opts = self.through._meta
-            field = opts.get_field(opts._field_names['tgt_ct'])
+    def get_extra_restriction(self, alias, remote_alias):
+        opts = self.through._meta
+        field = opts.get_field(opts._field_names['tgt_ct'])
 
-            ct_pk = ct.ContentType.objects.get_for_model(self.model, for_concrete_model=self.for_concrete_model).pk
-            lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
+        ct_pk = ct.ContentType.objects.get_for_model(self.model, for_concrete_model=self.for_concrete_model).pk
+        lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
 
-            return WhereNode([lookup], connector=AND)
-    else:
-        def get_extra_restriction(self, where_class, alias, remote_alias):
-            opts = self.through._meta
-            field = opts.get_field(opts._field_names['tgt_ct'])
-
-            ct_pk = ct.ContentType.objects.get_for_model(self.model,
-                                                         for_concrete_model=self.for_concrete_model).pk
-            lookup = field.get_lookup('exact')(field.get_col(alias), ct_pk)
-
-            cond = where_class()
-            cond.add(lookup, 'AND')
-            return cond
+        return WhereNode([lookup], connector=AND)
 
     def get_related_field(self):
         """

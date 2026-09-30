@@ -1,5 +1,6 @@
 import warnings
 
+import django
 from django.db.models.fields import Field
 from django.db import connection
 from django.utils.encoding import force_str
@@ -110,6 +111,15 @@ class GM2MField(Field):
             kwargs['db_table'] = self.db_table
         if self.pk_maxlength is not False:
             kwargs['pk_maxlength'] = self.pk_maxlength
+
+        if django.VERSION >= (6, 1):
+            # MigrationAutodetector.generate_altered_fields() compares
+            # kwargs['to'] to tell whether a m2m field's target changed.
+            # GM2MField has no single target, so report None:
+            # it never varies between the old and new field states,
+            # and is silently ignored by GM2MField.__init__()
+            # if replayed from a migration.
+            kwargs['to'] = None
 
         through = self.remote_field.through
         if through:
